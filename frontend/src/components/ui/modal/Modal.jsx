@@ -72,7 +72,7 @@ export default function Modal({
   };
 
   const overlayClasses = cn(
-    "fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 animate-in fade-in",
+    "fixed inset-0 z-100 flex items-center justify-center p-4 duration-200 animate-in fade-in",
     "backdrop-blur-sm"
   );
 
