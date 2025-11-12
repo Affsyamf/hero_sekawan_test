@@ -4,8 +4,9 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models import Base
+from app.models.mixin.AuditMixin import AuditMixin
 
-class Purchasing(Base):
+class Purchasing(Base, AuditMixin):
     __tablename__ = 'purchasings'
     
     id = Column(Integer, primary_key=True)
@@ -20,7 +21,7 @@ class Purchasing(Base):
 
     details = relationship("PurchasingDetail", back_populates="purchasing", lazy='selectin', cascade="all, delete-orphan")
 
-class PurchasingDetail(Base):
+class PurchasingDetail(Base, AuditMixin):
     __tablename__ = 'purchasing_details'
     
     id = Column(Integer, primary_key=True)
