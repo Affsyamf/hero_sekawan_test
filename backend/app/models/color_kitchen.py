@@ -4,8 +4,9 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models import Base
+from app.models.mixin.AuditMixin import AuditMixin
 
-class ColorKitchenBatch(Base):
+class ColorKitchenBatch(Base, AuditMixin):
     __tablename__ = "color_kitchen_batches"
 
     id = Column(Integer, primary_key=True)
@@ -16,7 +17,7 @@ class ColorKitchenBatch(Base):
     details = relationship("ColorKitchenBatchDetail", back_populates="batch", lazy='selectin', cascade="all, delete-orphan")
 
 
-class ColorKitchenBatchDetail(Base):
+class ColorKitchenBatchDetail(Base, AuditMixin):
     __tablename__ = "color_kitchen_batch_details"
 
     id = Column(Integer, primary_key=True)
@@ -34,7 +35,7 @@ class ColorKitchenBatchDetail(Base):
     batch_id = Column(Integer, ForeignKey("color_kitchen_batches.id", ondelete="CASCADE"), nullable=False)
     batch = relationship("ColorKitchenBatch", back_populates="details", lazy='selectin')
     
-class ColorKitchenEntry(Base):
+class ColorKitchenEntry(Base, AuditMixin):
     __tablename__ = "color_kitchen_entries"
 
     id = Column(Integer, primary_key=True)
@@ -53,7 +54,7 @@ class ColorKitchenEntry(Base):
     # auxiliaries (per OPJ)
     details = relationship("ColorKitchenEntryDetail", back_populates="color_kitchen_entry", lazy='selectin', cascade="all, delete-orphan")
 
-class ColorKitchenEntryDetail(Base):
+class ColorKitchenEntryDetail(Base, AuditMixin):
     __tablename__ = 'color_kitchen_entry_details'
     
     id = Column(Integer, primary_key=True)

@@ -4,8 +4,9 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models import Base
+from app.models.mixin.AuditMixin import AuditMixin
 
-class Supplier(Base):
+class Supplier(Base, AuditMixin):
     __tablename__ = 'suppliers'
     
     id = Column(Integer, primary_key=True)
@@ -15,7 +16,7 @@ class Supplier(Base):
 
     purchasings = relationship("Purchasing", back_populates="supplier", lazy='select')
 
-class Product(Base):
+class Product(Base, AuditMixin):
     __tablename__ = 'products'
     
     id = Column(Integer, primary_key=True)
@@ -33,7 +34,7 @@ class Product(Base):
     stock_opname_details = relationship("StockOpnameDetail", back_populates="product", lazy='select')
     avg_cost_cache = relationship("ProductAvgCostCache", uselist=False, back_populates="product", lazy='select')
 
-class Design(Base):
+class Design(Base, AuditMixin):
     __tablename__ = 'designs'
     
     id = Column(Integer, primary_key=True)

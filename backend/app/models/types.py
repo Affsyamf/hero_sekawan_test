@@ -4,9 +4,11 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models import Base
+from app.models.mixin.AuditMixin import AuditMixin
+
 from app.models.enum.registry import enum_column
 
-class AccountParent(Base):
+class AccountParent(Base, AuditMixin):
     __tablename__ = 'account_parents'
     
     id = Column(Integer, primary_key=True)
@@ -16,7 +18,7 @@ class AccountParent(Base):
 
     accounts = relationship("Account", back_populates="parent", lazy='selectin', cascade="all, delete-orphan")
 
-class Account(Base):
+class Account(Base, AuditMixin):
     __tablename__ = 'accounts'
     
     id = Column(Integer, primary_key=True)
@@ -27,7 +29,7 @@ class Account(Base):
     
     products = relationship("Product", back_populates="account", lazy='selectin')
     
-class DesignType(Base):
+class DesignType(Base, AuditMixin):
     __tablename__ = "design_types"
 
     id = Column(Integer, primary_key=True)
