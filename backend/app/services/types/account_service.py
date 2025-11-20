@@ -6,7 +6,7 @@ from sqlalchemy import or_
 
 from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate
 from app.core.database import Session, get_db
-from app.models import Account, Product
+from app.models import Account, Product, AccountParent
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
@@ -63,15 +63,23 @@ class AccountService:
         return APIResponse.ok(data=response)
 
     def create_account(self, request: AccountCreate):
-        existing = self.db.query(Account).filter(Account.account_no == request.account_no).first()
-        if existing:
-            return APIResponse.conflict(message=f"Account number '{request.account_no}' already exists.")
+        parent_exists = self.db.query(AccountParent).filter(
+            AccountParent.id == request.parent_id
+        ). first()
+        
+        if not parent_exists:
+            return APIResponse.not_found(message=f"Account Parent ID '{request.parent_id}' not found.")
 
+        existing_name = self.db.query(Account).filter(Account.name == request.name).first()
+        if existing_name:
+            return APIResponse.conflict(message=f"Account Name '{request.name}' already exists.")
+        
         account = Account(**request.model_dump())
         self.db.add(account)
-
-        return APIResponse.created()
-
+        self.db.flush()
+        self.db.refresh(account)
+        return APIResponse.created(data={"id": account.id})
+    
     def update_account(self, account_id: int, request: AccountUpdate):
         update_data = request.model_dump(exclude_unset=True)
 
@@ -79,6 +87,10 @@ class AccountService:
         if not account:
             return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
 
+        if "parent_id" in update_data:
+            parent_exists = self.db.query(AccountParent).filter(
+                AccountParent
+            )
         if "account_no" in update_data:
             existing = self.db.query(Account).filter(
                 Account.account_no == update_data["account_no"],
