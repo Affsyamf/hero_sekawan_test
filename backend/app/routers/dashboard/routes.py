@@ -10,7 +10,7 @@ from app.services.dashboard.dashboard_service import DashboardService
 from app.utils.datatable.request import ListRequest
 from app.dependencies.rbac import require_admin
 
-dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"], dependencies=[Depends(require_admin())])
+dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"], dependencies=[require_admin()])
 
 
 @dashboard_router.post("/overview")
