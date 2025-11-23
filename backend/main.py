@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.exceptions import RequestValidationError
+
 from app.utils.response import APIResponse
 
 from app.events import audit_events, ledger_events, soft_delete_filter, prevent_bulk_ops
@@ -31,6 +34,45 @@ from app.routers.reporting.color_kitchen_report import router as color_kitchen_r
 load_dotenv()
 
 app = FastAPI()
+
+from fastapi.openapi.utils import get_openapi
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login-form")
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Fashion Spot Grosir API",
+        version="1.0",
+        routes=app.routes,
+    )
+
+    # Force OpenAPI version to 3.0.3
+    openapi_schema["openapi"] = "3.0.3"
+
+    openapi_schema["components"]["securitySchemes"] = {
+        "OAuth2Password": {
+            "type": "oauth2",
+            "flows": {
+                "password": {
+                    "tokenUrl": "/auth/login-form",
+                    "scopes": {}
+                }
+            }
+        }
+    }
+
+    # Set default security (BearerAuth)
+    openapi_schema["security"] = [
+        {"OAuth2Password": []}
+    ]
+
+    app.openapi_schema = openapi_schema
+    return openapi_schema
+
+app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,
