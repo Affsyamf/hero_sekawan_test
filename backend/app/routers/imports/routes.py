@@ -13,8 +13,9 @@ from app.services.imports import (
     MasterDataLapChemicalImportService, 
     MasterDataLapPembelianImportService,
 )
+from app.dependencies.rbac import require_user
 
-excel_import_router = APIRouter(prefix="/import", tags=["import"])
+excel_import_router = APIRouter(prefix="/import", tags=["import"], dependencies=[require_user()])
 
 # Excel import route factory
 def make_import_routes(path: str, service_cls: Type[Any]):

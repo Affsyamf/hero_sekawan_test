@@ -4,8 +4,9 @@ from app.schemas.input_models.stock_movement_input_models import StockMovementCr
 from app.utils.datatable.request import ListRequest
 from app.services.stock_movement.stock_movement_service import StockMovementService
 from app.utils.response import APIResponse
+from app.dependencies.rbac import require_user
 
-stock_movement_router = APIRouter(prefix="/stock-movement", tags=["stock-movement"])
+stock_movement_router = APIRouter(prefix="/stock-movement", tags=["stock-movement"], dependencies=[require_user()])
 
 @stock_movement_router.get("/search")
 def search_stock_movements(request: ListRequest = Depends(), service: StockMovementService = Depends()):

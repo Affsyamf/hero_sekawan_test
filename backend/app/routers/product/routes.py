@@ -5,8 +5,9 @@ from app.schemas.input_models.master_input_models import ProductCreate, ProductU
 from app.utils.datatable.request import ListRequest
 from app.services.master.product_service import ProductService
 from app.utils.response import APIResponse
+from app.dependencies.rbac import require_user
 
-product_router = APIRouter(prefix="/product", tags=["product"])
+product_router = APIRouter(prefix="/product", tags=["product"], dependencies=[require_user()])
 
 @product_router.get("/search")
 def search_products(request: ListRequest = Depends(), service: ProductService = Depends()):

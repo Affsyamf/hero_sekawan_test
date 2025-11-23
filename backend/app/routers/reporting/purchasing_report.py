@@ -5,8 +5,9 @@ from app.services.reporting.purchasing import (PurchasingSummaryService, Purchas
                                                PurchasingProductInsightsService, PurchasingSupplierInsightsService)
 from app.schemas.filter_models.report_filters import PurchasingReportFilter
 from typing import Optional
+from app.dependencies.rbac import require_admin
 
-router = APIRouter(prefix="/reports/purchasing", tags=["Reports/Purchasing"])
+router = APIRouter(prefix="/reports/purchasing", tags=["Reports/Purchasing"], dependencies=[Depends(require_admin())])
 
 @router.post("/summary")
 def get_purchasing_summary(filters: PurchasingReportFilter, db: Session = Depends(get_db)):

@@ -4,8 +4,9 @@ from app.schemas.input_models.types_input_models import DesignTypeCreate, Design
 from app.utils.datatable.request import ListRequest
 from app.services.types.design_type_service import DesignTypeService
 from app.utils.response import APIResponse
+from app.dependencies.rbac import require_user
 
-design_type_router = APIRouter(prefix="/design-type", tags=["design-type"])
+design_type_router = APIRouter(prefix="/design-type", tags=["design-type"], dependencies=[require_user()])
 
 @design_type_router.get("/search")
 def search_design_types(request: ListRequest = Depends(), service: DesignTypeService = Depends()):
