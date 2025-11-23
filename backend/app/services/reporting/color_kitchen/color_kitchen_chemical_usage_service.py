@@ -1,18 +1,20 @@
 # app/services/reporting/color_kitchen/color_kitchen_chemical_usage_service.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, exists, and_
 from app.models import (
     ColorKitchenBatch,
     ColorKitchenBatchDetail,
     ColorKitchenEntry,
     ColorKitchenEntryDetail,
-    Product,
+    Product, Supplier, Purchasing, PurchasingDetail
 )
 from app.services.reporting.base_reporting_service import BaseReportService
+from app.services.reporting.color_kitchen.base_color_kitchen_service import ColorKitchenReportBase
 
 from app.utils.response import APIResponse
+from app.utils.filters import apply_common_report_filters
 
-class ColorKitchenChemicalUsageService(BaseReportService):
+class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase):
     """
     Service for Color Kitchen Chemical Usage metrics.
     Includes summary and drilldown structure:
@@ -48,11 +50,18 @@ class ColorKitchenChemicalUsageService(BaseReportService):
                 func.sum(ColorKitchenBatchDetail.quantity * ColorKitchenBatchDetail.unit_cost_used).label("value")
             )
             .join(ColorKitchenBatch, ColorKitchenBatch.id == ColorKitchenBatchDetail.batch_id)
+            .join(Product, Product.id == ColorKitchenBatchDetail.product_id)
         )
+
+        q_dyes = self.apply_supplier_filter(q_dyes, filters)
+
         if start_date:
             q_dyes = q_dyes.filter(ColorKitchenBatch.date >= start_date)
         if end_date:
             q_dyes = q_dyes.filter(ColorKitchenBatch.date <= end_date)
+
+        q_dyes = apply_common_report_filters(q_dyes, filters)
+
         dyes_total = float(q_dyes.scalar() or 0)
 
         # --- Auxiliaries (from EntryDetail)
@@ -61,11 +70,18 @@ class ColorKitchenChemicalUsageService(BaseReportService):
                 func.sum(ColorKitchenEntryDetail.quantity * ColorKitchenEntryDetail.unit_cost_used).label("value")
             )
             .join(ColorKitchenEntry, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
+            .join(Product, Product.id == ColorKitchenEntryDetail.product_id)
         )
+
+        q_aux = self.apply_supplier_filter(q_aux, filters)
+
         if start_date:
             q_aux = q_aux.filter(ColorKitchenEntry.date >= start_date)
         if end_date:
             q_aux = q_aux.filter(ColorKitchenEntry.date <= end_date)
+
+        q_aux = apply_common_report_filters(q_aux, filters)
+
         aux_total = float(q_aux.scalar() or 0)
 
         # --- Combine results for Pie Chart
@@ -106,10 +122,16 @@ class ColorKitchenChemicalUsageService(BaseReportService):
                 .join(Product, Product.id == ColorKitchenBatchDetail.product_id)
                 .join(ColorKitchenBatch, ColorKitchenBatch.id == ColorKitchenBatchDetail.batch_id)
             )
+
+            q = self.apply_supplier_filter(q, filters)
+
+
             if start_date:
                 q = q.filter(ColorKitchenBatch.date >= start_date)
             if end_date:
                 q = q.filter(ColorKitchenBatch.date <= end_date)
+
+            q = apply_common_report_filters(q, filters)
 
             q = (
                 q.group_by(Product.name)
@@ -128,10 +150,15 @@ class ColorKitchenChemicalUsageService(BaseReportService):
                 .join(Product, Product.id == ColorKitchenEntryDetail.product_id)
                 .join(ColorKitchenEntry, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
             )
+
+            q = self.apply_supplier_filter(q, filters)
+
             if start_date:
                 q = q.filter(ColorKitchenEntry.date >= start_date)
             if end_date:
                 q = q.filter(ColorKitchenEntry.date <= end_date)
+
+            q = apply_common_report_filters(q, filters)
 
             q = (
                 q.group_by(Product.name)

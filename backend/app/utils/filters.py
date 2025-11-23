@@ -1,16 +1,17 @@
 from sqlalchemy.orm import Query
 from app.models import Product, Purchasing, Account, AccountParent
 
+def get_field(name, filters):
+    return filters.get(name) if isinstance(filters, dict) else getattr(filters, name, None)
+
 def apply_common_report_filters(query: Query, filters) -> Query:
     """Apply generic filters (product, supplier, account, category) to any report query."""
-    def get_field(name):
-        return filters.get(name) if isinstance(filters, dict) else getattr(filters, name, None)
-    
-    product_ids = get_field("product_ids")
-    supplier_ids = get_field("supplier_ids")
-    account_parent_codes = get_field("account_parent_codes")
-    account_names = get_field("account_names")
-    category = get_field("category")
+
+    product_ids = get_field("product_ids", filters)
+    supplier_ids = get_field("supplier_ids", filters)
+    account_parent_codes = get_field("account_parent_codes", filters)
+    account_names = get_field("account_names", filters)
+    category = get_field("category", filters)
 
     if product_ids:
         query = query.filter(Product.id.in_(product_ids))

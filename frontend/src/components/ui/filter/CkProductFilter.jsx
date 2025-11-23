@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../../../utils/cn";
-import { searchProduct } from "../../../services/product_service";
+import { searchCkProduct } from "../../../services/product_service";
 import { useTheme } from "../../../contexts/ThemeContext";
 
-export default function ProductFilter({ value = [], onChange }) {
+export default function CkProductFilter({ value = [], onChange }) {
   const { colors } = useTheme();
 
   const [products, setProducts] = useState([]);
@@ -15,7 +15,7 @@ export default function ProductFilter({ value = [], onChange }) {
     const timeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await searchProduct({
+        const res = await searchCkProduct({
           q: search,
           page: 1,
           page_size: 1000,

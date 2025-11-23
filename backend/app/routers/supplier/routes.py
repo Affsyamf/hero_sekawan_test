@@ -11,6 +11,10 @@ supplier_router = APIRouter(prefix="/supplier", tags=["supplier"])
 def search_suppliers(request: ListRequest = Depends(), service: SupplierService = Depends()):
     return service.list_supplier(request=request)
 
+@supplier_router.get("/color-kitchen")
+def search_suppliers(request: ListRequest = Depends(), service: SupplierService = Depends()):
+    return service.list_supplier_ck(request=request)
+
 @supplier_router.get("/{supplier_id}")
 def get_supplier_by_id(supplier_id: int, service: SupplierService = Depends()):
     return service.get_supplier(supplier_id=supplier_id)

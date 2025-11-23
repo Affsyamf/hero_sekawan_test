@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect, cache } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "highcharts/modules/drilldown";
@@ -19,8 +19,59 @@ const HighchartsDonut = ({
   const { colors } = useTheme();
   const [visibleData, setVisibleData] = useState([]);
   const [showRaw, setShowRaw] = useState(false);
-
   const othersCache = useRef([]);
+
+  const cacheTree = useRef({ key: "__root__", children: [] });
+  const drillStack = useRef(["__root__"]);
+
+  useEffect(() => {
+    cacheTree.current = { key: "__root__", children: [] };
+    drillStack.current = ["__root__"];
+  }, [data]);
+
+  function findNodeStrict(path) {
+    let node = cacheTree.current;
+
+    for (const key of path) {
+      const child = node.children.find((c) => c.key === key);
+      if (!child) return null;
+      node = child;
+    }
+    return node;
+  }
+
+  // Utility: find or create nested node path
+  function findOrCreateNode(path) {
+    let node = cacheTree.current;
+
+    for (const key of path) {
+      let child = node.children.find((c) => c.key === key);
+      if (!child) {
+        child = { key, children: [] };
+        node.children.push(child);
+      }
+      node = child;
+    }
+    return node;
+  }
+
+  function getCachedChildren(path) {
+    const node = findNodeStrict(path);
+    return node?.children?.length ? node.children : null;
+  }
+
+  // Utility: insert children cleanly
+  function insertDrillData(path, children) {
+    const node = findOrCreateNode(path);
+
+    node.children = children.map((c) => ({
+      key: c.name || c.key,
+      value: c.y ?? c.value,
+      drilldown: c.drilldown ?? false,
+      context: c.context,
+      children: c.children || [],
+    }));
+  }
 
   const formatValue =
     valueFormatter ||
@@ -85,8 +136,8 @@ const HighchartsDonut = ({
 
   const finalData = useMemo(() => getMaxN(data), [data]);
 
-  const options = useMemo(
-    () => ({
+  const options = useMemo(() => {
+    return {
       drilldown: {
         drillUpButton: {
           relativeTo: "spacingBox",
@@ -103,12 +154,14 @@ const HighchartsDonut = ({
         events: {
           load() {
             setVisibleData(data);
+            insertDrillData(["__root__"], data);
           },
           async drilldown(e) {
             if (!onDrilldownRequest) return;
             e.preventDefault(); // prevent default drilldown
             const chart = this;
             chart.showLoading("Loading...");
+            console.log("before: " + drillStack.current);
 
             try {
               let depth = 0;
@@ -122,8 +175,33 @@ const HighchartsDonut = ({
                 }
               }
 
-              console.log(e.point.id);
+              // 🔹 Determine the full drill path
+              const path = [...drillStack.current, e.point.name];
+              const cached = getCachedChildren(path);
 
+              console.log(e.point.name);
+
+              // ✅ CASE 1: Use cached data if exists
+              if (cached) {
+                // console.log("💾 Using cached data for", e.point.name);
+                const drillData = getMaxN(cached);
+                chart.addSingleSeriesAsDrilldown(e.point, {
+                  id: e.point.name,
+                  name: e.point.name,
+                  data: drillData.map((d) => ({
+                    name: d.name,
+                    y: d.y,
+                    context: d.context,
+                    drilldown: d.drilldown ?? false,
+                  })),
+                });
+                chart.applyDrilldown();
+                drillStack.current.push(e.point.name);
+                setVisibleData(cached);
+                return;
+              }
+
+              // ✅ CASE 2: Handle "Others"
               if (e.point.name === "Others") {
                 const othersData = othersCache.current || [];
                 if (othersData.length > 0) {
@@ -139,15 +217,22 @@ const HighchartsDonut = ({
                     })),
                   });
                   chart.applyDrilldown();
+                  drillStack.current.push(e.point.name);
+                  // setVisibleData(drillData);
                 }
                 return;
               }
 
+              // ✅ CASE 3: Fetch from backend and cache
               const res = await onDrilldownRequest({
                 name: e.point.name,
                 context: e.point.options.context,
                 depth,
               });
+
+              // Cache this node
+              insertDrillData(path, res);
+              drillStack.current.push(e.point.name);
 
               const drillData = getMaxN(res);
 
@@ -162,39 +247,46 @@ const HighchartsDonut = ({
                 })),
               });
 
-              chart.applyDrilldown(); // render the drilldown
+              chart.applyDrilldown();
               setVisibleData(res);
             } catch (err) {
               console.error("Drilldown fetch error:", err);
             } finally {
               chart.hideLoading();
+              console.log("after: " + drillStack.current);
+              console.log(cacheTree.current);
             }
           },
           drillup() {
             const chart = this;
-            // Get the most recent parent level (the one we just returned to)
-            const lastLevel =
-              chart.drilldownLevels?.[chart.drilldownLevels.length - 1];
-            if (
-              lastLevel &&
-              lastLevel.lowerSeriesOptions &&
-              lastLevel.lowerSeriesOptions.data
-            ) {
-              const parentData = lastLevel.lowerSeriesOptions.data.map((p) => ({
-                name: p.name,
-                y: p.y,
-                context: p.context,
-              }));
-              setVisibleData(parentData);
-            } else {
-              // fallback: top level
-              const top = chart.series[0]?.data?.map((p) => ({
-                name: p.name,
-                y: p.y,
-                context: p.options.context,
-              }));
-              setVisibleData(top || []);
+
+            let depth = 1;
+
+            for (const lvl of chart.drilldownLevels || []) {
+              const context = lvl.pointOptions?.context?.toLowerCase?.();
+              if (context === "__others__") {
+                depth += 0;
+              } else {
+                depth += 1;
+              }
             }
+
+            console.log(depth);
+
+            // console.log(chart.drilldownLevels);
+
+            drillStack.current = [...drillStack.current.slice(0, depth)];
+            const node = findOrCreateNode(drillStack.current, false);
+            const cached = getCachedChildren(drillStack.current);
+            console.log(cached);
+
+            // console.log(drillStack.current);
+
+            if (cached?.children?.length > 0) {
+              setVisibleData(cached.children);
+            }
+
+            // console.log("⬆️ Drill Up to", drillStack.current.join(" > "));
           },
         },
       },
@@ -258,9 +350,8 @@ const HighchartsDonut = ({
       },
       credits: { enabled: false },
       series: [{ name: "Value", data: finalData }],
-    }),
-    [data, onDrilldownRequest, enableDataLabels]
-  );
+    };
+  }, [data, onDrilldownRequest, enableDataLabels]);
 
   return (
     <div className={`p-1 ${className}`}>

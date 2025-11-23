@@ -12,6 +12,10 @@ product_router = APIRouter(prefix="/product", tags=["product"])
 def search_products(request: ListRequest = Depends(), service: ProductService = Depends()):
     return service.list_product(request=request)
 
+@product_router.get("/color-kitchen")
+def search_products_ck(request: ListRequest = Depends(), service: ProductService = Depends()):
+    return service.list_product_ck(request=request)
+
 @product_router.get("/{product_id}")
 def get_product_by_id(product_id: int, service: ProductService = Depends()):
     return service.get_product(product_id=product_id)
