@@ -2,7 +2,7 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session, with_loader_criteria
 from app.models.mixin.AuditMixin import AuditMixin
 
-# Correct Examples
+# Correct Examples of deleting
 # ========================================================
 # product = db.query(Product).filter_by(id=123).first()
 # if product:
@@ -37,6 +37,7 @@ from app.models.mixin.AuditMixin import AuditMixin
 # db.execute(text("UPDATE products SET name='Updated!' WHERE id=123"))
 # db.commit()
 
+# Automatically add soft-delete filter to all queries so soft-deleted rows are hidden
 @event.listens_for(Session, "do_orm_execute")
 def add_soft_delete_filter(execute_state):
     """
@@ -58,6 +59,9 @@ def add_soft_delete_filter(execute_state):
         )
 
 # Optional helper for skipping filter
+# Usage: 
+# session = with_deleted(db)
+# products = session.query(Product).all() <-- includes deleted rows
 def with_deleted(session):
     """Return a Session that includes deleted rows."""
     return session.execution_options(include_deleted=True)

@@ -3,9 +3,9 @@ from contextvars import ContextVar
 from contextlib import contextmanager
 from sqlalchemy import event
 from sqlalchemy.orm import Session
-# from app.middleware.audit_middleware import current_user_id
-
-_force_hard_delete = ContextVar("_force_hard_delete", default=False)
+from app.context.event_context import _force_hard_delete
+from app.context.user_context import current_user_id
+# _force_hard_delete = ContextVar("_force_hard_delete", default=False)
 
 @contextmanager
 def allow_hard_delete():
@@ -17,8 +17,7 @@ def allow_hard_delete():
 
 @event.listens_for(Session, "before_flush")
 def apply_audit_fields(session, flush_context, instances):
-    # user_id = current_user_id.get()  # TODO:should come from middleware
-    user_id = 1
+    user_id = current_user_id.get()  # TODO:should come from middleware
 
     if not user_id:
         return  # skip for anonymous/background jobs

@@ -1,0 +1,23 @@
+from .permission_groups import *
+from .atomic_permissions import *
+
+ROLE_USER = [
+    *MASTER_PRODUCT,
+    *MASTER_SUPPLIER,
+    *MASTER_DESIGN,
+    *MASTER_ACCOUNT,
+    *PROCESS_PURCHASING,
+    *PROCESS_COLOR_KITCHEN,
+    *PROCESS_IMPORT,
+    *PROCESS_STOCK_MOVEMENT,
+    *PROCESS_STOCK_OPNAME
+]
+
+ROLE_ADMIN = [
+    *ROLE_USER,
+    *MASTER_ACCOUNT,
+    *AUTH_USER,
+    *AUTH_ROLE,
+    *AUTH_PERMISSION,
+    *REPORTING,
+]
