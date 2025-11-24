@@ -24,6 +24,13 @@ typing-inspection==0.4.1
 typing_extensions==4.14.2
 wheel==0.45.1
 
+# Security
+argon2_cffi
+passlib[bcrypt]
+
+# Production server
+gunicorn
+
 # Optional (kalau nanti butuh autentikasi JWT)
 # python-jose==3.3.0
 # passlib[bcrypt]==1.7.4

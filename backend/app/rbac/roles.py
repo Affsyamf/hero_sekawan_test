@@ -1,6 +1,8 @@
 from .permission_groups import *
 from .atomic_permissions import *
 
+ROLE_SUPERADMIN = []
+
 ROLE_USER = [
     *MASTER_PRODUCT,
     *MASTER_SUPPLIER,

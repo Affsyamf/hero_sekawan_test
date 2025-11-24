@@ -11,13 +11,12 @@ from app.core.database import Session, get_db
 from app.models.user import User, Role, user_role
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
-from app.services.base_service import BaseService
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-class UserService(BaseService[User]):
+class UserService():
     def __init__(self, db = Depends(get_db)):
         self.db = db
 

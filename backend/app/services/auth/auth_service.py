@@ -10,6 +10,9 @@ from app.core.database import get_db
 from app.models.user import Permission, RefreshTokens, User
 from app.utils.response import APIResponse
 
+from fastapi import Response
+from fastapi.responses import JSONResponse
+
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -28,7 +31,7 @@ class AuthService:
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         
-    def create_refresh_token(self, user_id: int, request: Request = None) -> str:
+    def create_refresh_token(self, user_id: int, request: Request) -> str:
         """Buat Refresh Token dan simpan ke database dengan metadata"""
         expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
         
@@ -41,8 +44,8 @@ class AuthService:
         token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         
         # Ambil user agent dan IP dari request
-        user_agent = request.headers.get("User-Agent") if request else None
-        ip_address = request.client.host if request else None
+        user_agent = request.headers.get("User-Agent")
+        ip_address = request.client.host
         
         # Simpan ke database
         refresh_token = RefreshTokens(
@@ -58,8 +61,8 @@ class AuthService:
         
         return token
     
-    def login(self, username: str, password: str, request: Request = None):
-        """Login dengan Access Token + Refresh Token"""
+    def login(self, username, password, request: Request, response: Response):
+        """Login dengan Access Token + HttpOnlyRefresh Token"""
         user = self.db.query(User).filter(User.username == username).first()
         
         if not user:
@@ -80,11 +83,9 @@ class AuthService:
         roles = self.get_user_roles(user.id)
         permissions = self.get_user_permissions(user.id)
 
-        response = {
+        res = JSONResponse({
+            "message": "Login success",
             "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             "user": {
                 "id": user.id,
                 "username": user.username,
@@ -93,9 +94,20 @@ class AuthService:
                 "roles": roles,
                 "permissions": permissions
             }
-        }
+        })
 
-        return APIResponse.ok(message="Login success", data=response)
+        # HttpOnly cookie for refresh token
+        res.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=False,         # set to True for prod with HTTPS -> dev = False, PROD = True
+            samesite="Lax",      # required for localhost React + FastAPI -> dev = Lax, PROD = None
+            max_age=7 * 24 * 3600,
+            path="/"
+        )
+
+        return res
     
     def refresh_access_token(self, refresh_token: str):
         """Generate access token baru"""
