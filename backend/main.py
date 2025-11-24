@@ -92,9 +92,14 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # frontend dev server
+    allow_origins=origins,  # frontend dev server
     allow_credentials=True,
     allow_methods=["*"],   # allow POST, GET, OPTIONS, etc.
     allow_headers=["*"],   # allow all headers

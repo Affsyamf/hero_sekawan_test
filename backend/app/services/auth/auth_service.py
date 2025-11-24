@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+ACCESS_TOKEN_EXPIRE_SECONDS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_SECONDS", 60))
 REFRESH_TOKEN_EXPIRE_DAYS= 7
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -27,7 +27,7 @@ class AuthService:
         
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
-        expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+        expire = datetime.utcnow() + (expires_delta or timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDS))
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         
@@ -102,7 +102,7 @@ class AuthService:
             value=refresh_token,
             httponly=True,
             secure=False,         # set to True for prod with HTTPS -> dev = False, PROD = True
-            samesite="Lax",      # required for localhost React + FastAPI -> dev = Lax, PROD = None
+            samesite="Lax",      # required for localhost React + FastAPI -> dev = None, PROD = None
             max_age=7 * 24 * 3600,
             path="/"
         )
@@ -160,7 +160,7 @@ class AuthService:
                 data={
                     "access_token": new_access_token,
                     "token_type": "bearer",
-                    "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+                    "expires_in": ACCESS_TOKEN_EXPIRE_SECONDS
                 }
             )
             
