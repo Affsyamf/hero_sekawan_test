@@ -50,9 +50,8 @@ class AccountService:
             "id": account.id,
             "name": account.name,
             "account_no": str(account.parent.account_no) if account.parent.account_no else None,
-            # afif
-            "account_type": account.account_type.value if account.account_type else None,
-            "alias": account.alias,
+            "account_type": account.parent.account_type if account.parent else None,
+            # "alias": account.alias,
             "products": [{
                     "id": product.id,
                     "code": product.code,
@@ -63,7 +62,6 @@ class AccountService:
 
         return APIResponse.ok(data=response)
 
-# afif
     def create_account(self, request: AccountCreate):
 
         parent_exists = self.db.query(AccountParent).filter(
@@ -97,7 +95,6 @@ class AccountService:
         self.db.refresh(account)
         return APIResponse.created(data={"id": account.id, "name": account.name})
     
-    # afif
     def update_account(self, account_id: int, request: AccountUpdate):
         update_data = request.model_dump(exclude_unset=True)
 
@@ -137,44 +134,6 @@ class AccountService:
 
         return APIResponse.ok(f"Account ID '{account_id}' updated.")
     
-    
-        # request_data = request.model_dump(exclude_unset=True)
-        # update_data = {}
-
-        # # cek akun ada atau tidak
-        # account = self.db.query(Account).filter(Account.id == account_id).first()
-        # if not account:
-        #     return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
-
-        # if "parent_account_no" in request_data:
-        #     parent_account_no = request_data["parent_account_no"]
-        #     parent_exists = self.db.query(AccountParent).filter(
-        #         AccountParent.account_no == parent_account_no
-        #     ).first()
-            
-        #     if not parent_exists:
-        #         return APIResponse.not_found(message=f"Account Parent No '{parent_account_no}' not found.")
-            
-        #     update_data["parent_id"] = parent_exists.id
-            
-        
-        # for key, value in request_data.items():
-        #     if key != "parent_account_no":
-        #         update_data[key] = value
-                
-        # update_data["updated_by"] = 1
-        # update_data["updated_at"] = datetime.now()
-
-        # result = (
-        #     self.db.query(Account)
-        #         .filter(Account.id == account_id)
-        #         .update(update_data, synchronize_session=False)
-        # )
-
-        # if result == 0:
-        #     return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
-
-        # return APIResponse.ok(f"Account ID '{account_id}' updated.")
 
     def delete_account(self, account_id: int):
         account = self.db.query(Account).filter(Account.id == account_id).first()
