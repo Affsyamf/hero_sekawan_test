@@ -5,8 +5,9 @@ import { Filter } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { cn } from "../../utils/cn";
 import { useFilterService } from "../../contexts/FilterServiceContext";
+import { Outlet } from "react-router-dom";
 
-export default function MainLayout({ children }) {
+export default function MainLayout() {
   const { colors } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -54,7 +55,9 @@ export default function MainLayout({ children }) {
           }}
         >
           {/* Inner scrollable content */}
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-6">
+            <Outlet />{" "}
+          </main>
           <Footer />
         </div>
 
