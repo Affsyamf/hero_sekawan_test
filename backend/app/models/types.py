@@ -13,7 +13,7 @@ class AccountParent(Base, AuditMixin):
     
     id = Column(Integer, primary_key=True)
     # afif
-    account_no = Column(String, nullable=False, unique=True, index=True)
+    account_no = Column(Numeric, nullable=False, unique=True, index=True)
     name = Column(String, nullable=True)
     account_type = Column(String, nullable=True)
 

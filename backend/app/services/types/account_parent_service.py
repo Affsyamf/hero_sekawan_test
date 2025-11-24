@@ -2,7 +2,8 @@ from datetime import datetime
 
 from fastapi import HTTPException
 from fastapi.params import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, cast
+from sqlalchemy.types import String
 
 from datetime import datetime
 from app.schemas.input_models.types_input_models import AccountParentCreate, AccountParentUpdate
@@ -65,15 +66,14 @@ class AccountParentService:
 
 # afif
     def create_account_parent(self, request: AccountParentCreate):
-        existing = self.db.query(AccountParent).filter(AccountParent.account_no == request.account_no).first()
+        existing = self.db.query(AccountParent).filter(
+            AccountParent.account_no == request.account_no
+        ).first()
         if existing:
             return APIResponse.conflict(message=f"AccountParent number '{request.account_no}' already exists.")
 
-        data_to_create = request.model_dump(
-            # konversi ke dict | yg tidak diisi user tidak akan muncul
-            exclude={"accounts"}, exclude_unset=True)
+        data_to_create = request.model_dump(exclude={"accounts"}, exclude_unset=True)
         
-        # karna blm ada user management, pakai user_id 1 sebagai created_by & updated_by
         user_id = 1
         data_to_create["created_by"] = user_id
         data_to_create["updated_by"] = user_id
@@ -82,44 +82,54 @@ class AccountParentService:
         data_to_create["created_at"] = now
         data_to_create["updated_at"] = now
         
-        # agar bersih dari accounts saat create karna account sudah di exclude
-        account_parent = AccountParent(**data_to_create)
+        account = AccountParent(**data_to_create)
         
-        self.db.add(account_parent)
-        self.db.flush() 
-        self.db.refresh(account_parent)
-        
-        return APIResponse.created(data={"id": account_parent.id, "account_no": str(account_parent.account_no)})
+        self.db.add(account)
+        self.db.flush()
+        self.db.refresh(account)
+
+        return APIResponse.created(data={"id": account.id, "account_no": str(account.account_no)})
 
 # afif hanya menambah exclude accounts
     def update_account_parent(self, account_id: int, request: AccountParentUpdate):
-        update_data = request.model_dump( exclude={"account"}, exclude_unset=True)
+        update_data = request.model_dump(exclude_unset=True)
 
         account = self.db.query(AccountParent).filter(AccountParent.id == account_id).first()
         if not account:
             return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
 
         if "account_no" in update_data:
+            account_no_to_check = update_data["account_no"]
             existing = self.db.query(AccountParent).filter(
-                AccountParent.account_no == update_data["account_no"],
+                cast(
+                AccountParent.account_no, String) == str(account_no_to_check),
                 AccountParent.id != account_id
             ).first()
             if existing:
                 return APIResponse.conflict(message=f"AccountParent number '{update_data['account_no']}' already exists.")
             
+        accounts_to_set = update_data.pop("accounts", None)
+            
+        user_id = 1
+        update_data["updated_by"] = user_id
+        update_data["updated_at"] = datetime.now()
+        
+        accounts_to_update = update_data.pop("accounts", None)
+        
         result = (
             self.db.query(AccountParent)
                 .filter(AccountParent.id == account_id)
                 .update(update_data, synchronize_session=False)
         )
 
-        if "accounts" in request.model_dump(exclude_unset=True):
+        
+        if accounts_to_set is not None:
             account.accounts = []
-            for acc_id in update_data["accounts"]:
+            for acc_id in accounts_to_set:
                 acc = self.db.query(Account).filter(Account.id == acc_id).first()
                 if acc:
                     account.accounts.append(acc)
-
+                    
         if result == 0:
             return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
         
@@ -127,23 +137,22 @@ class AccountParentService:
 
 # afif
     def delete_account_parent(self, account_id: int):
-        account_parent = (self.db.query(AccountParent)
+        account = (self.db.query(AccountParent)
         .filter(AccountParent.id == account_id)
-        .populate_existing()
         .first())
         
-        if not account_parent:
+        if not account:
             return APIResponse.not_found(message=f"AccountParent ID '{account_id}' not found.")
 
-        account_count = self.db.query(Account).filter(Account.parent_id == account_id).count()
+        account_count = self.db.query(Product).filter(Product.account_id == account_id).count()
 
         if account_count > 0:
             msg = (
-                "AccountParent tidak bisa dihapus karena masih memiliki Account Anak : "
+                "AccountParent tidak bisa dihapus karena sudah digunakan pada data lain: "
                 f"{account_count} Account."
             )
             return APIResponse.conflict(message=msg)
 
-        self.db.delete(account_parent)
+        self.db.delete(account)
         
         return APIResponse.ok(f"AccountParent ID '{account_id}' deleted.")

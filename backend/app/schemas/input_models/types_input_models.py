@@ -2,6 +2,7 @@ from typing import Optional
 # from decimal import Decimal
 from pydantic import BaseModel, Field
 from pydantic.types import constr
+from decimal import Decimal
 
 
 # ===============================
@@ -10,37 +11,33 @@ from pydantic.types import constr
 
 # afif
 class AccountCreate(BaseModel):
-    name: constr(strip_whitespace=True, min_length=1) = Field(..., description="Nama Akun Anak")
-    parent_account_no: constr(strip_whitespace=True, min_length=1) = Field(
-        description="Nomor Akun Induk (Account Parent No) yang dipilih user"
-    )
+    name: str
+    parent_id: int
+    # account_type: AccountType
 
-# afif trim spasi
+
 class AccountUpdate(BaseModel):
-    name: Optional[constr(strip_whitespace=True, min_length=1)] = Field(None, description="Nama Akun Anak")
-    parent_account_no: Optional[constr(strip_whitespace=True, min_length=1)] = Field(
-       None,
-       description="Nomor Akun Induk (Account Parent No) yang dipilih user")
+    name: Optional[str] = None
+    parent_id: Optional[int] = None
 
 class AccountParentCreate(BaseModel):
-    name: Optional[constr(strip_whitespace=True, min_length=1)] = Field(None, description="Nama Akun Induk")
-    account_no: constr(strip_whitespace=True, min_length=1) = Field(..., description="Nomor Akun Induk (Code)")
-    account_type: Optional[str] = Field(None, description="Tipe Akun")
-    # kirim id bukan account no
-    accounts: Optional[list[int]] = Field(None, description="Daftar ID Akun Anak yang terkait")
+    name: Optional[str] = None
+    account_no: Decimal
+    account_type: Optional[str] = None
+    accounts: Optional[list[int]] = None
 
 class AccountParentUpdate(BaseModel):
-    name: Optional[constr(strip_whitespace=True, min_length=1)] = Field(None, description="Nama Akun Induk")
-    account_no: Optional[constr(strip_whitespace=True, min_length=1)] = Field(None, description="Nomor Akun Induk (Code)")
-    account_type: Optional[str] = Field(None, description="Tipe Akun")
-    accounts: Optional[list[int]] = Field(None, description="Daftar ID Akun Anak yang terkait")
+    name: Optional[str] = None
+    account_no: Optional[Decimal] = None
+    account_type: Optional[str] = None
+    accounts: Optional[list[int]] = None
 
 
 # ===============================
 # 2️⃣ DesignType
 # ===============================
 class DesignTypeCreate(BaseModel):
-    name: constr(strip_whitespace=True, min_length=1)
+    name: str
 
 class DesignTypeUpdate(BaseModel):
-    name: Optional[constr(strip_whitespace=True, min_length=1)] = None
+    name: Optional[str] = None

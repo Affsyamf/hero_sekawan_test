@@ -9,24 +9,24 @@ from app.models import AccountParent
 account_parent_router = APIRouter(prefix="/account_parent", tags=["account parent"])
 
 # afif
-@account_parent_router.get("/dropdown")
-def list_account_parents_for_dropdown(
-    q: str | None = None,
-    service: AccountParentService = Depends()
-):
-    # id dan account_no saja
-    query = service.db.query(AccountParent.id, AccountParent.account_no)
+# @account_parent_router.get("/dropdown")
+# def list_account_parents_for_dropdown(
+#     q: str | None = None,
+#     service: AccountParentService = Depends()
+# ):
+#     # id dan account_no saja
+#     query = service.db.query(AccountParent.id, AccountParent.account_no)
 
-    if q:
-        like = f"%{q}%"
-        query = query.filter(AccountParent.account_no.ilike(like))
+#     if q:
+#         like = f"%{q}%"
+#         query = query.filter(AccountParent.account_no.ilike(like))
         
-    data = query.limit(50).all()
+#     data = query.limit(50).all()
         
-    # ubah row tup menjadi dict
-    response_data = [ {"id": row.id, "account_no": row.account_no} for row in data ] 
+#     # ubah row tup menjadi dict
+#     response_data = [ {"id": row.id, "account_no": row.account_no} for row in data ] 
         
-    return APIResponse.ok(data=response_data)   
+#     return APIResponse.ok(data=response_data)   
         
 @account_parent_router.get("/search")
 def search_account_parents(request: ListRequest = Depends(), service: AccountParentService = Depends()):
