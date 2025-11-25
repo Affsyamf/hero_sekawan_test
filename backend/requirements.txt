@@ -1,10 +1,10 @@
 # FastAPI framework
-fastapi==0.115.0
+fastapi
 uvicorn[standard]==0.35.0
 
 # Database ORM & Migration
 SQLAlchemy==2.0.43
-starlette==0.47.2
+starlette
 alembic==1.13.2
 
 # Environment config
@@ -21,7 +21,7 @@ pydantic_core==2.33.2
 
 # Utilities
 typing-inspection==0.4.1
-typing_extensions==4.14.2
+typing_extensions
 wheel==0.45.1
 
 # Optional (kalau nanti butuh autentikasi JWT)

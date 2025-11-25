@@ -1,11 +1,15 @@
 from typing import Optional
+# from decimal import Decimal
+from pydantic import BaseModel, Field
+from pydantic.types import constr
 from decimal import Decimal
-from pydantic import BaseModel
 
 
 # ===============================
 # 1️⃣ Account
 # ===============================
+
+# afif
 class AccountCreate(BaseModel):
     name: str
     parent_id: int
@@ -14,10 +18,10 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
-    parent_id: int
+    parent_id: Optional[int] = None
 
 class AccountParentCreate(BaseModel):
-    name: str
+    name: Optional[str] = None
     account_no: Decimal
     account_type: Optional[str] = None
     accounts: Optional[list[int]] = None
@@ -34,7 +38,6 @@ class AccountParentUpdate(BaseModel):
 # ===============================
 class DesignTypeCreate(BaseModel):
     name: str
-
 
 class DesignTypeUpdate(BaseModel):
     name: Optional[str] = None

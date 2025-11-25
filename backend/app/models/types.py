@@ -12,6 +12,7 @@ class AccountParent(Base, AuditMixin):
     __tablename__ = 'account_parents'
     
     id = Column(Integer, primary_key=True)
+    # afif
     account_no = Column(Numeric, nullable=False, unique=True, index=True)
     name = Column(String, nullable=True)
     account_type = Column(String, nullable=True)

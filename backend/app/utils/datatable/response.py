@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, TypeVar, Generic
-
 class ListResponse:
     def __init__(self, data: List[Dict[str, Any]], total: int, page: int, page_size: int):
         self.data = data
