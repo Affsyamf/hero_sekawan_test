@@ -32,8 +32,13 @@ export const logout = async () => {
 
 export const refreshAccessToken = async () => {
   const response = await api.post("/auth/refresh-token");
-  const newToken = response.data.data.access_token;
-  useAuthStore.getState().setAccessToken(newToken);
+  const data = response.data.data;
+
+  return {
+    access_token: data.access_token,
+    user: data.user,
+    permissions: data.user.permissions,
+  };
 };
 
 // export const login2 = async ( username, password ) => {

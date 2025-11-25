@@ -25,6 +25,8 @@ import { MainLayout } from "./layouts/index.js";
 import { FilterServiceProvider } from "./contexts/FilterServiceContext.jsx";
 import LoginPage from "./pages/auth/Loginpage.jsx";
 import { useAuthStore } from "./stores/useAuthStore.js";
+import Forbidden from "./pages/forbidden/ForbiddenPage.jsx";
+import { useEffect } from "react";
 
 function PublicRoute({ children }) {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -52,6 +54,21 @@ function ProtectedRoute({ children }) {
 }
 
 export default function AppRouter() {
+  const initialized = useAuthStore((s) => s.initialized);
+  const initAuth = useAuthStore((s) => s.initAuth);
+
+  useEffect(() => {
+    initAuth();
+  }, []);
+
+  if (!initialized) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center text-gray-500">
+        Loading session...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <GlobalFilterProvider>

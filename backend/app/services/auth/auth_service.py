@@ -154,13 +154,25 @@ class AuthService:
                 "sub": str(user.id),
                 "name": user.full_name
             })
+
+            # GET ROLES + PERMISSIONS
+            roles = self.get_user_roles(user.id)
+            permissions = self.get_user_permissions(user.id)    
             
             return APIResponse.ok(
                 message="Token refreshed successfully",
                 data={
                     "access_token": new_access_token,
                     "token_type": "bearer",
-                    "expires_in": ACCESS_TOKEN_EXPIRE_SECONDS
+                    "expires_in": ACCESS_TOKEN_EXPIRE_SECONDS,
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "full_name": user.full_name,
+                        "roles": roles,
+                        "permissions": permissions
+                    },
                 }
             )
             
