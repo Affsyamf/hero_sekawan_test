@@ -15,35 +15,6 @@ import SidebarFooter from "./SidebarFooter";
 import { usePermission } from "../../../hooks/usePermission";
 import { menuItems } from "../../../config/menu";
 
-const asdf = [
-  { isHeader: true, text: "Main" },
-  {
-    label: "Reports",
-    icon: FileBarChart2,
-    children: [
-      { label: "Dashboard", path: "/dashboard/overview" },
-      { label: "Purchasing", path: "/dashboard/purchasings" },
-      { label: "Color Kitchen", path: "/dashboard/color-kitchens" },
-    ],
-  },
-  { isHeader: true, text: "Master Data" },
-  {
-    label: "Master Data",
-    icon: ShoppingBag,
-    children: [
-      { label: "Products", path: "/products" },
-      { label: "Suppliers", path: "/suppliers" },
-      { label: "Accounts", path: "/accounts" },
-      { label: "Design", path: "/designs" },
-    ],
-  },
-  { isHeader: true, text: "Transactions" },
-  { label: "Purchasing", icon: ShoppingCart, path: "/purchasings" },
-  { label: "Stock Movement", icon: Package, path: "/stock-movements" },
-  { label: "Color Kitchen", icon: FlaskConical, path: "/color-kitchens" },
-  { label: "Stock Opname", icon: ClipboardCheck, path: "/stock-opnames" },
-];
-
 export default function Sidebar({
   isOpen,
   onClose,
