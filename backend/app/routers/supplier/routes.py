@@ -13,7 +13,7 @@ def search_suppliers(request: ListRequest = Depends(), service: SupplierService 
     return service.list_supplier(request=request)
 
 @supplier_router.get("/color-kitchen")
-def search_suppliers(request: ListRequest = Depends(), service: SupplierService = Depends()):
+def search_suppliers_ck(request: ListRequest = Depends(), service: SupplierService = Depends()):
     return service.list_supplier_ck(request=request)
 
 @supplier_router.get("/{supplier_id}")

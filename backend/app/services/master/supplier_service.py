@@ -37,7 +37,16 @@ class SupplierService:
                 sort_col = sort_col.desc()
             supplier = supplier.order_by(sort_col)
 
-        return APIResponse.paginated(supplier, request)
+        return APIResponse.paginated(
+            supplier, 
+            request,
+            lambda row: {
+                "id": row.id,
+                "code": row.code,
+                "name": row.name,
+                "contact_info": row.contact_info,
+            },
+        )
 
     def get_supplier(self, supplier_id: int):
         supplier = self.db.query(Supplier).filter(Supplier.id == supplier_id).first()
