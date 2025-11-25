@@ -33,6 +33,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
         start_date = filters.get("start_date")
         end_date = filters.get("end_date")
         granularity = (filters.get("granularity") or "monthly").lower()
+        chem_type = self.normalise_chemical_type_filter(filters)
 
         # Determine SQL trunc unit & label format
         if granularity == "yearly":
@@ -75,9 +76,11 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
             .order_by(period_expr)
 
         q_dyes = apply_common_report_filters(q_dyes, filters)
-        
-        dyes_rows = {r.period: float(r.dyes_value or 0) for r in q_dyes.all()}
 
+        dyes_rows = {}
+        if chem_type in ("DYE", "BOTH"):
+            dyes_rows = {r.period: float(r.dyes_value or 0) for r in q_dyes.all()}
+        
         # -----------------------------
         # AUXILIARIES — from EntryDetail
         # -----------------------------
@@ -106,9 +109,10 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
             q_aux.group_by(func.date_trunc(trunc_unit, CKEntry.date))
                 .order_by(func.date_trunc(trunc_unit, CKEntry.date))
         )
-
         
-        aux_rows = {r.period: float(r.aux_value or 0) for r in q_aux.all()}
+        aux_rows = {}
+        if chem_type in ("AUX", "BOTH"):
+            aux_rows = {r.period: float(r.aux_value or 0) for r in q_aux.all()}
 
         # -----------------------------
         # Merge results by period

@@ -43,6 +43,7 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
         db: Session = self.db
         start_date = filters.get("start_date")
         end_date = filters.get("end_date")
+        chem_type = self.normalise_chemical_type_filter(filters)
 
         # --- Dyes (from BatchDetail)
         q_dyes = (
@@ -62,7 +63,9 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
 
         q_dyes = apply_common_report_filters(q_dyes, filters)
 
-        dyes_total = float(q_dyes.scalar() or 0)
+        dyes_total = 0
+        if chem_type in ("DYE", "BOTH"):
+            dyes_total = float(q_dyes.scalar() or 0)
 
         # --- Auxiliaries (from EntryDetail)
         q_aux = (
@@ -82,7 +85,9 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
 
         q_aux = apply_common_report_filters(q_aux, filters)
 
-        aux_total = float(q_aux.scalar() or 0)
+        aux_total = 0
+        if chem_type in ("AUX", "BOTH"):
+            aux_total = float(q_aux.scalar() or 0)
 
         # --- Combine results for Pie Chart
         data = [

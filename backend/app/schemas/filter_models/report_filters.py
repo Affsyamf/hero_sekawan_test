@@ -45,3 +45,6 @@ class ColorKitchenReportFilter(BaseReportFilter):
     supplier_ids: Optional[List[int]] = Field(
         None, description="Filter by list of Supplier IDs"
     )
+    chemical_type: Optional[Literal["DYE", "AUX", "BOTH"]] = Field(
+        None, description="Filter by chemical type: 'DYE', 'AUX', or 'BOTH'"
+    )

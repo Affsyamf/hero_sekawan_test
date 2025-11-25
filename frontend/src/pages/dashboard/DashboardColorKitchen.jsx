@@ -114,6 +114,7 @@ export default function DashboardColorKitchen() {
         supplier_ids: filters.supplier_ids?.length
           ? filters.supplier_ids
           : undefined,
+        chemical_type: filters.dye_aux || "BOTH",
       };
 
       // Fetch all data in parallel
@@ -153,7 +154,7 @@ export default function DashboardColorKitchen() {
       supplier_ids: filters.supplier_ids?.length
         ? filters.supplier_ids
         : undefined,
-      // category: filters.category,
+      chemical_type: filters.dye_aux || "BOTH",
     };
 
     const [trend] = await Promise.all([reportsColorKitchenTrend(params)]);
@@ -286,6 +287,7 @@ export default function DashboardColorKitchen() {
       supplier_ids: filters.supplier_ids?.length
         ? filters.supplier_ids
         : undefined,
+      chemical_type: filters.dye_aux || "BOTH",
     };
 
     let res = [];

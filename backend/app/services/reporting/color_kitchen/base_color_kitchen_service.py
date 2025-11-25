@@ -34,3 +34,18 @@ class ColorKitchenReportBase:
                 )
             )
         )
+    
+    def normalise_chemical_type_filter(self, filters):
+        """
+        Normalize chemical_type filter.
+        Returns one of: 'DYE', 'AUX', 'BOTH'
+        """
+        chem_type = (filters or {}).get("chemical_type")
+        if not chem_type:
+            return "BOTH"
+
+        chem_type = chem_type.upper()
+        if chem_type not in ("DYE", "AUX", "BOTH"):
+            return "BOTH"
+
+        return chem_type
