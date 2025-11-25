@@ -9,7 +9,6 @@ from decimal import Decimal
 # 1️⃣ Account
 # ===============================
 
-# afif
 class AccountCreate(BaseModel):
     name: str
     parent_id: int

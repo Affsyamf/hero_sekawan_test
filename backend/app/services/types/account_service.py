@@ -4,6 +4,9 @@ from fastapi import HTTPException
 from fastapi.params import Depends
 from sqlalchemy import or_
 
+from app.models.user import User
+from app.dependencies.auth_dependency import AuthDependency
+
 from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate
 from app.core.database import Session, get_db
 from app.models import Account, Product, AccountParent
@@ -62,7 +65,7 @@ class AccountService:
 
         return APIResponse.ok(data=response)
 
-    def create_account(self, request: AccountCreate):
+    def create_account(self, request: AccountCreate, current_user_id: int):
 
         parent_exists = self.db.query(AccountParent).filter(
             AccountParent.id == request.parent_id
@@ -78,14 +81,8 @@ class AccountService:
         # ubah menjadi dict
         data_to_create = request.model_dump(exclude_unset=True)
         data_to_create["parent_id"] = parent_exists.id
-        
-        # autofield
-        user_id = 1
-        now = datetime.now()
-        data_to_create["created_by"] = user_id
-        data_to_create["updated_by"] = user_id
-        data_to_create["created_at"] = now
-        data_to_create["updated_at"] = now
+        data_to_create["created_by"] = current_user_id
+        data_to_create["updated_by"] = current_user_id
         
         # objek orm sqlalchemu
         account = Account(**data_to_create)
@@ -95,7 +92,7 @@ class AccountService:
         self.db.refresh(account)
         return APIResponse.created(data={"id": account.id, "name": account.name})
     
-    def update_account(self, account_id: int, request: AccountUpdate):
+    def update_account(self, account_id: int, request: AccountUpdate, current_user_id: int):
         update_data = request.model_dump(exclude_unset=True)
 
         account = self.db.query(Account).filter(Account.id == account_id).first()
@@ -118,8 +115,7 @@ class AccountService:
             if not parent_exists:
                 return APIResponse.not_found(message=f"Account Parent ID '{update_data['parent_id']}' not found.")
         
-        user_id = 1
-        update_data["updated_by"] = user_id
+        update_data["updated_by"] = current_user_id
         update_data["updated_at"] = datetime.now()
         
         
@@ -131,7 +127,7 @@ class AccountService:
 
         if result == 0:
             return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
-
+ 
         return APIResponse.ok(f"Account ID '{account_id}' updated.")
     
 

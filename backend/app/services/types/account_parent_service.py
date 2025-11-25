@@ -2,8 +2,11 @@ from datetime import datetime
 
 from fastapi import HTTPException
 from fastapi.params import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, cast
 from sqlalchemy.types import String
+
+from app.dependencies.auth_dependency import AuthDependency
+from app.models.user import User
 
 from datetime import datetime
 from app.schemas.input_models.types_input_models import AccountParentCreate, AccountParentUpdate
@@ -65,7 +68,7 @@ class AccountParentService:
         return APIResponse.ok(data=response)
 
 
-    def create_account_parent(self, request: AccountParentCreate):
+    def create_account_parent(self, request: AccountParentCreate, current_user_id: int ):
         existing = self.db.query(AccountParent).filter(
             AccountParent.account_no == request.account_no
         ).first()
@@ -74,13 +77,8 @@ class AccountParentService:
 
         data_to_create = request.model_dump(exclude={"accounts"}, exclude_unset=True)
         
-        user_id = 1
-        data_to_create["created_by"] = user_id
-        data_to_create["updated_by"] = user_id
-        
-        now = datetime.now()
-        data_to_create["created_at"] = now
-        data_to_create["updated_at"] = now
+        data_to_create["created_by"] = current_user_id
+        data_to_create["updated_by"] = current_user_id
         
         account = AccountParent(**data_to_create)
         
@@ -91,7 +89,8 @@ class AccountParentService:
         return APIResponse.created(data={"id": account.id, "account_no": str(account.account_no)})
 
 
-    def update_account_parent(self, account_id: int, request: AccountParentUpdate):
+    def update_account_parent(self, account_id: int, request: AccountParentUpdate, current_user_id: int):
+        
         update_data = request.model_dump(exclude_unset=True)
 
         account = self.db.query(AccountParent).filter(AccountParent.id == account_id).first()
@@ -106,15 +105,12 @@ class AccountParentService:
                 AccountParent.account_no == account_no_to_check, AccountParent.id != account_id
             ).first()
             
+            
             if existing:
                 return APIResponse.conflict(message=f"AccountParent number '{update_data['account_no']}' already exists.")
             
-        user_id = 1
-        update_data["updated_by"] = user_id
+        update_data["updated_by"] = current_user_id
         update_data["updated_at"] = datetime.now()
-        
-        accounts_to_update = update_data.pop("accounts", None)
-        
         
         result = (
             self.db.query(AccountParent)
