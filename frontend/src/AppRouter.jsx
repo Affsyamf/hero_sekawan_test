@@ -27,31 +27,10 @@ import LoginPage from "./pages/auth/Loginpage.jsx";
 import { useAuthStore } from "./stores/useAuthStore.js";
 import Forbidden from "./pages/forbidden/ForbiddenPage.jsx";
 import { useEffect } from "react";
-
-function PublicRoute({ children }) {
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const user = useAuthStore((state) => state.user);
-
-  // ✅ Jika sudah login, redirect ke dashboard
-  if (accessToken && user) {
-    // return <Navigate to="/login" replace />;
-    return <Navigate to="/dashboard/overview" replace />;
-  }
-
-  return children;
-}
-
-function ProtectedRoute({ children }) {
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const user = useAuthStore((state) => state.user);
-
-  // ✅ Cek keduanya harus ada
-  if (!accessToken || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-}
+import ProtectedRoute from "./components/router/ProtectedRoute.jsx";
+import PublicRoute from "./components/router/PublicRoute.jsx";
+import { protectedRoutes } from "./config/route.js";
+import PermissionRoute from "./components/router/PermissionRoute.jsx";
 
 export default function AppRouter() {
   const initialized = useAuthStore((s) => s.initialized);
@@ -93,47 +72,18 @@ export default function AppRouter() {
                 </ProtectedRoute>
               }
             >
-              {/* Inside MainLayout: all protected pages */}
-              <Route path="dashboard/overview" element={<OverviewNew />} />
-              <Route
-                path="dashboard/purchasings"
-                element={<DashboardPurchasing />}
-              />
-              <Route
-                path="dashboard/color-kitchens"
-                element={<DashboardColorKitchen />}
-              />
-
-              <Route path="products" element={<ProductsPage />} />
-              <Route path="suppliers" element={<SuppliersPage />} />
-
-              <Route path="accounts" element={<AccountsPage />} />
-              <Route
-                path="accounts/category-board"
-                element={<AccountCategoryBoard />}
-              />
-
-              <Route path="designs" element={<DesignsPage />} />
-              <Route path="design-types" element={<DesignTypesPage />} />
-
-              <Route path="purchasings" element={<PurchasingsPage />} />
-              <Route
-                path="purchasings/detail/:id"
-                element={<PurchasingDetailPage />}
-              />
-
-              <Route path="stock-movements" element={<StockMovementsPage />} />
-              <Route path="color-kitchens" element={<ColorKitchensPage />} />
-              <Route
-                path="color-kitchens/detail/:id"
-                element={<ColorKitchenDetailPage />}
-              />
-              <Route path="stock-opnames" element={<StockOpnamePage />} />
-
-              <Route
-                path="reports/purchasings"
-                element={<PurchasingReportsPage />}
-              />
+              {/* AUTO-GENERATED PERMISSION ROUTES */}
+              {protectedRoutes.map(({ path, element: Comp, permission }) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    <PermissionRoute permission={permission}>
+                      <Comp />
+                    </PermissionRoute>
+                  }
+                />
+              ))}
             </Route>
 
             {/* Forbidden */}
