@@ -1,10 +1,7 @@
 import { useAuthStore } from "../stores/useAuthStore";
 
-export function usePermission() {
-  const permissions = useAuthStore((s) => s.user?.permissions || []);
-
-  {
-    /* 
+{
+  /* 
     Usage:
     const { hasPermission } = usePermission();
 
@@ -12,10 +9,19 @@ export function usePermission() {
         <Button onClick={openCreateModal}>Create Product</Button>
     )}
     */
-  }
-  const hasPermission = (perm) => permissions.includes(perm);
+}
+export function usePermission() {
+  const permissions = useAuthStore((s) => s.user?.permissions || []);
+  const user = useAuthStore((s) => s.user);
+  const hasPermission = (perm) => {
+    if (!perm) return true;
+    if (!user) return false;
 
-  const hasAny = (permList) => permList.some((p) => permissions.includes(p));
+    // Superadmin override
+    if (user.roles?.includes("Superadmin")) return true;
 
-  return { hasPermission, hasAny };
+    return permissions.includes(perm);
+  };
+
+  return { hasPermission };
 }

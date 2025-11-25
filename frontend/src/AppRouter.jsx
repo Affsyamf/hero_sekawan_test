@@ -84,10 +84,10 @@ export default function AppRouter() {
                   }
                 />
               ))}
-            </Route>
 
-            {/* Forbidden */}
-            <Route path="403" element={<Forbidden />} />
+              {/* Forbidden */}
+              <Route path="403" element={<Forbidden />} />
+            </Route>
 
             {/* Redirect all unknown routes */}
             <Route path="*" element={<Navigate to="/login" replace />} />
