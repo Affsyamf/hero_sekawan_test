@@ -7,6 +7,13 @@ export const searchSupplier = async (filter) => {
   return response;
 };
 
+export const searchSupplierCk = async (filter) => {
+  const response = await api.get("/supplier/color-kitchen", {
+    params: filter,
+  });
+  return response;
+};
+
 export const getSupplierById = async (id) => {
   const response = await api.get(`/supplier/${id}`);
   return response;

@@ -5,8 +5,9 @@ from app.utils.datatable.request import ListRequest
 from app.services.types.account_service import AccountService
 from app.utils.response import APIResponse
 from app.services.import_lap_pembelian_service import ImportLapPembelianService
+from app.dependencies.rbac import require_user
 
-import_lap_pembelian_router = APIRouter(prefix="/import-lap-pembelian", tags=["Import Laporan Pembelian"])
+import_lap_pembelian_router = APIRouter(prefix="/import-lap-pembelian", tags=["Import Laporan Pembelian"], dependencies=[require_user()])
 
 @import_lap_pembelian_router.post("/upload")
 def upload_excel(file: UploadFile, service: ImportLapPembelianService = Depends()):

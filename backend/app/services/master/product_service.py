@@ -12,7 +12,7 @@ from app.core.database import Session, get_db
 from app.models import (
     Product, PurchasingDetail, StockMovementDetail, 
     ColorKitchenEntryDetail, Ledger, StockOpnameDetail,
-    Account
+    Account, ColorKitchenBatch, ColorKitchenBatchDetail
 )
 from app.models.enum.ledger_enum import LedgerLocation
 from app.utils.datatable.request import ListRequest
@@ -194,3 +194,62 @@ class ProductService:
         self.db.delete(product)
 
         return APIResponse.ok(f"Product ID '{product_id}' deleted.")
+    
+    def list_product_ck(self, request: ListRequest):
+        # === Subquery 1: products from batch details ===
+        q_batch = (
+            self.db.query(Product.id.label("product_id"))
+            .join(ColorKitchenBatchDetail, Product.id == ColorKitchenBatchDetail.product_id)
+        )
+
+        # === Subquery 2: products from entry details ===
+        q_entry = (
+            self.db.query(Product.id.label("product_id"))
+            .join(ColorKitchenEntryDetail, Product.id == ColorKitchenEntryDetail.product_id)
+        )
+
+        # === Union: products that appear in either batch or entry ===
+        union_subq = q_batch.union(q_entry).subquery()
+
+        # === Base product query (distinct products from CK activity) ===
+        product_q = (
+            self.db.query(Product)
+            .join(union_subq, Product.id == union_subq.c.product_id)
+            .outerjoin(Account)
+            .options(joinedload(Product.account))
+            .distinct()
+        )
+
+        # === Filter (search) ===
+        if request.q:
+            like = f"%{request.q}%"
+            product_q = product_q.filter(
+                or_(
+                    Product.code.ilike(like),
+                    Product.name.ilike(like),
+                    Product.unit.ilike(like),
+                    Account.name.ilike(like),
+                )
+            )
+
+        # === Sorting ===
+        if request.sort_by and request.sort_dir:
+            sort_col = getattr(Product, request.sort_by)
+            if request.sort_dir.lower() == "desc":
+                sort_col = sort_col.desc()
+            product_q = product_q.order_by(sort_col)
+        else:
+            product_q = product_q.order_by(Product.id)
+
+        # === Paginate ===
+        return APIResponse.paginated(
+            product_q,
+            request,
+            lambda row: {
+                "id": row.id,
+                "code": row.code,
+                "name": row.name,
+                "unit": row.unit,
+                "account_name": row.account.name if row.account else None,
+            },
+        )

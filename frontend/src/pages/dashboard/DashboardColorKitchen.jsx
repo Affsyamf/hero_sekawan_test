@@ -33,6 +33,12 @@ import {
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { MetricGrid } from "../../components/ui/chart/MetricCard";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import UnitFilter from "../../components/ui/filter/UnitFilter";
+import DyeAuxFilter from "../../components/ui/filter/DyeAuxFilter";
+import CkProductFilter from "../../components/ui/filter/CkProductFilter";
+import CkSupplierFilter from "../../components/ui/filter/CkSupplierFilter";
+import Loading from "../../components/ui/loading/Loading";
 
 export default function DashboardColorKitchen() {
   const [ckData, setCkData] = useState(null);
@@ -48,24 +54,45 @@ export default function DashboardColorKitchen() {
   // ✅ Use useDateFilterStore instead of useGlobalFilter
   const dateRange = useDateFilterStore((state) => state.dateRange);
 
-  // ✅ Fetch data saat mount pertama kali
-  // useEffect(() => {
-  //   fetchCkData();
-  //   fetchCkTrend();
-  // }, []);
+  const { filters, setFilter, registerFilters } = useFilterService();
+
+  useEffect(() => {
+    registerFilters([
+      <UnitFilter
+        key="unit-filter"
+        value={filters.unit ?? null}
+        onChange={(val) => setFilter("unit", val)}
+      />,
+      <DyeAuxFilter
+        key="dye-aux-filter"
+        value={filters.dye_aux ?? null}
+        onChange={(val) => setFilter("dye_aux", val)}
+      />,
+      <CkProductFilter
+        key="ck-product-filter"
+        value={filters.product_ids ?? []}
+        onChange={(val) => setFilter("product_ids", val)}
+      />,
+      <CkSupplierFilter
+        key="ck-supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
   // ✅ Auto refresh when dateRange changes
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
       fetchCkData();
     }
-  }, [dateRange]);
+  }, [dateRange, JSON.stringify(filters)]);
 
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
       fetchCkTrend();
     }
-  }, [dateRange, trendGranularity]);
+  }, [dateRange, trendGranularity, JSON.stringify(filters)]);
 
   const fetchCkData = async () => {
     // Skip jika dateRange belum ada
@@ -81,6 +108,12 @@ export default function DashboardColorKitchen() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
+        product_ids: filters.product_ids?.length
+          ? filters.product_ids
+          : undefined,
+        supplier_ids: filters.supplier_ids?.length
+          ? filters.supplier_ids
+          : undefined,
       };
 
       // Fetch all data in parallel
@@ -98,8 +131,6 @@ export default function DashboardColorKitchen() {
         auxData.data
       );
 
-      console.log(transformedData);
-
       setCkData(transformedData);
     } catch (error) {
       console.error("Error fetching Color Kitchen data:", error);
@@ -116,6 +147,13 @@ export default function DashboardColorKitchen() {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
       granularity: trendGranularity,
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      // category: filters.category,
     };
 
     const [trend] = await Promise.all([reportsColorKitchenTrend(params)]);
@@ -142,7 +180,6 @@ export default function DashboardColorKitchen() {
 
   const transformApiData = (summary, chemicalSummary, dyesData, auxData) => {
     // Transform metrics
-    console.log(summary);
     const metrics = {
       total_rolls: {
         value: summary.total_rolls_processed || 0,
@@ -237,11 +274,18 @@ export default function DashboardColorKitchen() {
   };
 
   const onDrilldown = async (context, depth) => {
+    console.log("aa");
     if (!dateRange?.dateFrom || !dateRange?.dateTo) return [];
 
     const params = {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
     };
 
     let res = [];
@@ -259,17 +303,6 @@ export default function DashboardColorKitchen() {
       }));
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-gray-300 rounded-full border-t-primary animate-spin"></div>
-          <p className="text-sm text-gray-600">Loading color kitchen data...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!dateRange?.dateFrom || !dateRange?.dateTo) {
     return (
@@ -315,223 +348,227 @@ export default function DashboardColorKitchen() {
   } = ckData;
 
   return (
-    <div className="max-w-full space-y-4 p-0.5 md:p-1">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
-            Color Kitchen Dashboard
-          </h1>
-          <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
-            Monitor chemical usage, cost analysis, dan trend color kitchen
-          </p>
+    <>
+      {loading && <Loading fullscreen={true} />}
+      <div className="max-w-full space-y-4 p-0.5 md:p-1">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
+              Color Kitchen Dashboard
+            </h1>
+            <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
+              Monitor chemical usage, cost analysis, dan trend color kitchen
+            </p>
+          </div>
+          <div>
+            <Button
+              onClick={handleExport}
+              disabled={exporting}
+              label={exporting ? "Exporting..." : "Export Report"}
+              icon={Download}
+              className="text-white bg-green-600 hover:bg-green-700"
+            />
+          </div>
         </div>
-        <div>
-          <Button
-            onClick={handleExport}
-            disabled={exporting}
-            label={exporting ? "Exporting..." : "Export Report"}
-            icon={Download}
-            className="text-white bg-green-600 hover:bg-green-700"
+
+        {/* Active Filter Display */}
+        {dateRange && (
+          <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
+            <p className="text-sm text-blue-800">
+              <span className="font-semibold">📅 Active Filter:</span>{" "}
+              {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
+              {dateRange.mode === "year" && `Year ${dateRange.year}`}
+              {dateRange.mode === "month-year" && (
+                <>
+                  {new Date(
+                    dateRange.year,
+                    dateRange.month - 1
+                  ).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </>
+              )}
+              {(dateRange.mode === "days" || !dateRange.mode) && (
+                <>
+                  {formatDate(dateRange.dateFrom)} to{" "}
+                  {formatDate(dateRange.dateTo)}
+                  {dateRange.days !== undefined && (
+                    <span className="ml-2 text-xs">
+                      (
+                      {dateRange.days === 0
+                        ? "Today"
+                        : `Last ${dateRange.days} days`}
+                      )
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* KPI Cards - Row 1 */}
+        <MetricGrid>
+          <Chart.Metric
+            title="Total Cost"
+            value={formatCompactCurrency(metrics.total_cost?.value)}
+            // trend={metrics.total_cost.trend}
+            icon={HandCoins}
+            color="primary"
           />
+          <Chart.Metric
+            title="Total Rolls"
+            value={metrics.total_rolls?.value}
+            // trend={metrics.total_chemical.trend}
+            icon={Cylinder}
+            color="success"
+          />
+          <Chart.Metric
+            title="Average Cost Per Roll"
+            value={formatCompactCurrency(metrics.avg_cost_per_roll?.value)}
+            // trend={metrics.avg_cost_per_roll.trend}
+            icon={DollarSign}
+            color="warning"
+          />
+        </MetricGrid>
+
+        {/* Main Charts Row */}
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card className="w-full h-full">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                    Chemical Usage Trend
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    Trend penggunaan dyes dan auxiliaries
+                  </p>
+                </div>
+                <select
+                  value={trendGranularity}
+                  onChange={(e) => setTrendGranularity(e.target.value)}
+                  className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
+                >
+                  <option value="daily">Perhari</option>
+                  <option value="weekly">Perminggu</option>
+                  <option value="monthly">Perbulan</option>
+                  <option value="yearly">Pertahun</option>
+                </select>
+              </div>
+              <Highchart.HighchartsBar
+                initialData={trendData}
+                title=""
+                subtitle=""
+                datasets={[
+                  {
+                    key: "dyes",
+                    label: "Dyes",
+                    color: "primary",
+                    type: "column",
+                    stacked: true,
+                  },
+                  {
+                    key: "auxiliaries",
+                    label: "Auxiliaries",
+                    color: "warning",
+                    type: "column",
+                    stacked: true,
+                  },
+                  {
+                    key: "total",
+                    label: "Total",
+                    color: "neutral",
+                    type: "spline",
+                  },
+                ]}
+                onFetchData={() => trendData}
+                showSummary={false}
+              />
+            </Card>
+          </div>
+
+          <div className="lg:col-span-1">
+            <Card className="h-full ">
+              <Highchart.HighchartsDonut
+                data={chemicalSummaryTransformed}
+                // centerText={{
+                //   value: formatCompactCurrency(metrics.total_cost.value),
+                //   label: "Total Cost",
+                // }}
+                title="Chemical Cost Breakdown"
+                subtitle="Dyes vs Auxiliaries"
+                onDrilldownRequest={async ({ _, context, depth }) => {
+                  console.log("bb");
+                  return onDrilldown(context, depth);
+                }}
+                valueFormatter={formatCompactCurrency}
+              />
+            </Card>
+          </div>
         </div>
-      </div>
 
-      {/* Active Filter Display */}
-      {dateRange && (
-        <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">📅 Active Filter:</span>{" "}
-            {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
-            {dateRange.mode === "year" && `Year ${dateRange.year}`}
-            {dateRange.mode === "month-year" && (
-              <>
-                {new Date(
-                  dateRange.year,
-                  dateRange.month - 1
-                ).toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </>
-            )}
-            {(dateRange.mode === "days" || !dateRange.mode) && (
-              <>
-                {formatDate(dateRange.dateFrom)} to{" "}
-                {formatDate(dateRange.dateTo)}
-                {dateRange.days !== undefined && (
-                  <span className="ml-2 text-xs">
-                    (
-                    {dateRange.days === 0
-                      ? "Today"
-                      : `Last ${dateRange.days} days`}
-                    )
-                  </span>
-                )}
-              </>
-            )}
-          </p>
-        </div>
-      )}
-
-      {/* KPI Cards - Row 1 */}
-      <MetricGrid>
-        <Chart.Metric
-          title="Total Cost"
-          value={formatCompactCurrency(metrics.total_cost?.value)}
-          // trend={metrics.total_cost.trend}
-          icon={HandCoins}
-          color="primary"
-        />
-        <Chart.Metric
-          title="Total Rolls"
-          value={metrics.total_rolls?.value}
-          // trend={metrics.total_chemical.trend}
-          icon={Cylinder}
-          color="success"
-        />
-        <Chart.Metric
-          title="Average Cost Per Roll"
-          value={formatCompactCurrency(metrics.avg_cost_per_roll?.value)}
-          // trend={metrics.avg_cost_per_roll.trend}
-          icon={DollarSign}
-          color="warning"
-        />
-      </MetricGrid>
-
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card className="w-full h-full">
-            <div className="flex items-center justify-between mb-3">
+        {/* Top Products */}
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
+          {/* Top 5 Suppliers */}
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
+                <Building2 className="w-4 h-4 text-purple-600" />
+              </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Chemical Usage Trend
+                  Top 5 Dyes
                 </h3>
                 <p className="text-xs text-gray-600">
-                  Trend penggunaan dyes dan auxiliaries
+                  Dyes dengan total pemakaian tertinggi
                 </p>
               </div>
-              <select
-                value={trendGranularity}
-                onChange={(e) => setTrendGranularity(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
-              >
-                <option value="daily">Perhari</option>
-                <option value="weekly">Perminggu</option>
-                <option value="monthly">Perbulan</option>
-                <option value="yearly">Pertahun</option>
-              </select>
             </div>
+
             <Highchart.HighchartsBar
-              initialData={trendData}
+              initialData={transformDataToBar(top_dyes)}
               title=""
               subtitle=""
               datasets={[
-                {
-                  key: "dyes",
-                  label: "Dyes",
-                  color: "primary",
-                  type: "column",
-                  stacked: true,
-                },
-                {
-                  key: "auxiliaries",
-                  label: "Auxiliaries",
-                  color: "warning",
-                  type: "column",
-                  stacked: true,
-                },
-                {
-                  key: "total",
-                  label: "Total",
-                  color: "neutral",
-                  type: "spline",
-                },
+                { key: "value", label: "Total Purchases", color: "primary" },
               ]}
-              onFetchData={() => trendData}
+              periods={[]}
+              showSummary={false}
+            />
+          </Card>
+
+          {/* Top Auxiliaries */}
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
+                <Building2 className="w-4 h-4 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                  Top 5 Aux
+                </h3>
+                <p className="text-xs text-gray-600">
+                  Aux dengan total pemakaian tertinggi
+                </p>
+              </div>
+            </div>
+
+            <Highchart.HighchartsBar
+              initialData={transformDataToBar(top_aux)}
+              title=""
+              subtitle=""
+              datasets={[
+                { key: "value", label: "Total Purchases", color: "primary" },
+              ]}
+              periods={[]}
               showSummary={false}
             />
           </Card>
         </div>
-
-        <div className="lg:col-span-1">
-          <Card className="h-full ">
-            <Highchart.HighchartsDonut
-              data={chemicalSummaryTransformed}
-              // centerText={{
-              //   value: formatCompactCurrency(metrics.total_cost.value),
-              //   label: "Total Cost",
-              // }}
-              title="Chemical Cost Breakdown"
-              subtitle="Dyes vs Auxiliaries"
-              onDrilldownRequest={async ({ _, context, depth }) => {
-                return onDrilldown(context, depth);
-              }}
-              valueFormatter={formatCompactCurrency}
-            />
-          </Card>
-        </div>
       </div>
-
-      {/* Top Products */}
-      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
-        {/* Top 5 Suppliers */}
-        <Card>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                Top 5 Dyes
-              </h3>
-              <p className="text-xs text-gray-600">
-                Dyes dengan total pemakaian tertinggi
-              </p>
-            </div>
-          </div>
-
-          <Highchart.HighchartsBar
-            initialData={transformDataToBar(top_dyes)}
-            title=""
-            subtitle=""
-            datasets={[
-              { key: "value", label: "Total Purchases", color: "primary" },
-            ]}
-            periods={[]}
-            showSummary={false}
-          />
-        </Card>
-
-        {/* Top Auxiliaries */}
-        <Card>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                Top 5 Aux
-              </h3>
-              <p className="text-xs text-gray-600">
-                Aux dengan total pemakaian tertinggi
-              </p>
-            </div>
-          </div>
-
-          <Highchart.HighchartsBar
-            initialData={transformDataToBar(top_aux)}
-            title=""
-            subtitle=""
-            datasets={[
-              { key: "value", label: "Total Purchases", color: "primary" },
-            ]}
-            periods={[]}
-            showSummary={false}
-          />
-        </Card>
-      </div>
-    </div>
+    </>
   );
 }

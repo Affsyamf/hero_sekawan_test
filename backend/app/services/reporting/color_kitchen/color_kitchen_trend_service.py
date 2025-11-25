@@ -1,17 +1,20 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, exists, and_
 from datetime import timedelta
 from app.models import (
     ColorKitchenBatch as CKBatch,
     ColorKitchenBatchDetail as CKBatchDetail,
     ColorKitchenEntry as CKEntry,
     ColorKitchenEntryDetail as CKEntryDetail,
+    Product, Supplier, Purchasing, PurchasingDetail
 )
 from app.services.reporting.base_reporting_service import BaseReportService
+from app.services.reporting.color_kitchen.base_color_kitchen_service import ColorKitchenReportBase
+
 from app.utils.response import APIResponse
+from app.utils.filters import apply_common_report_filters
 
-
-class ColorKitchenTrendService(BaseReportService):
+class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
     """
     Service for generating Color Kitchen production trend data.
     Supports: daily, weekly, monthly, yearly granularity.
@@ -58,15 +61,21 @@ class ColorKitchenTrendService(BaseReportService):
                 ).label("dyes_value"),
             )
             .join(CKBatch, CKBatch.id == CKBatchDetail.batch_id)
-            .group_by(period_expr)
-            .order_by(period_expr)
+            .join(Product, Product.id == CKBatchDetail.product_id)
         )
+
+        q_dyes = self.apply_supplier_filter(q_dyes, filters)
 
         if start_date:
             q_dyes = q_dyes.filter(CKBatch.date >= start_date)
         if end_date:
             q_dyes = q_dyes.filter(CKBatch.date <= end_date)
 
+        q_dyes = q_dyes.group_by(period_expr)\
+            .order_by(period_expr)
+
+        q_dyes = apply_common_report_filters(q_dyes, filters)
+        
         dyes_rows = {r.period: float(r.dyes_value or 0) for r in q_dyes.all()}
 
         # -----------------------------
@@ -79,16 +88,26 @@ class ColorKitchenTrendService(BaseReportService):
                     func.sum(CKEntryDetail.quantity * func.coalesce(CKEntryDetail.unit_cost_used, 0.0)), 0.0
                 ).label("aux_value"),
             )
+            .select_from(CKEntryDetail)
             .join(CKEntry, CKEntry.id == CKEntryDetail.color_kitchen_entry_id)
-            .group_by(func.date_trunc(trunc_unit, CKEntry.date))
-            .order_by(func.date_trunc(trunc_unit, CKEntry.date))
+            .join(Product, Product.id == CKEntryDetail.product_id)
         )
+
+        q_aux = self.apply_supplier_filter(q_aux, filters)
 
         if start_date:
             q_aux = q_aux.filter(CKEntry.date >= start_date)
         if end_date:
             q_aux = q_aux.filter(CKEntry.date <= end_date)
 
+        q_aux = apply_common_report_filters(q_aux, filters)
+
+        q_aux = (
+            q_aux.group_by(func.date_trunc(trunc_unit, CKEntry.date))
+                .order_by(func.date_trunc(trunc_unit, CKEntry.date))
+        )
+
+        
         aux_rows = {r.period: float(r.aux_value or 0) for r in q_aux.all()}
 
         # -----------------------------

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { GlobalFilterProvider } from "./contexts/GlobalFilterContext.jsx";
 import "./assets/styles/tailwind.css";
 import {
@@ -23,59 +23,75 @@ import GlobalFilterDrawer from "./components/common/GlobalFilterDrawer.jsx";
 import AccountCategoryBoard from "./pages/account/AccountCategoryBoard.jsx";
 import { MainLayout } from "./layouts/index.js";
 import { FilterServiceProvider } from "./contexts/FilterServiceContext.jsx";
+import LoginPage from "./pages/auth/Loginpage.jsx";
+import { useAuthStore } from "./stores/useAuthStore.js";
+import Forbidden from "./pages/forbidden/ForbiddenPage.jsx";
+import { useEffect } from "react";
+import ProtectedRoute from "./components/router/ProtectedRoute.jsx";
+import PublicRoute from "./components/router/PublicRoute.jsx";
+import { protectedRoutes } from "./config/route.js";
+import PermissionRoute from "./components/router/PermissionRoute.jsx";
 
 export default function AppRouter() {
+  const initialized = useAuthStore((s) => s.initialized);
+  const initAuth = useAuthStore((s) => s.initAuth);
+
+  useEffect(() => {
+    initAuth();
+  }, []);
+
+  if (!initialized) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center text-gray-500">
+        Loading session...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <GlobalFilterProvider>
         <FilterServiceProvider>
-          <MainLayout>
-            {/* <GlobalFilterDrawer /> */}
-            <Routes>
-              <Route path="/dashboard/overview" element={<OverviewNew />} />
-              <Route
-                path="/dashboard/purchasings"
-                element={<DashboardPurchasing />}
-              />
-              <Route
-                path="/dashboard/color-kitchens"
-                element={<DashboardColorKitchen />}
-              />
+          <Routes>
+            {/* Public */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              }
+            />
 
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/suppliers" element={<SuppliersPage />} />
+            {/* PROTECTED ROUTES */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
+              {/* AUTO-GENERATED PERMISSION ROUTES */}
+              {protectedRoutes.map(({ path, element: Comp, permission }) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={
+                    <PermissionRoute permission={permission}>
+                      <Comp />
+                    </PermissionRoute>
+                  }
+                />
+              ))}
 
-              <Route path="/accounts" element={<AccountsPage />} />
-              <Route
-                path="/accounts/category-board"
-                element={<AccountCategoryBoard />}
-              />
+              {/* Forbidden */}
+              <Route path="403" element={<Forbidden />} />
+            </Route>
 
-              <Route path="/designs" element={<DesignsPage />} />
-              <Route path="/design-types" element={<DesignTypesPage />} />
-
-              <Route path="/purchasings" element={<PurchasingsPage />} />
-              <Route
-                path="/purchasings/detail/:id"
-                element={<PurchasingDetailPage />}
-              />
-
-              <Route path="/stock-movements" element={<StockMovementsPage />} />
-
-              <Route path="/color-kitchens" element={<ColorKitchensPage />} />
-              <Route
-                path="/color-kitchens/detail/:id"
-                element={<ColorKitchenDetailPage />}
-              />
-
-              <Route path="/stock-opnames" element={<StockOpnamePage />} />
-
-              <Route
-                path="/reports/purchasings"
-                element={<PurchasingReportsPage />}
-              />
-            </Routes>
-          </MainLayout>
+            {/* Redirect all unknown routes */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
         </FilterServiceProvider>
       </GlobalFilterProvider>
     </BrowserRouter>

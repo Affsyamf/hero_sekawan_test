@@ -15,7 +15,11 @@ export default function ProductFilter({ value = [], onChange }) {
     const timeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await searchProduct({ q: search, page: 1, page_size: 100 });
+        const res = await searchProduct({
+          q: search,
+          page: 1,
+          page_size: 1000,
+        });
         setProducts(res.data.data || []);
       } catch (err) {
         console.error("Failed to load products", err);

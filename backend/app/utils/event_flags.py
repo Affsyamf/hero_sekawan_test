@@ -1,7 +1,8 @@
 import contextvars
+from app.context.event_context import _skip_cost_cache_update
 
 # Context variable (thread-safe, works inside async or multi-threaded env)
-_skip_cost_cache_update = contextvars.ContextVar("_skip_cost_cache_update", default=False)
+# _skip_cost_cache_update = contextvars.ContextVar("_skip_cost_cache_update", default=False)
 
 def skip_cost_cache_updates():
     """Context manager to temporarily disable avg cost cache updates."""

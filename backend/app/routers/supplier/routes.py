@@ -4,12 +4,17 @@ from app.schemas.input_models.master_input_models import SupplierCreate, Supplie
 from app.utils.datatable.request import ListRequest
 from app.services.master.supplier_service import SupplierService
 from app.utils.response import APIResponse
+from app.dependencies.rbac import require_user
 
-supplier_router = APIRouter(prefix="/supplier", tags=["supplier"])
+supplier_router = APIRouter(prefix="/supplier", tags=["supplier"], dependencies=[require_user()])
 
 @supplier_router.get("/search")
 def search_suppliers(request: ListRequest = Depends(), service: SupplierService = Depends()):
     return service.list_supplier(request=request)
+
+@supplier_router.get("/color-kitchen")
+def search_suppliers(request: ListRequest = Depends(), service: SupplierService = Depends()):
+    return service.list_supplier_ck(request=request)
 
 @supplier_router.get("/{supplier_id}")
 def get_supplier_by_id(supplier_id: int, service: SupplierService = Depends()):

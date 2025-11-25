@@ -7,6 +7,13 @@ export const searchProduct = async (filter) => {
   return response;
 };
 
+export const searchCkProduct = async (filter) => {
+  const response = await api.get("/product/color-kitchen", {
+    params: filter,
+  });
+  return response;
+};
+
 export const getProductById = async (id) => {
   const response = await api.get(`/product/${id}`);
   return response;

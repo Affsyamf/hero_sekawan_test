@@ -4,9 +4,9 @@ from app.schemas.input_models.types_input_models import AccountParentCreate, Acc
 from app.utils.datatable.request import ListRequest
 from app.services.types.account_parent_service import AccountParentService
 from app.utils.response import APIResponse
-from app.models import AccountParent
+from app.dependencies.rbac import require_user
 
-account_parent_router = APIRouter(prefix="/account_parent", tags=["account parent"])
+account_parent_router = APIRouter(prefix="/account_parent", tags=["account parent"], dependencies=[require_user()])
 
 # afif
 # @account_parent_router.get("/dropdown")

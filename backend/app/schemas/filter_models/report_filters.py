@@ -39,3 +39,9 @@ class ColorKitchenReportFilter(BaseReportFilter):
         "monthly",
         description="Data aggregation level: daily, weekly, monthly, yearly"
     )
+    product_ids: Optional[List[int]] = Field(
+        None, description="Filter by list of Product IDs"
+    )
+    supplier_ids: Optional[List[int]] = Field(
+        None, description="Filter by list of Supplier IDs"
+    )

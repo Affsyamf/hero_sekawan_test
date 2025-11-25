@@ -28,7 +28,7 @@ export default function Loading({ fullscreen = false, label, size = "md" }) {
 
   if (fullscreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-1000 flex items-center justify-center bg-background/70 backdrop-blur-sm">
         {content}
       </div>
     );

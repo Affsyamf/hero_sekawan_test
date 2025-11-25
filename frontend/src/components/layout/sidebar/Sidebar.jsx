@@ -12,35 +12,8 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useEffect, useState } from "react";
 import SidebarItem from "./SidebarItem";
 import SidebarFooter from "./SidebarFooter";
-
-const menuItems = [
-  { isHeader: true, text: "Main" },
-  {
-    label: "Reports",
-    icon: FileBarChart2,
-    children: [
-      { label: "Dashboard", path: "/dashboard/overview" },
-      { label: "Purchasing", path: "/dashboard/purchasings" },
-      { label: "Color Kitchen", path: "/dashboard/color-kitchens" },
-    ],
-  },
-  { isHeader: true, text: "Master Data" },
-  {
-    label: "Master Data",
-    icon: ShoppingBag,
-    children: [
-      { label: "Products", path: "/products" },
-      { label: "Suppliers", path: "/suppliers" },
-      { label: "Accounts", path: "/accounts" },
-      { label: "Design", path: "/designs" },
-    ],
-  },
-  { isHeader: true, text: "Transactions" },
-  { label: "Purchasing", icon: ShoppingCart, path: "/purchasings" },
-  { label: "Stock Movement", icon: Package, path: "/stock-movements" },
-  { label: "Color Kitchen", icon: FlaskConical, path: "/color-kitchens" },
-  { label: "Stock Opname", icon: ClipboardCheck, path: "/stock-opnames" },
-];
+import { usePermission } from "../../../hooks/usePermission";
+import { menuItems } from "../../../config/menu";
 
 export default function Sidebar({
   isOpen,
@@ -50,6 +23,8 @@ export default function Sidebar({
 }) {
   const { colors } = useTheme();
   const [openDropdowns, setOpenDropdowns] = useState({});
+
+  const { hasPermission } = usePermission();
 
   useEffect(() => {
     const initial = {};
@@ -113,27 +88,43 @@ export default function Sidebar({
         {/* Menu */}
         <div className="flex-1 overflow-y-auto px-4">
           <nav className="pb-4 space-y-1" role="navigation">
-            {menuItems.map((item, idx) =>
-              item.isHeader ? (
-                !collapsed && (
-                  <div
+            {menuItems
+              .filter((item) => {
+                // Do not filter headers
+                if (item.isHeader) return true;
+
+                // If item has no children, check its own perm
+                if (!item.children) return hasPermission(item.perm);
+
+                // If item has children → keep only children with permission
+                item.children = item.children.filter((child) =>
+                  hasPermission(child.perm)
+                );
+
+                // If all children filtered out → remove the whole parent
+                return item.children.length > 0;
+              })
+              .map((item, idx) =>
+                item.isHeader ? (
+                  !collapsed && (
+                    <div
+                      key={idx}
+                      className="px-2 pt-4 pb-2 text-xs font-semibold tracking-wider uppercase"
+                      style={{ color: colors.text.tertiary }}
+                    >
+                      {item.text}
+                    </div>
+                  )
+                ) : (
+                  <SidebarItem
                     key={idx}
-                    className="px-2 pt-4 pb-2 text-xs font-semibold tracking-wider uppercase"
-                    style={{ color: colors.text.tertiary }}
-                  >
-                    {item.text}
-                  </div>
+                    item={item}
+                    open={!collapsed && !!openDropdowns[item.label]}
+                    toggleDropdown={() => toggleDropdown(item.label)}
+                    collapsed={collapsed}
+                  />
                 )
-              ) : (
-                <SidebarItem
-                  key={idx}
-                  item={item}
-                  open={!collapsed && !!openDropdowns[item.label]}
-                  toggleDropdown={() => toggleDropdown(item.label)}
-                  collapsed={collapsed}
-                />
-              )
-            )}
+              )}
           </nav>
         </div>
 

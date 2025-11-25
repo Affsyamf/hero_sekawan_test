@@ -7,7 +7,8 @@ from sqlalchemy import or_
 from app.schemas.input_models.master_input_models import SupplierCreate, SupplierUpdate
 from app.services.common.audit_logger import AuditLoggerService
 from app.core.database import Session, get_db
-from app.models import Supplier, Purchasing
+from app.models import (Supplier, Purchasing, PurchasingDetail,
+                        ColorKitchenBatchDetail, ColorKitchenEntryDetail, Product)
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
@@ -124,3 +125,63 @@ class SupplierService:
         self.db.delete(supplier)
 
         return APIResponse.ok(f"Supplier ID '{supplier_id}' deleted.")
+    
+    def list_supplier_ck(self, request: ListRequest):
+        # === Subquery: suppliers linked to CK-related products (batch or entry) ===
+        q_batch = (
+            self.db.query(Supplier.id.label("supplier_id"))
+            .join(Purchasing, Purchasing.supplier_id == Supplier.id)
+            .join(PurchasingDetail, PurchasingDetail.purchasing_id == Purchasing.id)
+            .join(Product, Product.id == PurchasingDetail.product_id)
+            .join(ColorKitchenBatchDetail, ColorKitchenBatchDetail.product_id == Product.id)
+        )
+
+        q_entry = (
+            self.db.query(Supplier.id.label("supplier_id"))
+            .join(Purchasing, Purchasing.supplier_id == Supplier.id)
+            .join(PurchasingDetail, PurchasingDetail.purchasing_id == Purchasing.id)
+            .join(Product, Product.id == PurchasingDetail.product_id)
+            .join(ColorKitchenEntryDetail, ColorKitchenEntryDetail.product_id == Product.id)
+        )
+
+        # Union both → suppliers that appear in either batch or entry
+        supplier_subq = q_batch.union(q_entry).subquery()
+
+        # === Main query: distinct suppliers appearing in CK activity ===
+        supplier_q = (
+            self.db.query(Supplier)
+            .join(supplier_subq, supplier_subq.c.supplier_id == Supplier.id)
+            .distinct()
+        )
+
+        # === Search ===
+        if request.q:
+            like = f"%{request.q}%"
+            supplier_q = supplier_q.filter(
+                or_(
+                    Supplier.code.ilike(like),
+                    Supplier.name.ilike(like),
+                    Supplier.contact_info.ilike(like),
+                )
+            )
+
+        # === Sorting ===
+        if request.sort_by and request.sort_dir:
+            sort_col = getattr(Supplier, request.sort_by)
+            if request.sort_dir.lower() == "desc":
+                sort_col = sort_col.desc()
+            supplier_q = supplier_q.order_by(sort_col)
+        else:
+            supplier_q = supplier_q.order_by(Supplier.id)
+
+        # === Paginate ===
+        return APIResponse.paginated(
+            supplier_q,
+            request,
+            lambda row: {
+                "id": row.id,
+                "code": row.code,
+                "name": row.name,
+                "contact_info": row.contact_info,
+            },
+        )
