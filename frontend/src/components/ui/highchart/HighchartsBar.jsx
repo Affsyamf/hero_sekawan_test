@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import { formatCompactCurrency } from "../../../utils/helpers";
-import { chartColors } from "../../../utils/chartColors";
+import {
+  chartColors,
+  getColorForLabel,
+  registerCategories,
+} from "../../../utils/chartColors";
 
 const HighchartsBar = ({
   initialData,
@@ -29,19 +33,20 @@ const HighchartsBar = ({
     }
   }, [initialData]);
 
+  useEffect(() => {
+    if (datasets) {
+      registerCategories(datasets.map((ds) => ds.label));
+    }
+  }, [datasets]);
+
   const categories = data?.map((item) => item.key) || [];
 
   const series =
     datasets?.map((dataset, index) => {
-      const assignedColor =
-        dataset.color && dataset.color.startsWith("#")
-          ? dataset.color // use raw hex if provided
-          : chartColors[index % chartColors.length]; // fallback cycle
-
       return {
         name: dataset.label ?? dataset.key,
         data: data?.map((item) => item[dataset.key]) || [],
-        color: assignedColor,
+        color: getColorForLabel(dataset.label),
         type: dataset.type || "column",
         stacking:
           dataset.type === "column" && dataset.stacked ? "normal" : undefined,

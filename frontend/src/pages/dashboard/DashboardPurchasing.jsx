@@ -606,7 +606,7 @@ export default function DashboardPurchasing() {
             title=""
             subtitle=""
             datasets={[
-              { key: "value", label: "Total Value", color: "primary" },
+              { key: "value", label: "Total Purchases", color: "primary" },
             ]}
             periods={[]}
             showSummary={false}

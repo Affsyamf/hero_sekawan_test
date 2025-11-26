@@ -3,7 +3,11 @@ import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "highcharts/modules/drilldown";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { chartColors } from "../../../utils/chartColors";
+import {
+  chartColors,
+  getColorForLabel,
+  registerCategories,
+} from "../../../utils/chartColors";
 
 const HighchartsDonut = ({
   data,
@@ -135,7 +139,7 @@ const HighchartsDonut = ({
   };
 
   const finalData = useMemo(() => getMaxN(data), [data]);
-
+  registerCategories(finalData.map((d) => d.name));
   const options = useMemo(() => {
     return {
       drilldown: {
@@ -317,7 +321,8 @@ const HighchartsDonut = ({
           `;
         },
       },
-      colors: chartColors,
+      colors: [],
+      // colors: chartColors,
       plotOptions: {
         pie: {
           innerSize: "65%",
@@ -334,7 +339,7 @@ const HighchartsDonut = ({
             distance: 12,
           },
           showInLegend: true,
-          colorByPoint: true,
+          // colorByPoint: true,
         },
       },
       legend: {
@@ -349,7 +354,15 @@ const HighchartsDonut = ({
         itemHoverStyle: { color: "#111827" },
       },
       credits: { enabled: false },
-      series: [{ name: "Value", data: finalData }],
+      series: [
+        {
+          name: "Value",
+          data: finalData.map((d) => ({
+            ...d,
+            color: getColorForLabel(d.name),
+          })),
+        },
+      ],
     };
   }, [data, onDrilldownRequest, enableDataLabels]);
 
