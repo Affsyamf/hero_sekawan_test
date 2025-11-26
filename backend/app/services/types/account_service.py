@@ -65,7 +65,7 @@ class AccountService:
 
         return APIResponse.ok(data=response)
 
-    def create_account(self, request: AccountCreate, current_user_id: int):
+    def create_account(self, request: AccountCreate):
 
         parent_exists = self.db.query(AccountParent).filter(
             AccountParent.id == request.parent_id
@@ -80,9 +80,9 @@ class AccountService:
         
         # ubah menjadi dict
         data_to_create = request.model_dump(exclude_unset=True)
+        
+        # ke fk
         data_to_create["parent_id"] = parent_exists.id
-        data_to_create["created_by"] = current_user_id
-        data_to_create["updated_by"] = current_user_id
         
         # objek orm sqlalchemu
         account = Account(**data_to_create)
@@ -92,7 +92,7 @@ class AccountService:
         self.db.refresh(account)
         return APIResponse.created(data={"id": account.id, "name": account.name})
     
-    def update_account(self, account_id: int, request: AccountUpdate, current_user_id: int):
+    def update_account(self, account_id: int, request: AccountUpdate):
         update_data = request.model_dump(exclude_unset=True)
 
         account = self.db.query(Account).filter(Account.id == account_id).first()
@@ -113,11 +113,7 @@ class AccountService:
             ). first()
             
             if not parent_exists:
-                return APIResponse.not_found(message=f"Account Parent ID '{update_data['parent_id']}' not found.")
-        
-        update_data["updated_by"] = current_user_id
-        update_data["updated_at"] = datetime.now()
-        
+                return APIResponse.not_found(message=f"Account Parent ID '{update_data['parent_id']}' not found.")  
         
         result = (
             self.db.query(Account)

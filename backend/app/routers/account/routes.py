@@ -19,16 +19,16 @@ def get_account_by_id(account_id: int, service: AccountService = Depends()):
     return service.get_account(account_id=account_id)
 
 @account_router.post("/")
-def create_account(request: AccountCreate, service: AccountService = Depends(), current_user: User = Depends(AuthDependency.get_current_user)):
+def create_account(request: AccountCreate, service: AccountService = Depends()):
     try:
-        return service.create_account(request, current_user_id=current_user.id)
+        return service.create_account(request)
     except Exception as e:
         return APIResponse.internal_error(message="Failed to create account", error_detail=str(e))
 
 @account_router.put("/{account_id}")
-def update_account_by_id(account_id: int, request: AccountUpdate, service: AccountService = Depends(), current_user: User = Depends(AuthDependency.get_current_user)):
+def update_account_by_id(account_id: int, request: AccountUpdate, service: AccountService = Depends()):
     try:
-        return service.update_account(account_id, request, current_user_id=current_user.id)
+        return service.update_account(account_id, request)
     except Exception as e:
         return APIResponse.internal_error(message="Failed to update account", error_detail=str(e))
 

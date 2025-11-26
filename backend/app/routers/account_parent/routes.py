@@ -21,17 +21,17 @@ def get_account_parent_by_id(account_id: int, service: AccountParentService = De
     return service.get_account_parent(account_id=account_id)
 
 @account_parent_router.post("/")
-def create_account_parent(request: AccountParentCreate, service: AccountParentService = Depends(), current_user: User = Depends(AuthDependency.get_current_user)):
+def create_account_parent(request: AccountParentCreate, service: AccountParentService = Depends()):
     try:
-        return service.create_account_parent(request, current_user_id=current_user.id)
+        return service.create_account_parent(request)
     except Exception as e:
         print(f"Error Detail : {e}")
         return APIResponse.internal_error(message="Failed to create account", error_detail=str(e))
 
 @account_parent_router.put("/{account_id}")
-def update_account_parent_by_id(account_id: int, request: AccountParentUpdate, service: AccountParentService = Depends(), current_user: User = Depends(AuthDependency.get_current_user)):
+def update_account_parent_by_id(account_id: int, request: AccountParentUpdate, service: AccountParentService = Depends()):
     try:
-        return service.update_account_parent(account_id, request, current_user_id=current_user.id)
+        return service.update_account_parent(account_id, request)
     except Exception as e:
         return APIResponse.internal_error(message="Failed to update account", error_detail=str(e))
 

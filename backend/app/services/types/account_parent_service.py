@@ -68,7 +68,7 @@ class AccountParentService:
         return APIResponse.ok(data=response)
 
 
-    def create_account_parent(self, request: AccountParentCreate, current_user_id: int ):
+    def create_account_parent(self, request: AccountParentCreate):
         existing = self.db.query(AccountParent).filter(
             AccountParent.account_no == request.account_no
         ).first()
@@ -76,9 +76,6 @@ class AccountParentService:
             return APIResponse.conflict(message=f"AccountParent number '{request.account_no}' already exists.")
 
         data_to_create = request.model_dump(exclude={"accounts"}, exclude_unset=True)
-        
-        data_to_create["created_by"] = current_user_id
-        data_to_create["updated_by"] = current_user_id
         
         account = AccountParent(**data_to_create)
         
@@ -89,7 +86,7 @@ class AccountParentService:
         return APIResponse.created(data={"id": account.id, "account_no": str(account.account_no)})
 
 
-    def update_account_parent(self, account_id: int, request: AccountParentUpdate, current_user_id: int):
+    def update_account_parent(self, account_id: int, request: AccountParentUpdate):
         
         update_data = request.model_dump(exclude_unset=True)
 
@@ -109,16 +106,13 @@ class AccountParentService:
             if existing:
                 return APIResponse.conflict(message=f"AccountParent number '{update_data['account_no']}' already exists.")
             
-        update_data["updated_by"] = current_user_id
-        update_data["updated_at"] = datetime.now()
-        
-        result = (
-            self.db.query(AccountParent)
-                .filter(AccountParent.id == account_id)
-                .update(update_data, synchronize_session=False)
-        )
-
-        
+        if update_data:
+            for key, value in update_data.items():
+                setattr(account, key, value)
+                
+            self.db.add(account)
+            self.db.flush()
+            
         if accounts_to_set is not None:
             account.accounts = []
             for acc_id in accounts_to_set:
@@ -126,8 +120,7 @@ class AccountParentService:
                 if acc:
                     account.accounts.append(acc)
                     
-        if result == 0:
-            return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
+            self.db.flush()
         
         return APIResponse.ok(f"Account ID '{account_id}' updated.")
 
