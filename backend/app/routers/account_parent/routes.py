@@ -10,8 +10,7 @@ from app.dependencies.auth_dependency import AuthDependency
 from app.models.user import User
 
 account_parent_router = APIRouter(prefix="/account_parent", tags=["account parent"], dependencies=[require_user()])
- 
-        
+
 @account_parent_router.get("/search")
 def search_account_parents(request: ListRequest = Depends(), service: AccountParentService = Depends()):
     return service.list_account_parent(request=request)
