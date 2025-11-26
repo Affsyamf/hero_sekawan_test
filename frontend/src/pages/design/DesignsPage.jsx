@@ -10,6 +10,7 @@ import {
   updateDesign,
 } from "../../services/design_service";
 import { searchDesignType } from "../../services/design_type_service";
+import Button from "../../components/ui/button/Button";
 
 export default function DesignsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,6 +158,17 @@ export default function DesignsPage() {
           Manage designs with codes and type classifications.
         </p>
 
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={Upload}
+              label="Import from Excel"
+              onClick={handleImport}
+              className="bg-green-600 hover:bg-green-700"
+            />
+          </div>
+        </div>
+
         <Table
           key={refreshKey}
           columns={columns}
@@ -172,6 +184,12 @@ export default function DesignsPage() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSave}
+        />
+
+        <ImportDesignModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </div>
