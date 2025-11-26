@@ -362,7 +362,7 @@ export default function DashboardColorKitchen() {
         </div>
 
         {/* Active Filter Display */}
-        {dateRange && (
+        {/* {dateRange && (
           <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
             <p className="text-sm text-blue-800">
               <span className="font-semibold">📅 Active Filter:</span>{" "}
@@ -396,7 +396,7 @@ export default function DashboardColorKitchen() {
               )}
             </p>
           </div>
-        )}
+        )} */}
 
         {/* KPI Cards - Row 1 */}
         <MetricGrid>

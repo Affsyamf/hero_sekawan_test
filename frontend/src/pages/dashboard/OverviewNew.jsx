@@ -37,7 +37,6 @@ export default function OverviewNew() {
 
   // ✅ Trigger refresh when dateRange changes - sama seperti di Purchasing page
   useEffect(() => {
-    console.log("🔍 DateRange changed:", dateRange);
     setRefreshKey((prev) => prev + 1);
   }, [dateRange]);
 
@@ -49,7 +48,6 @@ export default function OverviewNew() {
   const fetchDashboardData = async () => {
     // Validasi dateRange sebelum fetch
     if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-      console.log("⚠️ DateRange not valid, skipping fetch");
       setLoading(false);
       return;
     }
@@ -149,7 +147,7 @@ export default function OverviewNew() {
         </div>
 
         {/* ✅ Display active filter info - sama seperti Purchasing page */}
-        {dateRange && (
+        {/* {dateRange && (
           <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
             <p className="text-sm text-blue-800">
               <span className="font-semibold">📅 Active Filter:</span>{" "}
@@ -183,7 +181,7 @@ export default function OverviewNew() {
               )}
             </p>
           </div>
-        )}
+        )} */}
 
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
