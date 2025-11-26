@@ -306,27 +306,14 @@ export default function DashboardColorKitchen() {
     }
   };
 
-  if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="mb-2 text-gray-600">No date range selected</p>
-          <p className="text-sm text-gray-500">
-            Please select a date range from the global filter to view color
-            kitchen data
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (!ckData) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="mb-2 text-gray-600">No data available</p>
-          <p className="text-sm text-gray-500">
-            Please check your date range or try again later
+          <div className="w-16 h-16 mx-auto border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Date: {dateRange?.dateFrom} to {dateRange?.dateTo}
           </p>
         </div>
       </div>
