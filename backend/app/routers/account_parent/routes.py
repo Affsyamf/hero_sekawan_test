@@ -6,28 +6,11 @@ from app.services.types.account_parent_service import AccountParentService
 from app.utils.response import APIResponse
 from app.dependencies.rbac import require_user
 
+from app.dependencies.auth_dependency import AuthDependency
+from app.models.user import User
+
 account_parent_router = APIRouter(prefix="/account_parent", tags=["account parent"], dependencies=[require_user()])
 
-# afif
-# @account_parent_router.get("/dropdown")
-# def list_account_parents_for_dropdown(
-#     q: str | None = None,
-#     service: AccountParentService = Depends()
-# ):
-#     # id dan account_no saja
-#     query = service.db.query(AccountParent.id, AccountParent.account_no)
-
-#     if q:
-#         like = f"%{q}%"
-#         query = query.filter(AccountParent.account_no.ilike(like))
-        
-#     data = query.limit(50).all()
-        
-#     # ubah row tup menjadi dict
-#     response_data = [ {"id": row.id, "account_no": row.account_no} for row in data ] 
-        
-#     return APIResponse.ok(data=response_data)   
-        
 @account_parent_router.get("/search")
 def search_account_parents(request: ListRequest = Depends(), service: AccountParentService = Depends()):
     return service.list_account_parent(request=request)
