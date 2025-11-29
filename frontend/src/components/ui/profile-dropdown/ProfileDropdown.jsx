@@ -32,7 +32,7 @@ export default function ProfileDropdown() {
       }
     >
       {/* Header Section */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 text-lg font-semibold text-white bg-blue-600 rounded-full">
             {initial}
