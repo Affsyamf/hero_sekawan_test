@@ -10,8 +10,6 @@ import {
   updateColorKitchen,
 } from "../../services/color_kitchen_service";
 import { searchDesign } from "../../services/design_service";
-import { useFilteredFetch } from "../../hooks/useFilteredFetch";
-import { useGlobalFilter } from "../../contexts/GlobalFilterContext";
 import Button from "../../components/ui/button/Button";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import GuideImportColorKitchenModal from "../../components/features/color-kitchen/GuideImportColorKitchenModal";
@@ -22,17 +20,6 @@ export default function ColorKitchensPage() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refresh, setRefresh] = useState(0);
-
-  //filter global
-  // const { dateRange } = useGlobalFilter();
-  // const filteredSearchColorKitchen = useFilteredFetch(
-  //   searchColorKitchen,
-  //   "date"
-  // );
-
-  // useEffect(() => {
-  //   setRefresh((prev) => prev + 1);
-  // }, [dateRange.startDate, dateRange.endDate]);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
 

@@ -9,8 +9,6 @@ import {
   updateStockOpname,
 } from "../../services/stock_opname_service";
 import { formatDate } from "../../utils/helpers";
-import { useFilteredFetch } from "../../hooks/useFilteredFetch";
-import { useGlobalFilter } from "../../contexts/GlobalFilterContext";
 import Button from "../../components/ui/button/Button";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 
@@ -19,14 +17,6 @@ export default function StockOpnamePage() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refresh, setRefresh] = useState(0);
-
-  //filter global
-  // const { dateRange } = useGlobalFilter();
-  // const filteredSearchStockOpname = useFilteredFetch(searchStockOpname, "date");
-
-  // useEffect(() => {
-  //   setRefresh((prev) => prev + 1);
-  // }, [dateRange.startDate, dateRange.endDate]);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
 

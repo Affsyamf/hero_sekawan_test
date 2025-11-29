@@ -117,6 +117,8 @@ export default function DashboardColorKitchen() {
         chemical_type: filters.dye_aux || "BOTH",
       };
 
+      console.log(params);
+
       // Fetch all data in parallel
       const [summary, chemicalSummary, dyesData, auxData] = await Promise.all([
         reportsColorKitchenSummary(params),
@@ -360,43 +362,6 @@ export default function DashboardColorKitchen() {
             />
           </div>
         </div>
-
-        {/* Active Filter Display */}
-        {/* {dateRange && (
-          <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
-            <p className="text-sm text-blue-800">
-              <span className="font-semibold">📅 Active Filter:</span>{" "}
-              {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
-              {dateRange.mode === "year" && `Year ${dateRange.year}`}
-              {dateRange.mode === "month-year" && (
-                <>
-                  {new Date(
-                    dateRange.year,
-                    dateRange.month - 1
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </>
-              )}
-              {(dateRange.mode === "days" || !dateRange.mode) && (
-                <>
-                  {formatDate(dateRange.dateFrom)} to{" "}
-                  {formatDate(dateRange.dateTo)}
-                  {dateRange.days !== undefined && (
-                    <span className="ml-2 text-xs">
-                      (
-                      {dateRange.days === 0
-                        ? "Today"
-                        : `Last ${dateRange.days} days`}
-                      )
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-          </div>
-        )} */}
 
         {/* KPI Cards - Row 1 */}
         <MetricGrid>

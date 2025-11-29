@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { GlobalFilterProvider } from "./contexts/GlobalFilterContext.jsx";
 import "./assets/styles/tailwind.css";
 import {
   Dashboard,
@@ -50,50 +49,48 @@ export default function AppRouter() {
 
   return (
     <BrowserRouter>
-      <GlobalFilterProvider>
-        <FilterServiceProvider>
-          <Routes>
-            {/* Public */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
+      <FilterServiceProvider>
+        <Routes>
+          {/* Public */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
 
-            {/* PROTECTED ROUTES */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            >
-              {/* AUTO-GENERATED PERMISSION ROUTES */}
-              {protectedRoutes.map(({ path, element: Comp, permission }) => (
-                <Route
-                  key={path}
-                  path={path}
-                  element={
-                    <PermissionRoute permission={permission}>
-                      <Comp />
-                    </PermissionRoute>
-                  }
-                />
-              ))}
+          {/* PROTECTED ROUTES */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            {/* AUTO-GENERATED PERMISSION ROUTES */}
+            {protectedRoutes.map(({ path, element: Comp, permission }) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <PermissionRoute permission={permission}>
+                    <Comp />
+                  </PermissionRoute>
+                }
+              />
+            ))}
 
-              {/* Forbidden */}
-              <Route path="403" element={<Forbidden />} />
-            </Route>
+            {/* Forbidden */}
+            <Route path="403" element={<Forbidden />} />
+          </Route>
 
-            {/* Redirect all unknown routes */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </FilterServiceProvider>
-      </GlobalFilterProvider>
+          {/* Redirect all unknown routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </FilterServiceProvider>
     </BrowserRouter>
   );
 }

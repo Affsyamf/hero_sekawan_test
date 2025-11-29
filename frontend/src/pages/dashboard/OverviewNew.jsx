@@ -2,58 +2,74 @@ import { useTheme } from "../../contexts/ThemeContext";
 import Card from "../../components/ui/card/Card";
 import Button from "../../components/ui/button/Button";
 import Chart from "../../components/ui/chart/Chart";
-import HighchartsBar from "../../components/ui/highchart/HighchartsBar";
-import HighchartsLine from "../../components/ui/highchart/HighchartsLine";
+import { Highchart } from "../../components/ui/highchart";
 import {
   DollarSign,
   Download,
-  Droplets,
   Palette,
   ShoppingCart,
   TrendingDown,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getDashboardData } from "../../services/dashboard_service";
-import {
-  formatNumber,
-  formatCompactCurrency,
-  formatDate,
-} from "../../utils/helpers";
+import { formatCompactCurrency } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import Loading from "../../components/ui/loading/Loading";
+import {
+  buildDatasetsFromData,
+  hydrateDataForChart,
+} from "../../utils/chartHelper";
+import { reportsPurchasingTrend } from "../../services/report_purchasing_service";
+import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
+import { reportsColorKitchenTrend } from "../../services/report_color_kitchen_service";
 
 export default function OverviewNew() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const { colors } = useTheme();
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // ✅ Gunakan useDateFilterStore - sama seperti di Purchasing page
-  const dateRange = useDateFilterStore((state) => state.dateRange);
-
-  // ✅ Granularity state untuk Cost Trend
+  // Granularity states
+  const [purchasingTrendGranularity, setPurchasingTrendGranularity] =
+    useState("monthly");
+  const [ckTrendGranularity, setCkTrendGranularity] = useState("monthly");
   const [costTrendGranularity, setCostTrendGranularity] = useState("monthly");
 
-  // ✅ Trigger refresh when dateRange changes - sama seperti di Purchasing page
-  useEffect(() => {
-    setRefreshKey((prev) => prev + 1);
-  }, [dateRange]);
+  // Trend Data states
+  const [purchasingTrendData, setPurchasingTrendData] = useState([]);
+  const [ckTrendData, setCkTrendData] = useState([]);
 
-  // ✅ Fetch data ketika refreshKey atau granularity berubah
-  useEffect(() => {
-    fetchDashboardData();
-  }, [refreshKey, costTrendGranularity]);
+  const dateRange = useDateFilterStore((state) => state.dateRange);
 
-  const fetchDashboardData = async () => {
-    // Validasi dateRange sebelum fetch
+  // Helper function
+  const transformTrendData = useCallback((trend) => {
+    return (trend || []).map((item) => {
+      let displayPeriod = item.period;
+
+      if (item.week_start && item.week_end) {
+        displayPeriod = formatWeeklyPeriod(item.week_start, item.week_end);
+      } else {
+        displayPeriod = formatPeriod(item.period);
+      }
+
+      return {
+        key: displayPeriod,
+        ...item,
+      };
+    });
+  }, []);
+
+  // 1. Fetch Dashboard Data (Metrics, Cost Trend, Stock Flow)
+  const fetchDashboardData = useCallback(async () => {
     if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-      setLoading(false);
+      setDashboardData(null);
       return;
     }
 
     try {
-      setLoading(true);
+      // Show loading indicator only for the Dashboard metrics/main data
+      // For trend updates, we rely on the chart's internal loading state
+      if (costTrendGranularity === "monthly") setLoading(true); // Only show full screen loading on initial/major load
 
       const params = {
         start_date: dateRange.dateFrom,
@@ -62,31 +78,69 @@ export default function OverviewNew() {
       };
 
       const response = await getDashboardData(params);
-
-      const stock_flow = response.data.stock_flow.map((item) => ({
-        ...item,
-        key: item.month,
-      }));
-
-      const cost_trend = response.data.cost_trend.map((item) => ({
-        ...item,
-        key: item.month,
-      }));
-
-      const res = {
-        ...response.data,
-        stock_flow: stock_flow,
-        cost_trend: cost_trend,
-      };
-
-      setDashboardData(res);
+      setDashboardData({ ...response.data });
     } catch (error) {
       console.error("❌ Error fetching dashboard data:", error);
       setDashboardData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange, costTrendGranularity]);
+
+  // 2. Fetch Purchasing Trend Data
+  const fetchPurchasingTrendData = useCallback(async () => {
+    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
+
+    try {
+      const params = {
+        start_date: dateRange.dateFrom,
+        end_date: dateRange.dateTo,
+        granularity: purchasingTrendGranularity,
+      };
+
+      const trend = await reportsPurchasingTrend(params);
+      setPurchasingTrendData(transformTrendData(trend.data));
+    } catch (error) {
+      console.error("Error fetching purchasing trend data:", error);
+    }
+  }, [dateRange, purchasingTrendGranularity, transformTrendData]);
+
+  // 3. Fetch Color Kitchen (CK) Trend Data
+  const fetchCkTrend = useCallback(async () => {
+    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
+
+    try {
+      const params = {
+        start_date: dateRange.dateFrom,
+        end_date: dateRange.dateTo,
+        granularity: ckTrendGranularity,
+      };
+
+      const trend = await reportsColorKitchenTrend(params);
+      setCkTrendData(transformTrendData(trend.data));
+    } catch (error) {
+      console.error("Error fetching CK trend data:", error);
+    }
+  }, [dateRange, ckTrendGranularity, transformTrendData]);
+
+  // --- EFFECT HOOKS FOR ISOLATED FETCHING ---
+
+  // 1. Dashboard data fetcher (runs on dateRange or cost granularity change)
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]); // Dependency is the memoized fetchDashboardData function
+
+  // 2. Purchasing trend data fetcher (runs on dateRange or purchasing granularity change)
+  useEffect(() => {
+    fetchPurchasingTrendData();
+  }, [fetchPurchasingTrendData]); // Dependency is the memoized fetchPurchasingTrendData function
+
+  // 3. CK trend data fetcher (runs on dateRange or CK granularity change)
+  useEffect(() => {
+    fetchCkTrend();
+  }, [fetchCkTrend]); // Dependency is the memoized fetchCkTrend function
+
+  // --- End of Effect Hooks ---
 
   const handleExport = async () => {
     try {
@@ -97,12 +151,15 @@ export default function OverviewNew() {
     }
   };
 
-  const formatTrend = (trend) => {
-    const sign = trend > 0 ? "+" : "";
-    return `${sign}${trend}%`;
-  };
+  if (loading || !dashboardData) {
+    if (!loading && !dashboardData) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <p className="mt-4 text-gray-600">Failed to load dashboard data.</p>
+        </div>
+      );
+    }
 
-  if (!dashboardData) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -121,8 +178,6 @@ export default function OverviewNew() {
 
   return (
     <>
-      {loading && <Loading fullscreen={true} />}
-
       <div className="max-w-full space-y-6">
         {/* Header Toolbar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -146,43 +201,6 @@ export default function OverviewNew() {
           </div>
         </div>
 
-        {/* ✅ Display active filter info - sama seperti Purchasing page */}
-        {/* {dateRange && (
-          <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
-            <p className="text-sm text-blue-800">
-              <span className="font-semibold">📅 Active Filter:</span>{" "}
-              {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
-              {dateRange.mode === "year" && `Year ${dateRange.year}`}
-              {dateRange.mode === "month-year" && (
-                <>
-                  {new Date(
-                    dateRange.year,
-                    dateRange.month - 1
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </>
-              )}
-              {(dateRange.mode === "days" || !dateRange.mode) && (
-                <>
-                  {formatDate(dateRange.dateFrom)} to{" "}
-                  {formatDate(dateRange.dateTo)}
-                  {dateRange.days !== undefined && (
-                    <span className="ml-2 text-xs">
-                      (
-                      {dateRange.days === 0
-                        ? "Today"
-                        : `Last ${dateRange.days} days`}
-                      )
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-          </div>
-        )} */}
-
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Chart.Metric
@@ -204,66 +222,111 @@ export default function OverviewNew() {
             icon={DollarSign}
           />
           <Chart.Metric
-            title="Avg Cost per Job"
-            value={formatCompactCurrency(metrics.avg_cost_per_job.value)}
-            // trend={formatTrend(metrics.avg_cost_per_job.trend)}
+            title="Avg Cost per Roll"
+            value={formatCompactCurrency(metrics.avg_cost_per_roll.value)}
+            // trend={formatTrend(metrics.avg_cost_per_roll.trend)}
             icon={Palette}
           />
         </div>
 
-        {/* Main Charts Row */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Stock Flow Chart */}
-          <Card className="w-full h-full">
-            <HighchartsBar
-              initialData={stock_flow}
-              title="Trend Stock Masuk vs Terpakai"
-              subtitle="Perbandingan purchasing dan usage di Color Kitchen"
-              datasets={[
-                {
-                  key: "stockMasuk",
-                  label: "Stock Masuk (Purchasing)",
-                  color: "success",
-                },
-                {
-                  key: "stockTerpakai",
-                  label: "Stock Terpakai (Stock Movement)",
-                  color: "primary",
-                },
-              ]}
-              onFetchData={() => stock_flow}
-              showSummary={true}
-            />
-          </Card>
-
-          {/* Cost Produksi Trend */}
-          <Card className="w-full h-full">
-            <div className="flex items-center justify-between px-4 pt-4 mb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Trend Cost Produksi (Dye + Aux)
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Total biaya produksi per periode
-                </p>
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-3">
+            <Card className="w-full h-full">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                    Trend Purchasing
+                  </h3>
+                  <p className="text-xs text-gray-600">Trend pembelian</p>
+                </div>
+                <select
+                  value={purchasingTrendGranularity}
+                  onChange={(e) =>
+                    setPurchasingTrendGranularity(e.target.value)
+                  }
+                  className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
+                >
+                  <option value="daily">Perhari</option>
+                  <option value="weekly">Perminggu</option>
+                  <option value="monthly">Perbulan</option>
+                  <option value="yearly">Pertahun</option>
+                </select>
               </div>
-            </div>
-            <HighchartsLine
-              initialData={cost_trend}
-              title=""
-              subtitle=""
-              datasets={[
-                {
-                  key: "total_cost",
-                  label: "Cost Produksi",
-                  color: "primary",
-                },
-              ]}
-              onFetchData={() => cost_trend}
-              showSummary={true}
-              yAxisLabel="Cost (Rp)"
-            />
-          </Card>
+              <Highchart.HighchartsBar
+                initialData={hydrateDataForChart(purchasingTrendData, [
+                  "period",
+                  "week_start",
+                  "week_end",
+                ])}
+                title=""
+                subtitle=""
+                datasets={buildDatasetsFromData(purchasingTrendData, [
+                  "period",
+                  "week_start",
+                  "week_end",
+                ])}
+                onFetchData={() => purchasingTrendData}
+                showSummary={false}
+              />
+            </Card>
+          </div>
+        </div>
+
+        {/* Ck Charts Row */}
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-3">
+            <Card className="w-full h-full">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                    Chemical Usage Trend
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    Trend penggunaan dyes dan auxiliaries
+                  </p>
+                </div>
+                <select
+                  value={ckTrendGranularity}
+                  onChange={(e) => setCkTrendGranularity(e.target.value)}
+                  className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
+                >
+                  <option value="daily">Perhari</option>
+                  <option value="weekly">Perminggu</option>
+                  <option value="monthly">Perbulan</option>
+                  <option value="yearly">Pertahun</option>
+                </select>
+              </div>
+              <Highchart.HighchartsBar
+                initialData={ckTrendData}
+                title=""
+                subtitle=""
+                datasets={[
+                  {
+                    key: "dyes",
+                    label: "Dyes",
+                    color: "primary",
+                    type: "column",
+                    stacked: true,
+                  },
+                  {
+                    key: "auxiliaries",
+                    label: "Auxiliaries",
+                    color: "warning",
+                    type: "column",
+                    stacked: true,
+                  },
+                  {
+                    key: "total",
+                    label: "Total",
+                    color: "neutral",
+                    type: "spline",
+                  },
+                ]}
+                onFetchData={() => ckTrendData}
+                showSummary={false}
+              />
+            </Card>
+          </div>
         </div>
       </div>
     </>
