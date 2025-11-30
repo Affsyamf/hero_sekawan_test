@@ -39,6 +39,7 @@ import DyeAuxFilter from "../../components/ui/filter/DyeAuxFilter";
 import CkProductFilter from "../../components/ui/filter/CkProductFilter";
 import CkSupplierFilter from "../../components/ui/filter/CkSupplierFilter";
 import Loading from "../../components/ui/loading/Loading";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
 
 export default function DashboardColorKitchen() {
   const [ckData, setCkData] = useState(null);
@@ -68,6 +69,11 @@ export default function DashboardColorKitchen() {
         value={filters.dye_aux ?? null}
         onChange={(val) => setFilter("dye_aux", val)}
       />,
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids ?? []}
+        onChange={(val) => setFilter("account_ids", val)}
+      />,
       <CkProductFilter
         key="ck-product-filter"
         value={filters.product_ids ?? []}
@@ -80,6 +86,21 @@ export default function DashboardColorKitchen() {
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
+  const generateFilters = () => {
+    return {
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      chemical_type: filters.dye_aux || "BOTH",
+      account_ids: filters.account_ids?.length
+        ? filters.account_ids
+        : undefined,
+    };
+  };
 
   // ✅ Auto refresh when dateRange changes
   useEffect(() => {
@@ -108,13 +129,7 @@ export default function DashboardColorKitchen() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
-        chemical_type: filters.dye_aux || "BOTH",
+        ...generateFilters(),
       };
 
       console.log(params);
@@ -150,13 +165,7 @@ export default function DashboardColorKitchen() {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
       granularity: trendGranularity,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      chemical_type: filters.dye_aux || "BOTH",
+      ...generateFilters(),
     };
 
     const [trend] = await Promise.all([reportsColorKitchenTrend(params)]);
@@ -283,13 +292,7 @@ export default function DashboardColorKitchen() {
     const params = {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      chemical_type: filters.dye_aux || "BOTH",
+      ...generateFilters(),
     };
 
     let res = [];

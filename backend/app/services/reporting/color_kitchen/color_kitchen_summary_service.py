@@ -8,7 +8,7 @@ from app.models import (
     ColorKitchenBatchDetail as CKBatchDetail,
     ColorKitchenEntry as CKEntry,
     ColorKitchenEntryDetail as CKEntryDetail,
-    Product, Supplier, Purchasing, PurchasingDetail
+    Product, Supplier, Purchasing, PurchasingDetail, Account
 )
 from app.services.reporting.base_reporting_service import BaseReportService
 from app.services.reporting.color_kitchen.base_color_kitchen_service import ColorKitchenReportBase
@@ -68,6 +68,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
             .select_from(CKEntryDetail)
             .join(CKEntry, CKEntry.id == CKEntryDetail.color_kitchen_entry_id)
             .join(Product, Product.id == CKEntryDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_cost_entry = self.apply_supplier_filter(q_cost_entry, filters)
@@ -97,6 +98,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
             .select_from(CKBatchDetail)
             .join(CKBatch, CKBatch.id == CKBatchDetail.batch_id)
             .join(Product, Product.id == CKBatchDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_cost_batch = self.apply_supplier_filter(q_cost_batch, filters)

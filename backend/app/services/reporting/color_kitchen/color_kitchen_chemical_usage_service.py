@@ -6,7 +6,7 @@ from app.models import (
     ColorKitchenBatchDetail,
     ColorKitchenEntry,
     ColorKitchenEntryDetail,
-    Product, Supplier, Purchasing, PurchasingDetail
+    Product, Supplier, Purchasing, PurchasingDetail, Account
 )
 from app.services.reporting.base_reporting_service import BaseReportService
 from app.services.reporting.color_kitchen.base_color_kitchen_service import ColorKitchenReportBase
@@ -52,6 +52,7 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
             )
             .join(ColorKitchenBatch, ColorKitchenBatch.id == ColorKitchenBatchDetail.batch_id)
             .join(Product, Product.id == ColorKitchenBatchDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_dyes = self.apply_supplier_filter(q_dyes, filters)
@@ -74,6 +75,7 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
             )
             .join(ColorKitchenEntry, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
             .join(Product, Product.id == ColorKitchenEntryDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_aux = self.apply_supplier_filter(q_aux, filters)
@@ -126,6 +128,7 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
                 )
                 .join(Product, Product.id == ColorKitchenBatchDetail.product_id)
                 .join(ColorKitchenBatch, ColorKitchenBatch.id == ColorKitchenBatchDetail.batch_id)
+                .join(Account, Account.id == Product.account_id)
             )
 
             q = self.apply_supplier_filter(q, filters)
@@ -154,6 +157,7 @@ class ColorKitchenChemicalUsageService(BaseReportService, ColorKitchenReportBase
                 )
                 .join(Product, Product.id == ColorKitchenEntryDetail.product_id)
                 .join(ColorKitchenEntry, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
+                .join(Account, Account.id == Product.account_id)
             )
 
             q = self.apply_supplier_filter(q, filters)

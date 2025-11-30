@@ -38,6 +38,7 @@ import ProductFilter from "../../components/ui/filter/ProductFilter";
 import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 import CategoryFilter from "../../components/ui/filter/CategoryFilter";
 import Loading from "../../components/ui/loading/Loading";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
 
 export default function DashboardPurchasing() {
   const [purchasingData, setPurchasingData] = useState(null);
@@ -59,6 +60,11 @@ export default function DashboardPurchasing() {
         value={filters.category ?? null}
         onChange={(val) => setFilter("category", val)}
       />,
+      <AccountParentFilter
+        key="account-parent-filter"
+        value={filters.account_parent_ids || []}
+        onChange={(v) => setFilter("account_parent_ids", v)}
+      />,
       <ProductFilter
         key="product-filter"
         value={filters.product_ids || []}
@@ -71,6 +77,21 @@ export default function DashboardPurchasing() {
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
+  const generateFilters = () => {
+    return {
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      category: filters.category,
+      account_parent_ids: filters.account_parent_ids?.length
+        ? filters.account_parent_ids
+        : undefined,
+    };
+  };
 
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
@@ -86,13 +107,8 @@ export default function DashboardPurchasing() {
       const params = {
         start_date: dateRange?.dateFrom,
         end_date: dateRange?.dateTo,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
-        category: filters.category,
+        granularity: trendGranularity,
+        ...generateFilters(),
       };
 
       // Skip fetch if no date range yet
@@ -142,13 +158,7 @@ export default function DashboardPurchasing() {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
         granularity: trendGranularity,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
-        category: filters.category,
+        ...generateFilters(),
       };
 
       const trend = await reportsPurchasingTrend(params);
@@ -356,13 +366,7 @@ export default function DashboardPurchasing() {
     const params = {
       start_date: dateRange?.dateFrom,
       end_date: dateRange?.dateTo,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      category: filters.category,
+      ...generateFilters(),
     };
 
     // level 1 → Goods vs Jasa

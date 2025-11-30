@@ -9,8 +9,8 @@ def apply_common_report_filters(query: Query, filters) -> Query:
 
     product_ids = get_field("product_ids", filters)
     supplier_ids = get_field("supplier_ids", filters)
-    account_parent_codes = get_field("account_parent_codes", filters)
-    account_names = get_field("account_names", filters)
+    account_parent_ids = get_field("account_parent_ids", filters)
+    account_ids = get_field("account_ids", filters)
     category = get_field("category", filters)
 
     if product_ids:
@@ -19,11 +19,11 @@ def apply_common_report_filters(query: Query, filters) -> Query:
     if supplier_ids:
         query = query.filter(Purchasing.supplier_id.in_(supplier_ids))
 
-    if account_parent_codes:
-        query = query.filter(AccountParent.account_no.in_(account_parent_codes))
+    if account_parent_ids:
+        query = query.filter(Account.parent_id.in_(account_parent_ids))
 
-    if account_names:
-        query = query.filter(Account.name.in_(account_names))
+    if account_ids:
+        query = query.filter(Account.id.in_(account_ids))
         
     if category:
         if category in ("chemical", "sparepart"):
