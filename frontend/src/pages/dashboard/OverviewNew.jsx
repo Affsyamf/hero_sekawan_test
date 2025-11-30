@@ -11,7 +11,6 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { getDashboardData } from "../../services/dashboard_service";
 import { formatCompactCurrency } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import Loading from "../../components/ui/loading/Loading";
@@ -22,6 +21,12 @@ import {
 import { reportsPurchasingTrend } from "../../services/report_purchasing_service";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
 import { reportsColorKitchenTrend } from "../../services/report_color_kitchen_service";
+import { MetricGrid } from "../../components/ui/chart/MetricCard";
+import { getDashboardData } from "../../services/overview_service";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import CategoryFilter from "../../components/ui/filter/CategoryFilter";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 
 export default function OverviewNew() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -29,11 +34,32 @@ export default function OverviewNew() {
   const [exporting, setExporting] = useState(false);
   const { colors } = useTheme();
 
+  const { filters, setFilter, registerFilters } = useFilterService();
+
+  useEffect(() => {
+    registerFilters([
+      <CategoryFilter
+        key="category-filter"
+        value={filters.category ?? null}
+        onChange={(val) => setFilter("category", val)}
+      />,
+      <ProductFilter
+        key="product-filter"
+        value={filters.product_ids || []}
+        onChange={(v) => setFilter("product_ids", v)}
+      />,
+      <SupplierFilter
+        key="supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
   // Granularity states
   const [purchasingTrendGranularity, setPurchasingTrendGranularity] =
     useState("monthly");
   const [ckTrendGranularity, setCkTrendGranularity] = useState("monthly");
-  const [costTrendGranularity, setCostTrendGranularity] = useState("monthly");
 
   // Trend Data states
   const [purchasingTrendData, setPurchasingTrendData] = useState([]);
@@ -67,14 +93,9 @@ export default function OverviewNew() {
     }
 
     try {
-      // Show loading indicator only for the Dashboard metrics/main data
-      // For trend updates, we rely on the chart's internal loading state
-      if (costTrendGranularity === "monthly") setLoading(true); // Only show full screen loading on initial/major load
-
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        granularity: costTrendGranularity,
       };
 
       const response = await getDashboardData(params);
@@ -85,7 +106,7 @@ export default function OverviewNew() {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, costTrendGranularity]);
+  }, [dateRange]);
 
   // 2. Fetch Purchasing Trend Data
   const fetchPurchasingTrendData = useCallback(async () => {
@@ -183,7 +204,7 @@ export default function OverviewNew() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">
-              Dashboard Produksi
+              Overview Dashboard
             </h1>
             <p className="mt-1 text-sm text-gray-600">
               Overview Stock, Cost, dan Usage Produksi Kain Printing
@@ -202,19 +223,19 @@ export default function OverviewNew() {
         </div>
 
         {/* KPI Metric Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <MetricGrid>
           <Chart.Metric
             title="Total Purchasing"
             value={formatCompactCurrency(metrics.total_purchasing.value)}
             // trend={formatTrend(metrics.total_purchasing.trend)}
             icon={ShoppingCart}
           />
-          <Chart.Metric
+          {/* <Chart.Metric
             title="Total Stock Terpakai"
             value={formatCompactCurrency(metrics.total_stock_terpakai.value)}
             // trend={formatTrend(metrics.total_stock_terpakai.trend)}
             icon={TrendingDown}
-          />
+          /> */}
           <Chart.Metric
             title="Total Cost Produksi"
             value={formatCompactCurrency(metrics.total_cost_produksi.value)}
@@ -227,7 +248,7 @@ export default function OverviewNew() {
             // trend={formatTrend(metrics.avg_cost_per_roll.trend)}
             icon={Palette}
           />
-        </div>
+        </MetricGrid>
 
         <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
           <div className="lg:col-span-3">

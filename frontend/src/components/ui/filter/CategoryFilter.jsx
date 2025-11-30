@@ -17,6 +17,7 @@ export default function CategoryFilter({ value = null, onChange }) {
           const isActive = value === opt.key;
           return (
             <Button
+              key={opt.label}
               label={opt.label}
               onClick={() => onChange(opt.key)}
               variant={isActive ? "primary" : "neutral"}
