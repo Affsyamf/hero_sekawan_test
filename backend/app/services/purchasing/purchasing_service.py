@@ -22,8 +22,8 @@ class PurchasingService:
             func.sum(
                 cast(
                     (func.coalesce(PurchasingDetail.quantity, 0) * func.coalesce(PurchasingDetail.price, 0))
-                    + func.coalesce(PurchasingDetail.ppn, 0)
-                    + func.coalesce(PurchasingDetail.pph, 0),
+                    + func.coalesce(PurchasingDetail.ppn * PurchasingDetail.quantity, 0)
+                    - func.coalesce(PurchasingDetail.pph, 0),
                     Numeric(18, 2)
                 )
             ).label("total_amount")

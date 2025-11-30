@@ -64,8 +64,10 @@ export default function PurchasingDetail() {
       key: "ppn",
       label: "PPN",
       sortable: true,
-      render: (v) => (
-        <span className="text-secondary-text">{formatCurrency(v || 0)}</span>
+      render: (v, row) => (
+        <span className="text-secondary-text">
+          {formatCurrency(v * row.quantity || 0)}
+        </span>
       ),
     },
     {
@@ -116,7 +118,10 @@ export default function PurchasingDetail() {
               {
                 label: "Total PPN",
                 value: formatCurrency(
-                  data.details?.reduce((sum, d) => sum + (d.ppn || 0), 0)
+                  data.details?.reduce(
+                    (sum, d) => sum + (d.ppn * d.quantity || 0),
+                    0
+                  )
                 ),
               },
             ]}
