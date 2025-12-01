@@ -14,6 +14,8 @@ export const chartColors = [
   "#FFC66A", // cream-yellow - warm complementary tone
 ];
 
+export const othersColor = "#9CA3AF";
+
 // Global map: category → assigned color
 const categoryColorMap = new Map();
 
