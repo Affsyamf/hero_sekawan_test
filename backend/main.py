@@ -18,6 +18,7 @@ from app.routers.auth.routes import auth_router
 from app.routers.reporting.overview_report import router as overview_report_router
 from app.routers.reporting.purchasing_report import router as purchasing_report_router
 from app.routers.reporting.color_kitchen_report import router as color_kitchen_report_router
+from app.routers.client.routes import client_router
 
 from app.routers.users.routes import user_router
 from app.routers.permissions.routes import permission_router
@@ -124,6 +125,7 @@ app.include_router(role_router)
 app.include_router(product_router)
 app.include_router(account_parent_router)
 app.include_router(account_router)
+app.include_router(client_router)
 app.include_router(supplier_router)
 app.include_router(design_type_router)
 app.include_router(design_router)

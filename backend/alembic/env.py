@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from app.models import Base
 from app import models
+from app.models import client
 
 load_dotenv()
 

@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Integer, String, BigInteger, Text
 from sqlalchemy.orm import relationship
 from app.models import Base
-from app.models.mixin.TimestampMixin import TimestampMixin
+from app.models.mixin.AuditMixin import AuditMixin
 
 
-class Client(Base, TimestampMixin):
+class Client(Base, AuditMixin):
     __tablename__ = 'clients'
     
     id = Column(Integer, primary_key=True)
