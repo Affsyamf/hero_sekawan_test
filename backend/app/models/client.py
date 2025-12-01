@@ -11,3 +11,5 @@ class Client(Base, AuditMixin):
     name = Column(String, nullable=False)
     address = Column(Text, nullable=True)
     phone_no = Column(String, nullable=True)
+
+    sales = relationship("Sale", back_populates="client", lazy='select')
