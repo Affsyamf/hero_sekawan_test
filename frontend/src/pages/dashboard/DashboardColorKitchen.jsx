@@ -39,6 +39,7 @@ import DyeAuxFilter from "../../components/ui/filter/DyeAuxFilter";
 import CkProductFilter from "../../components/ui/filter/CkProductFilter";
 import CkSupplierFilter from "../../components/ui/filter/CkSupplierFilter";
 import Loading from "../../components/ui/loading/Loading";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
 
 export default function DashboardColorKitchen() {
   const [ckData, setCkData] = useState(null);
@@ -68,6 +69,11 @@ export default function DashboardColorKitchen() {
         value={filters.dye_aux ?? null}
         onChange={(val) => setFilter("dye_aux", val)}
       />,
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids ?? []}
+        onChange={(val) => setFilter("account_ids", val)}
+      />,
       <CkProductFilter
         key="ck-product-filter"
         value={filters.product_ids ?? []}
@@ -80,6 +86,21 @@ export default function DashboardColorKitchen() {
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
+  const generateFilters = () => {
+    return {
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      chemical_type: filters.dye_aux || "BOTH",
+      account_ids: filters.account_ids?.length
+        ? filters.account_ids
+        : undefined,
+    };
+  };
 
   // ✅ Auto refresh when dateRange changes
   useEffect(() => {
@@ -108,13 +129,10 @@ export default function DashboardColorKitchen() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
+        ...generateFilters(),
       };
+
+      console.log(params);
 
       // Fetch all data in parallel
       const [summary, chemicalSummary, dyesData, auxData] = await Promise.all([
@@ -147,13 +165,7 @@ export default function DashboardColorKitchen() {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
       granularity: trendGranularity,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      // category: filters.category,
+      ...generateFilters(),
     };
 
     const [trend] = await Promise.all([reportsColorKitchenTrend(params)]);
@@ -280,12 +292,7 @@ export default function DashboardColorKitchen() {
     const params = {
       start_date: dateRange.dateFrom,
       end_date: dateRange.dateTo,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
+      ...generateFilters(),
     };
 
     let res = [];
@@ -304,27 +311,14 @@ export default function DashboardColorKitchen() {
     }
   };
 
-  if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="mb-2 text-gray-600">No date range selected</p>
-          <p className="text-sm text-gray-500">
-            Please select a date range from the global filter to view color
-            kitchen data
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (!ckData) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="mb-2 text-gray-600">No data available</p>
-          <p className="text-sm text-gray-500">
-            Please check your date range or try again later
+          <div className="w-16 h-16 mx-auto border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Date: {dateRange?.dateFrom} to {dateRange?.dateTo}
           </p>
         </div>
       </div>
@@ -371,43 +365,6 @@ export default function DashboardColorKitchen() {
             />
           </div>
         </div>
-
-        {/* Active Filter Display */}
-        {dateRange && (
-          <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
-            <p className="text-sm text-blue-800">
-              <span className="font-semibold">📅 Active Filter:</span>{" "}
-              {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
-              {dateRange.mode === "year" && `Year ${dateRange.year}`}
-              {dateRange.mode === "month-year" && (
-                <>
-                  {new Date(
-                    dateRange.year,
-                    dateRange.month - 1
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </>
-              )}
-              {(dateRange.mode === "days" || !dateRange.mode) && (
-                <>
-                  {formatDate(dateRange.dateFrom)} to{" "}
-                  {formatDate(dateRange.dateTo)}
-                  {dateRange.days !== undefined && (
-                    <span className="ml-2 text-xs">
-                      (
-                      {dateRange.days === 0
-                        ? "Today"
-                        : `Last ${dateRange.days} days`}
-                      )
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-          </div>
-        )}
 
         {/* KPI Cards - Row 1 */}
         <MetricGrid>

@@ -2,8 +2,11 @@ import React, { useRef, useState, useMemo, useEffect, cache } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "highcharts/modules/drilldown";
-import { useTheme } from "../../../contexts/ThemeContext";
-import { chartColors } from "../../../utils/chartColors";
+import {
+  getColorForLabel,
+  registerCategories,
+  othersColor,
+} from "../../../utils/chartColors";
 
 const HighchartsDonut = ({
   data,
@@ -16,10 +19,10 @@ const HighchartsDonut = ({
   enableDataLabels = false,
   valueFormatter,
 }) => {
-  const { colors } = useTheme();
+  const chartRef = useRef(null);
+
   const [visibleData, setVisibleData] = useState([]);
   const [showRaw, setShowRaw] = useState(false);
-  const othersCache = useRef([]);
 
   const cacheTree = useRef({ key: "__root__", children: [] });
   const drillStack = useRef(["__root__"]);
@@ -27,7 +30,22 @@ const HighchartsDonut = ({
   useEffect(() => {
     cacheTree.current = { key: "__root__", children: [] };
     drillStack.current = ["__root__"];
+
+    resetHighchartsDrilldown();
+
+    setVisibleData(data);
+    insertDrillData(["__root__"], data);
   }, [data]);
+
+  function resetHighchartsDrilldown() {
+    const chart = chartRef.current?.chart;
+    if (!chart) return;
+
+    // Drill up until we return to root
+    while (chart.drilldownLevels && chart.drilldownLevels.length > 0) {
+      chart.drillUp();
+    }
+  }
 
   function findNodeStrict(path) {
     let node = cacheTree.current;
@@ -38,6 +56,11 @@ const HighchartsDonut = ({
       node = child;
     }
     return node;
+  }
+
+  function getCachedChildren(path) {
+    const node = findNodeStrict(path);
+    return node?.children?.length ? node.children : null;
   }
 
   // Utility: find or create nested node path
@@ -55,16 +78,19 @@ const HighchartsDonut = ({
     return node;
   }
 
-  function getCachedChildren(path) {
-    const node = findNodeStrict(path);
-    return node?.children?.length ? node.children : null;
-  }
-
   // Utility: insert children cleanly
   function insertDrillData(path, children) {
     const node = findOrCreateNode(path);
 
-    node.children = children.map((c) => ({
+    node.rawData = children.map((c) => ({
+      key: c.name || c.key,
+      value: c.y ?? c.value,
+      drilldown: c.drilldown ?? false,
+      context: c.context,
+    }));
+    const maxNData = getMaxN(children).maxNData;
+
+    node.children = maxNData?.map((c) => ({
       key: c.name || c.key,
       value: c.y ?? c.value,
       drilldown: c.drilldown ?? false,
@@ -72,17 +98,6 @@ const HighchartsDonut = ({
       children: c.children || [],
     }));
   }
-
-  const formatValue =
-    valueFormatter ||
-    ((val) => {
-      if (val == null) return "-";
-      if (typeof val === "number")
-        return val.toLocaleString("en-US", {
-          maximumFractionDigits: 2,
-        });
-      return String(val);
-    });
 
   const getMaxN = (data) => {
     if (!data || data.length === 0) return [];
@@ -117,24 +132,39 @@ const HighchartsDonut = ({
       y: item.value,
       drilldown: item.drilldown ?? false,
       context: item.context,
+      color: getColorForLabel(item.key),
     }));
 
     // Add "Others" only if there’s something left beyond 10 %
     if (others.length > 0) {
-      othersCache.current = others;
+      // othersCache.current = others;
       finalData.push({
         id: "Others",
         name: "Others",
         y: others.reduce((sum, d) => sum + (d.value || 0), 0),
         drilldown: true,
         context: "__others__",
+        color: othersColor,
       });
     }
 
-    return finalData;
+    return { maxNData: finalData, others };
   };
 
-  const finalData = useMemo(() => getMaxN(data), [data]);
+  const finalData = useMemo(() => {
+    const { maxNData, others } = getMaxN(data);
+    return maxNData || [];
+  }, [data]);
+  registerCategories(finalData.map((d) => d.name));
+
+  const formatValue =
+    valueFormatter ||
+    ((val) => {
+      if (val == null) return "-";
+      if (typeof val === "number")
+        return val.toLocaleString("en-US", { maximumFractionDigits: 2 });
+      return String(val);
+    });
 
   const options = useMemo(() => {
     return {
@@ -161,7 +191,6 @@ const HighchartsDonut = ({
             e.preventDefault(); // prevent default drilldown
             const chart = this;
             chart.showLoading("Loading...");
-            console.log("before: " + drillStack.current);
 
             try {
               let depth = 0;
@@ -179,45 +208,36 @@ const HighchartsDonut = ({
               const path = [...drillStack.current, e.point.name];
               const cached = getCachedChildren(path);
 
-              console.log(e.point.name);
-
               // ✅ CASE 1: Use cached data if exists
               if (cached) {
-                // console.log("💾 Using cached data for", e.point.name);
-                const drillData = getMaxN(cached);
+                const { maxNData, others } = getMaxN(cached);
                 chart.addSingleSeriesAsDrilldown(e.point, {
                   id: e.point.name,
                   name: e.point.name,
-                  data: drillData.map((d) => ({
-                    name: d.name,
-                    y: d.y,
-                    context: d.context,
-                    drilldown: d.drilldown ?? false,
-                  })),
+                  data: maxNData,
                 });
                 chart.applyDrilldown();
-                drillStack.current.push(e.point.name);
+                drillStack.current = path;
                 setVisibleData(cached);
                 return;
               }
 
               // ✅ CASE 2: Handle "Others"
-              if (e.point.name === "Others") {
-                const othersData = othersCache.current || [];
-                if (othersData.length > 0) {
-                  const drillData = getMaxN(othersData);
+              if (e.point.context === "__others__") {
+                const cached = findOrCreateNode(drillStack.current);
+                const { _, others } = getMaxN(cached.rawData);
+
+                if (others.length > 0) {
+                  const { maxNData, _ } = getMaxN(others);
                   chart.addSingleSeriesAsDrilldown(e.point, {
                     id: "others",
                     name: "Others",
-                    data: drillData.map((d) => ({
-                      name: d.label || d.name,
-                      y: d.value || d.y,
-                      context: d.context,
-                      drilldown: d.drilldown ?? false,
-                    })),
+                    data: maxNData,
                   });
                   chart.applyDrilldown();
-                  drillStack.current.push(e.point.name);
+
+                  insertDrillData(path, others);
+                  drillStack.current = path;
                   // setVisibleData(drillData);
                 }
                 return;
@@ -232,19 +252,14 @@ const HighchartsDonut = ({
 
               // Cache this node
               insertDrillData(path, res);
-              drillStack.current.push(e.point.name);
+              drillStack.current = path;
 
-              const drillData = getMaxN(res);
+              const { maxNData, others } = getMaxN(res);
 
               chart.addSingleSeriesAsDrilldown(e.point, {
                 id: e.point.name,
                 name: e.point.name,
-                data: drillData.map((d) => ({
-                  name: d.name,
-                  y: d.y,
-                  context: d.context,
-                  drilldown: d.drilldown ?? false,
-                })),
+                data: maxNData,
               });
 
               chart.applyDrilldown();
@@ -253,8 +268,6 @@ const HighchartsDonut = ({
               console.error("Drilldown fetch error:", err);
             } finally {
               chart.hideLoading();
-              console.log("after: " + drillStack.current);
-              console.log(cacheTree.current);
             }
           },
           drillup() {
@@ -271,22 +284,13 @@ const HighchartsDonut = ({
               }
             }
 
-            console.log(depth);
-
-            // console.log(chart.drilldownLevels);
-
             drillStack.current = [...drillStack.current.slice(0, depth)];
-            const node = findOrCreateNode(drillStack.current, false);
+            const node = findOrCreateNode(drillStack.current);
             const cached = getCachedChildren(drillStack.current);
-            console.log(cached);
 
-            // console.log(drillStack.current);
-
-            if (cached?.children?.length > 0) {
-              setVisibleData(cached.children);
+            if (cached?.length > 0) {
+              setVisibleData(cached);
             }
-
-            // console.log("⬆️ Drill Up to", drillStack.current.join(" > "));
           },
         },
       },
@@ -317,10 +321,13 @@ const HighchartsDonut = ({
           `;
         },
       },
-      colors: chartColors,
+      colors: [],
+      // colors: chartColors,
       plotOptions: {
         pie: {
           innerSize: "65%",
+          size: "75%",
+          center: ["50%", "50%"],
           depth: 45,
           dataLabels: {
             enabled: enableDataLabels,
@@ -334,13 +341,26 @@ const HighchartsDonut = ({
             distance: 12,
           },
           showInLegend: true,
-          colorByPoint: true,
+          // colorByPoint: true,
         },
       },
       legend: {
         align: "center",
         verticalAlign: "bottom",
         layout: "horizontal",
+
+        // spacing
+        padding: 0,
+        margin: 10,
+
+        // control wrapping
+        itemWidth: 150,
+        maxHeight: 80,
+
+        navigation: {
+          enabled: true, // scroll arrows when too many labels
+        },
+
         itemStyle: {
           fontSize: "11px",
           color: "#374151",
@@ -349,7 +369,18 @@ const HighchartsDonut = ({
         itemHoverStyle: { color: "#111827" },
       },
       credits: { enabled: false },
-      series: [{ name: "Value", data: finalData }],
+      series: [
+        {
+          name: "Value",
+          data: finalData.map((d) => ({
+            ...d,
+            color:
+              d.context === "__others__"
+                ? othersColor
+                : getColorForLabel(d.name),
+          })),
+        },
+      ],
     };
   }, [data, onDrilldownRequest, enableDataLabels]);
 
@@ -376,7 +407,11 @@ const HighchartsDonut = ({
 
       {/* Chart Container */}
       <div className="relative">
-        <HighchartsReact highcharts={Highcharts} options={options} />
+        <HighchartsReact
+          highcharts={Highcharts}
+          options={options}
+          ref={chartRef}
+        />
 
         {/* Center Text Overlay */}
         {centerText && (

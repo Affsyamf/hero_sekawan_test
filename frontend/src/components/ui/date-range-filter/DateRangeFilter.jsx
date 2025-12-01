@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Calendar, ChevronDown, X } from "lucide-react";
 import useDateFilterStore from "../../../stores/useDateFilterStore";
 
+const toLocalYMD = (d) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate()).toLocaleDateString(
+    "en-CA"
+  );
+
 const DateRangeFilter = () => {
   const { dateRange, setDateRange, clearDateRange } = useDateFilterStore();
   const currentRange = dateRange;
@@ -51,8 +56,8 @@ const DateRangeFilter = () => {
     } else if (filterMode === "month-year") {
       const start = new Date(selectedYear, selectedMonth - 1, 1);
       const end = new Date(selectedYear, selectedMonth, 0);
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = toLocalYMD(start);
+      const endStr = toLocalYMD(end);
 
       setDateRange({
         dateFrom: startStr,
@@ -64,8 +69,8 @@ const DateRangeFilter = () => {
     } else if (filterMode === "year") {
       const start = new Date(selectedYear, 0, 1);
       const end = new Date(selectedYear, 11, 31);
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = toLocalYMD(start);
+      const endStr = toLocalYMD(end);
 
       setDateRange({
         dateFrom: startStr,
@@ -76,8 +81,8 @@ const DateRangeFilter = () => {
     } else if (filterMode === "ytd") {
       const start = new Date(new Date().getFullYear(), 0, 1);
       const end = new Date();
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = toLocalYMD(start);
+      const endStr = toLocalYMD(end);
 
       setDateRange({
         dateFrom: startStr,
@@ -102,8 +107,8 @@ const DateRangeFilter = () => {
     const start = new Date();
     start.setDate(end.getDate() - days);
 
-    const startStr = start.toISOString().split("T")[0];
-    const endStr = end.toISOString().split("T")[0];
+    const startStr = toLocalYMD(start);
+    const endStr = toLocalYMD(end);
 
     setStartDate(startStr);
     setEndDate(endStr);
@@ -140,8 +145,8 @@ const DateRangeFilter = () => {
         return;
     }
 
-    const startStr = start.toISOString().split("T")[0];
-    const endStr = end.toISOString().split("T")[0];
+    const startStr = toLocalYMD(start);
+    const endStr = toLocalYMD(end);
 
     setStartDate(startStr);
     setEndDate(endStr);
@@ -171,8 +176,8 @@ const DateRangeFilter = () => {
     if (filterMode === "month-year") {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 0);
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = toLocalYMD(start);
+      const endStr = toLocalYMD(end);
 
       setStartDate(startStr);
       setEndDate(endStr);
@@ -187,8 +192,8 @@ const DateRangeFilter = () => {
     } else if (filterMode === "year") {
       const start = new Date(year, 0, 1);
       const end = new Date(year, 11, 31);
-      const startStr = start.toISOString().split("T")[0];
-      const endStr = end.toISOString().split("T")[0];
+      const startStr = toLocalYMD(start);
+      const endStr = toLocalYMD(end);
 
       setStartDate(startStr);
       setEndDate(endStr);

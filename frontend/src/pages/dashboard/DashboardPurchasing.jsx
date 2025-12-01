@@ -37,6 +37,8 @@ import { useFilterService } from "../../contexts/FilterServiceContext";
 import ProductFilter from "../../components/ui/filter/ProductFilter";
 import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 import CategoryFilter from "../../components/ui/filter/CategoryFilter";
+import Loading from "../../components/ui/loading/Loading";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
 
 export default function DashboardPurchasing() {
   const [purchasingData, setPurchasingData] = useState(null);
@@ -58,6 +60,11 @@ export default function DashboardPurchasing() {
         value={filters.category ?? null}
         onChange={(val) => setFilter("category", val)}
       />,
+      <AccountParentFilter
+        key="account-parent-filter"
+        value={filters.account_parent_ids || []}
+        onChange={(v) => setFilter("account_parent_ids", v)}
+      />,
       <ProductFilter
         key="product-filter"
         value={filters.product_ids || []}
@@ -70,6 +77,21 @@ export default function DashboardPurchasing() {
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
+  const generateFilters = () => {
+    return {
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      category: filters.category,
+      account_parent_ids: filters.account_parent_ids?.length
+        ? filters.account_parent_ids
+        : undefined,
+    };
+  };
 
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
@@ -85,13 +107,8 @@ export default function DashboardPurchasing() {
       const params = {
         start_date: dateRange?.dateFrom,
         end_date: dateRange?.dateTo,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
-        category: filters.category,
+        granularity: trendGranularity,
+        ...generateFilters(),
       };
 
       // Skip fetch if no date range yet
@@ -141,13 +158,7 @@ export default function DashboardPurchasing() {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
         granularity: trendGranularity,
-        product_ids: filters.product_ids?.length
-          ? filters.product_ids
-          : undefined,
-        supplier_ids: filters.supplier_ids?.length
-          ? filters.supplier_ids
-          : undefined,
-        category: filters.category,
+        ...generateFilters(),
       };
 
       const trend = await reportsPurchasingTrend(params);
@@ -328,38 +339,14 @@ export default function DashboardPurchasing() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-gray-300 rounded-full border-t-primary animate-spin"></div>
-          <p className="text-sm text-gray-600">Loading purchasing data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="mb-2 text-gray-600">No date range selected</p>
-          <p className="text-sm text-gray-500">
-            Please select a date range from the global filter to view purchasing
-            data
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (!purchasingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="mb-2 text-gray-600">No data available</p>
-          <p className="text-sm text-gray-500">
-            Please check your date range or try again later
+          <div className="w-16 h-16 mx-auto border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Date: {dateRange?.dateFrom} to {dateRange?.dateTo}
           </p>
         </div>
       </div>
@@ -379,13 +366,7 @@ export default function DashboardPurchasing() {
     const params = {
       start_date: dateRange?.dateFrom,
       end_date: dateRange?.dateTo,
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      category: filters.category,
+      ...generateFilters(),
     };
 
     // level 1 → Goods vs Jasa
@@ -422,147 +403,150 @@ export default function DashboardPurchasing() {
   };
 
   return (
-    <div className="max-w-full space-y-4 p-0.5 md:p-1">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
-            Purchasing Overview
-          </h1>
-          <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
-            Monitor pembelian, supplier, dan trend purchasing
-          </p>
-          {/* Show active filter info */}
-          {dateRange.startDate && dateRange.endDate && (
-            <p className="mt-1 text-xs text-blue-600">
-              📅 Filtered: {formatDate(dateRange.startDate)} to{" "}
-              {formatDate(dateRange.endDate)}
+    <>
+      {loading && <Loading fullscreen={true} />}
+
+      <div className="max-w-full space-y-4 p-0.5 md:p-1">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
+              Purchasing Overview
+            </h1>
+            <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
+              Monitor pembelian, supplier, dan trend purchasing
             </p>
-          )}
-        </div>
-        <div>
-          <Button
-            icon={Download}
-            label={exporting ? "Exporting..." : "Export Data"}
-            variant="primary"
-            onClick={handleExport}
-            disabled={exporting}
-          />
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <MetricGrid>
-        <Chart.Metric
-          title="Total Purchases"
-          value={formatCompactCurrency(metrics.total_purchases.value)}
-          // trend={metrics.total_purchases.trend}
-          icon={ShoppingCart}
-          color="primary"
-        />
-        <Chart.Metric
-          title="Total Chemical"
-          value={formatCompactCurrency(metrics.total_chemical.value)}
-          // trend={metrics.total_chemical.trend}
-          icon={FlaskConical}
-          color="success"
-        />
-        <Chart.Metric
-          title="Total Sparepart"
-          value={formatCompactCurrency(metrics.total_sparepart.value)}
-          // trend={metrics.total_sparepart.trend}
-          icon={Wrench}
-          color="warning"
-        />
-      </MetricGrid>
-
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card className="w-full h-full">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Trend Purchasing
-                </h3>
-                <p className="text-xs text-gray-600">Trend pembelian</p>
-              </div>
-              <select
-                value={trendGranularity}
-                onChange={(e) => setTrendGranularity(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
-              >
-                <option value="daily">Perhari</option>
-                <option value="weekly">Perminggu</option>
-                <option value="monthly">Perbulan</option>
-                <option value="yearly">Pertahun</option>
-              </select>
-            </div>
-            <Highchart.HighchartsBar
-              initialData={hydrateDataForChart(trendData, [
-                "period",
-                "week_start",
-                "week_end",
-              ])}
-              title=""
-              subtitle=""
-              datasets={buildDatasetsFromData(trendData, [
-                "period",
-                "week_start",
-                "week_end",
-              ])}
-              onFetchData={() => trendData}
-              showSummary={false}
-            />
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1">
-          <Card className="h-full ">
-            <Highchart.HighchartsDonut
-              data={donutData}
-              title="Breakdown Purchasing"
-              className="w-full h-full"
-              showSummary={false}
-              onDrilldownRequest={async ({ _, context, depth }) => {
-                return onDrilldown(context, depth);
-              }}
-              valueFormatter={formatCompactCurrency}
-            />
-          </Card>
-        </div>
-      </div>
-
-      {/* Top Suppliers & Top Purchases */}
-      <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
-        {/* Top 5 Suppliers */}
-        <Card>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                Top 5 Suppliers
-              </h3>
-              <p className="text-xs text-gray-600">
-                Supplier dengan total pembelian tertinggi
+            {/* Show active filter info */}
+            {dateRange.startDate && dateRange.endDate && (
+              <p className="mt-1 text-xs text-blue-600">
+                📅 Filtered: {formatDate(dateRange.startDate)} to{" "}
+                {formatDate(dateRange.endDate)}
               </p>
-            </div>
+            )}
+          </div>
+          <div>
+            <Button
+              icon={Download}
+              label={exporting ? "Exporting..." : "Export Data"}
+              variant="primary"
+              onClick={handleExport}
+              disabled={exporting}
+            />
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <MetricGrid>
+          <Chart.Metric
+            title="Total Purchases"
+            value={formatCompactCurrency(metrics.total_purchases.value)}
+            // trend={metrics.total_purchases.trend}
+            icon={ShoppingCart}
+            color="primary"
+          />
+          <Chart.Metric
+            title="Total Chemical"
+            value={formatCompactCurrency(metrics.total_chemical.value)}
+            // trend={metrics.total_chemical.trend}
+            icon={FlaskConical}
+            color="success"
+          />
+          <Chart.Metric
+            title="Total Sparepart"
+            value={formatCompactCurrency(metrics.total_sparepart.value)}
+            // trend={metrics.total_sparepart.trend}
+            icon={Wrench}
+            color="warning"
+          />
+        </MetricGrid>
+
+        {/* Main Charts Row */}
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card className="w-full h-full">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                    Trend Purchasing
+                  </h3>
+                  <p className="text-xs text-gray-600">Trend pembelian</p>
+                </div>
+                <select
+                  value={trendGranularity}
+                  onChange={(e) => setTrendGranularity(e.target.value)}
+                  className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
+                >
+                  <option value="daily">Perhari</option>
+                  <option value="weekly">Perminggu</option>
+                  <option value="monthly">Perbulan</option>
+                  <option value="yearly">Pertahun</option>
+                </select>
+              </div>
+              <Highchart.HighchartsBar
+                initialData={hydrateDataForChart(trendData, [
+                  "period",
+                  "week_start",
+                  "week_end",
+                ])}
+                title=""
+                subtitle=""
+                datasets={buildDatasetsFromData(trendData, [
+                  "period",
+                  "week_start",
+                  "week_end",
+                ])}
+                onFetchData={() => trendData}
+                showSummary={false}
+              />
+            </Card>
           </div>
 
-          <Highchart.HighchartsBar
-            initialData={transformSuppliersToBarData(top_suppliers)}
-            title=""
-            subtitle=""
-            datasets={[
-              { key: "value", label: "Total Purchases", color: "primary" },
-            ]}
-            periods={[]}
-            showSummary={false}
-          />
+          <div className="lg:col-span-1">
+            <Card className="h-full ">
+              <Highchart.HighchartsDonut
+                data={donutData}
+                title="Breakdown Purchasing"
+                className="w-full h-full"
+                showSummary={false}
+                onDrilldownRequest={async ({ _, context, depth }) => {
+                  return onDrilldown(context, depth);
+                }}
+                valueFormatter={formatCompactCurrency}
+              />
+            </Card>
+          </div>
+        </div>
 
-          {/* {top_suppliers.length > 0 && (
+        {/* Top Suppliers & Top Purchases */}
+        <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
+          {/* Top 5 Suppliers */}
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
+                <Building2 className="w-4 h-4 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                  Top 5 Suppliers
+                </h3>
+                <p className="text-xs text-gray-600">
+                  Supplier dengan total pembelian tertinggi
+                </p>
+              </div>
+            </div>
+
+            <Highchart.HighchartsBar
+              initialData={transformSuppliersToBarData(top_suppliers)}
+              title=""
+              subtitle=""
+              datasets={[
+                { key: "value", label: "Total Purchases", color: "primary" },
+              ]}
+              periods={[]}
+              showSummary={false}
+            />
+
+            {/* {top_suppliers.length > 0 && (
             <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t border-gray-200">
               <div className="p-2 rounded-lg bg-purple-50">
                 <p className="text-xs text-purple-600">Total dari Top 5</p>
@@ -583,36 +567,36 @@ export default function DashboardPurchasing() {
               </div>
             </div>
           )} */}
-        </Card>
+          </Card>
 
-        {/* Top 5 Product Values */}
-        <Card>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-green-600" />
+          {/* Top 5 Product Values */}
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                  Top 5 Product Values
+                </h3>
+                <p className="text-xs text-gray-600">
+                  Produk dengan nilai pembelian tertinggi
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                Top 5 Product Values
-              </h3>
-              <p className="text-xs text-gray-600">
-                Produk dengan nilai pembelian tertinggi
-              </p>
-            </div>
-          </div>
 
-          <Highchart.HighchartsBar
-            initialData={transformPurchasesToBarData(top_purchases)}
-            title=""
-            subtitle=""
-            datasets={[
-              { key: "value", label: "Total Value", color: "primary" },
-            ]}
-            periods={[]}
-            showSummary={false}
-          />
+            <Highchart.HighchartsBar
+              initialData={transformPurchasesToBarData(top_purchases)}
+              title=""
+              subtitle=""
+              datasets={[
+                { key: "value", label: "Total Purchases", color: "primary" },
+              ]}
+              periods={[]}
+              showSummary={false}
+            />
 
-          {/* {top_purchases.length > 0 && (
+            {/* {top_purchases.length > 0 && (
             <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t border-gray-200">
               <div className="p-2 rounded-lg bg-green-50">
                 <p className="text-xs text-green-600">Total dari Top 5</p>
@@ -632,11 +616,11 @@ export default function DashboardPurchasing() {
               </div>
             </div>
           )} */}
-        </Card>
-      </div>
+          </Card>
+        </div>
 
-      {/* Most Purchased Products */}
-      {/* <Card>
+        {/* Most Purchased Products */}
+        {/* <Card>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
@@ -731,6 +715,7 @@ export default function DashboardPurchasing() {
             )}
           </div>
         </Card> */}
-    </div>
+      </div>
+    </>
   );
 }

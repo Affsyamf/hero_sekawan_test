@@ -1,7 +1,14 @@
 import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import Dropdown from "../../ui/dropdown/Dropdown";
+import { useAuthStore } from "../../../stores/useAuthStore";
 
 export default function ProfileDropdown() {
+  const { user, logout } = useAuthStore();
+
+  const name = user?.full_name || user?.username || "User";
+  const role = user?.roles?.[0]?.name || "User";
+  const initial = name.charAt(0).toUpperCase();
+
   const menuItems = [
     { icon: <User size={16} />, label: "Profile" },
     { icon: <Settings size={16} />, label: "Settings" },
@@ -11,32 +18,34 @@ export default function ProfileDropdown() {
     <Dropdown
       trigger={
         <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100">
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="User Avatar"
-            className="w-8 h-8 border border-gray-200 rounded-full"
-          />
+          {/* Initial Avatar */}
+          <div className="flex items-center justify-center w-8 h-8 text-sm font-semibold text-white bg-blue-600 rounded-full">
+            {initial}
+          </div>
+
           <span className="hidden text-sm font-medium text-gray-900 sm:block">
-            MarcelE
+            {name}
           </span>
+
           <ChevronDown size={16} className="text-gray-500" />
         </button>
       }
     >
-      <div className="p-4 border-b border-gray-200">
+      {/* Header Section */}
+      <div className="p-4">
         <div className="flex items-center gap-3">
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="User Avatar"
-            className="w-10 h-10 border border-gray-200 rounded-full"
-          />
+          <div className="flex items-center justify-center w-10 h-10 text-lg font-semibold text-white bg-blue-600 rounded-full">
+            {initial}
+          </div>
+
           <div>
-            <p className="text-sm font-medium text-gray-900">MarcelE</p>
-            <p className="text-xs text-gray-500">Admin</p>
+            <p className="text-sm font-medium text-gray-900">{name}</p>
+            <p className="text-xs text-gray-500">{role}</p>
           </div>
         </div>
       </div>
 
+      {/* Menu Items */}
       <div className="py-2">
         {menuItems.map((item, i) => (
           <button
@@ -49,8 +58,12 @@ export default function ProfileDropdown() {
         ))}
       </div>
 
+      {/* Logout */}
       <div className="py-2 border-t border-gray-200">
-        <button className="flex items-center w-full gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+        <button
+          onClick={logout}
+          className="flex items-center w-full gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+        >
           <LogOut size={16} />
           Logout
         </button>

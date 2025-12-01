@@ -5,13 +5,18 @@ import {
   CheckCircle,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+
 import Modal from "../../ui/modal/Modal";
 import Button from "../../ui/button/Button";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { cn } from "../../../utils/cn";
-// import { importApi } from "../../../services/endpoints";
+
+import {
+  importDataMasterLapCk,
+  importDataMasterLapCkPreview,
+} from "../../../services/import_data_master_service";
 
 export default function ImportDesignModal({
   isOpen,
@@ -19,207 +24,159 @@ export default function ImportDesignModal({
   onImportSuccess,
 }) {
   const { colors } = useTheme();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [file, setFile] = useState(null);
-  const [previewData, setPreviewData] = useState([]);
+
+  // EXACT SAME SUBSTEPS AS ORIGINAL
+  const [subStep, setSubStep] = useState(1); // 1 = Upload, 2 = Preview, 3 = Confirm
+
+  // CK STATES EXACTLY THE SAME
+  const [ckFile, setCkFile] = useState(null);
+  const [ckPreview, setCkPreview] = useState(null);
+  const [ckResult, setCkResult] = useState(null);
+  const [ckError, setCkError] = useState(null);
+
   const [isProcessing, setIsProcessing] = useState(false);
-  const [importResult, setImportResult] = useState(null);
-  const [error, setError] = useState(null);
 
-  const steps = [
-    { number: 1, label: "Upload File" },
-    { number: 2, label: "Preview Data" },
-    { number: 3, label: "Confirm Import" },
-  ];
-
-  const resetModal = () => {
-    setCurrentStep(1);
-    setFile(null);
-    setPreviewData([]);
-    setImportResult(null);
-    setError(null);
+  const reset = () => {
+    setSubStep(1);
+    setCkFile(null);
+    setCkPreview(null);
+    setCkResult(null);
+    setCkError(null);
     setIsProcessing(false);
   };
 
   const handleClose = () => {
-    resetModal();
+    if (isProcessing) return;
+    reset();
     onClose();
   };
 
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (!selectedFile.name.toLowerCase().endsWith(".xlsx")) {
-        setError("Please upload an .xlsx file");
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
-      parseExcelFile(selectedFile);
-    }
-  };
-
-  const parseExcelFile = (file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = "TEMPLATE QTY";
-        const worksheet = workbook.Sheets[sheetName];
-
-        if (!worksheet) {
-          setError(`Sheet "${sheetName}" not found in the file`);
-          setPreviewData([]);
-          return;
-        }
-
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-          defval: "",
-          range: 1, // Start from row 2 (index 1), skipping only the header row
-        });
-
-        const processed = jsonData
-          .filter((row) => row[0])
-          .map((row) => ({
-            opj: row[0] || "",
-            design: normalizeDesignName(row[1] || ""),
-            jenisKain: row[2] || "",
-            roll: row[3] || "",
-            tgl: row[4] || "",
-          }))
-          .filter((item) => item.design && item.jenisKain);
-
-        const unique = [];
-        const seen = new Set();
-        processed.forEach((item) => {
-          if (!seen.has(item.design)) {
-            seen.add(item.design);
-            unique.push(item);
-          }
-        });
-
-        setPreviewData(unique);
-        setError(null);
-      } catch (err) {
-        setError("Failed to parse Excel file: " + err.message);
-        setPreviewData([]);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const normalizeDesignName = (name) => {
-    if (!name) return "";
-    return String(name).trim().toUpperCase().replace(/\s+/g, " ");
-  };
-
-  const handleNext = () => {
-    if (currentStep === 1 && !file) {
-      setError("Please select a file");
-      return;
-    }
-    if (currentStep === 2 && previewData.length === 0) {
-      setError("No valid data to import");
-      return;
-    }
-    setError(null);
-    setCurrentStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setError(null);
-    setCurrentStep((prev) => prev - 1);
-  };
-
-  const handleImport = async () => {
-    if (!file) return;
-
+  const fetchPreview = async (file) => {
     setIsProcessing(true);
-    setError(null);
-
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await importApi.importMasterDataDesign(file);
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.detail || "Import failed");
-      }
-
-      setImportResult(result);
-
-      if (onImportSuccess) {
-        onImportSuccess(result);
-      }
+      const res = await importDataMasterLapCkPreview(file);
+      const data = res.data?.data || res.data;
+      setCkPreview(data);
+      setCkError(null);
     } catch (err) {
-      setError(err.message || "Failed to import data");
+      setCkError(err.response?.data?.detail || "Preview failed");
+      setCkPreview(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const renderStepIndicator = () => (
+  const selectFile = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    if (!f.name.toLowerCase().endsWith(".xlsx")) {
+      setCkError("Upload .xlsx file");
+      return;
+    }
+
+    setCkFile(f);
+    setCkError(null);
+    await fetchPreview(f);
+  };
+
+  const handleNext = () => {
+    if (subStep === 1 && !ckFile) {
+      setCkError("Select file");
+      return;
+    }
+    if (subStep === 2 && !ckPreview) {
+      setCkError("No preview data");
+      return;
+    }
+
+    setCkError(null);
+    setSubStep((p) => p + 1);
+  };
+
+  const handleBack = () => {
+    setCkError(null);
+    setSubStep((p) => p - 1);
+  };
+
+  const doImport = async () => {
+    if (!ckFile) return;
+
+    setIsProcessing(true);
+    setCkError(null);
+
+    try {
+      const res = await importDataMasterLapCk(ckFile);
+      setCkResult(res.data);
+      if (onImportSuccess) onImportSuccess(res.data);
+    } catch (err) {
+      setCkError(
+        err.response?.data?.detail ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to import CK"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const subSteps = [
+    { n: 1, l: "Upload" },
+    { n: 2, l: "Preview" },
+    { n: 3, l: "Confirm" },
+  ];
+
+  // --- SUBSTEP INDICATOR ---
+  const renderSubSteps = () => (
     <div
-      className="px-6 py-4 border-b"
-      style={{
-        borderColor: colors.border.primary,
-        backgroundColor: colors.background.secondary,
-      }}
+      className="px-6 py-3 border-b"
+      style={{ borderColor: colors.border.primary }}
     >
-      <div className="flex items-center justify-between max-w-2xl mx-auto">
-        {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center flex-1">
+      <div className="flex items-center justify-between max-w-xl mx-auto">
+        {subSteps.map((s, i) => (
+          <div key={s.n} className="flex items-center flex-1">
             <div className="flex flex-col items-center flex-1">
               <div
                 className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all",
-                  currentStep >= step.number ? "ring-2" : ""
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold",
+                  subStep >= s.n && "ring-2"
                 )}
                 style={{
                   backgroundColor:
-                    currentStep >= step.number
-                      ? colors.primary
-                      : colors.background.primary,
+                    subStep >= s.n ? colors.primary : colors.background.primary,
                   color:
-                    currentStep >= step.number
+                    subStep >= s.n
                       ? colors.text.inverse
                       : colors.text.secondary,
-                  borderWidth: currentStep >= step.number ? 0 : "2px",
+                  borderWidth: subStep >= s.n ? 0 : "2px",
                   borderColor: colors.border.primary,
-                  ringColor: colors.primary,
                 }}
               >
-                {importResult && step.number === 3 ? (
-                  <CheckCircle className="w-5 h-5" />
+                {ckResult && s.n === 3 ? (
+                  <CheckCircle className="w-4 h-4" />
                 ) : (
-                  step.number
+                  s.n
                 )}
               </div>
+
               <span
-                className="mt-2 text-sm font-medium"
+                className="mt-1 text-xs font-medium"
                 style={{
                   color:
-                    currentStep >= step.number
-                      ? colors.primary
-                      : colors.text.secondary,
+                    subStep >= s.n ? colors.primary : colors.text.secondary,
                 }}
               >
-                {step.label}
+                {s.l}
               </span>
             </div>
-            {index < steps.length - 1 && (
+
+            {i < subSteps.length - 1 && (
               <div
-                className="flex-1 h-1 mx-2 transition-all rounded"
+                className="flex-1 h-1 mx-2 rounded"
                 style={{
                   backgroundColor:
-                    currentStep > step.number
-                      ? colors.primary
-                      : colors.border.primary,
+                    subStep > s.n ? colors.primary : colors.border.primary,
                 }}
               />
             )}
@@ -229,68 +186,54 @@ export default function ImportDesignModal({
     </div>
   );
 
-  const renderContent = () => {
-    if (error) {
-      return (
-        <div
-          className="flex items-start gap-3 p-4 mb-4 rounded-lg"
-          style={{
-            backgroundColor: `${colors.status.error}15`,
-            borderWidth: "1px",
-            borderColor: colors.status.error,
-          }}
-        >
-          <AlertCircle
-            className="w-5 h-5 flex-shrink-0 mt-0.5"
-            style={{ color: colors.status.error }}
-          />
-          <p className="text-sm" style={{ color: colors.status.error }}>
-            {error}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const renderStep1 = () => (
+  // --- STEP 1: UPLOAD ---
+  const renderUpload = () => (
     <div className="flex flex-col items-center justify-center py-12">
       <div className="w-full max-w-md">
         <div
-          className="p-8 text-center transition-colors border-2 border-dashed rounded-lg"
+          className="p-8 text-center border-2 border-dashed rounded-lg"
           style={{ borderColor: colors.border.primary }}
         >
           <Upload
             className="w-16 h-16 mx-auto mb-4"
             style={{ color: colors.text.secondary }}
           />
+
           <h3
             className="mb-2 text-lg font-semibold"
             style={{ color: colors.text.primary }}
           >
-            Upload Excel File
+            Upload file Excel Laporan CK
           </h3>
+
           <p className="mb-4 text-sm" style={{ color: colors.text.secondary }}>
-            Select an .xlsx file containing design data
+            Select .xlsx file
           </p>
+
           <input
             type="file"
             accept=".xlsx"
-            onChange={handleFileSelect}
+            onChange={selectFile}
             className="hidden"
-            id="file-upload"
+            id="file-ck"
+            disabled={isProcessing}
           />
+
           <label
-            htmlFor="file-upload"
-            className="inline-block px-4 py-2 transition-colors rounded-lg cursor-pointer"
+            htmlFor="file-ck"
+            className={cn(
+              "inline-block px-4 py-2 rounded-lg",
+              isProcessing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            )}
             style={{
               backgroundColor: colors.primary,
               color: colors.text.inverse,
             }}
           >
-            Choose File
+            {isProcessing ? "Loading..." : "Choose File"}
           </label>
-          {file && (
+
+          {ckFile && (
             <div
               className="flex items-center gap-3 p-3 mt-4 rounded-lg"
               style={{ backgroundColor: `${colors.primary}15` }}
@@ -299,315 +242,361 @@ export default function ImportDesignModal({
                 className="w-5 h-5"
                 style={{ color: colors.primary }}
               />
-              <span
-                className="text-sm font-medium"
-                style={{ color: colors.text.primary }}
-              >
-                {file.name}
-              </span>
+              <span className="text-sm">{ckFile.name}</span>
             </div>
           )}
         </div>
-        <div
-          className="p-4 mt-4 rounded-lg"
-          style={{ backgroundColor: colors.background.secondary }}
-        >
-          <p className="text-xs" style={{ color: colors.text.secondary }}>
-            <strong>Expected format:</strong> Excel file with sheet "TEMPLATE
-            QTY" containing columns: OPJ, DESIGN, JENIS KAIN, ROLL, TGL
-          </p>
-        </div>
       </div>
     </div>
   );
 
-  const renderStep2 = () => (
-    <div>
-      <div
-        className="p-4 mb-4 rounded-lg"
-        style={{
-          backgroundColor: `${colors.primary}15`,
-          borderWidth: "1px",
-          borderColor: colors.primary,
-        }}
-      >
-        <p className="text-sm" style={{ color: colors.text.primary }}>
-          <strong>{previewData.length}</strong> design(s) will be imported
-        </p>
-      </div>
-      <div
-        className="overflow-hidden border rounded-lg"
-        style={{ borderColor: colors.border.primary }}
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead
-              style={{
-                backgroundColor: colors.background.secondary,
-                borderBottomWidth: "1px",
-                borderColor: colors.border.primary,
-              }}
-            >
-              <tr>
-                <th
-                  className="px-4 py-3 text-xs font-semibold text-left uppercase"
-                  style={{ color: colors.text.secondary }}
-                >
-                  No
-                </th>
-                <th
-                  className="px-4 py-3 text-xs font-semibold text-left uppercase"
-                  style={{ color: colors.text.secondary }}
-                >
-                  Design Code
-                </th>
-                <th
-                  className="px-4 py-3 text-xs font-semibold text-left uppercase"
-                  style={{ color: colors.text.secondary }}
-                >
-                  Design Type
-                </th>
-                <th
-                  className="px-4 py-3 text-xs font-semibold text-left uppercase"
-                  style={{ color: colors.text.secondary }}
-                >
-                  OPJ
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {previewData.slice(0, 50).map((item, index) => (
-                <tr
-                  key={index}
-                  className="transition-colors"
-                  style={{
-                    borderBottomWidth: "1px",
-                    borderColor: colors.border.primary,
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      colors.background.secondary)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: colors.text.secondary }}
-                  >
-                    {index + 1}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm font-medium"
-                    style={{ color: colors.text.primary }}
-                  >
-                    {item.design}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: colors.text.primary }}
-                  >
-                    {item.jenisKain}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ color: colors.text.secondary }}
-                  >
-                    {item.opj}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {previewData.length > 50 && (
-          <div
-            className="p-3 text-center border-t"
-            style={{
-              backgroundColor: colors.background.secondary,
-              borderColor: colors.border.primary,
-            }}
-          >
-            <p className="text-sm" style={{ color: colors.text.secondary }}>
-              Showing first 50 of {previewData.length} records
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => {
-    if (!importResult) {
+  // --- STEP 2: PREVIEW ---
+  const renderPreview = () => {
+    if (isProcessing)
       return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-full max-w-md text-center">
-            <AlertCircle
-              className="w-16 h-16 mx-auto mb-4"
-              style={{ color: colors.primary }}
-            />
-            <h3
-              className="mb-2 text-lg font-semibold"
-              style={{ color: colors.text.primary }}
-            >
-              Ready to Import
-            </h3>
-            <p
-              className="mb-6 text-sm"
-              style={{ color: colors.text.secondary }}
-            >
-              {previewData.length} design(s) will be imported. This action
-              cannot be undone.
-            </p>
-            <div
-              className="p-4 text-left rounded-lg"
-              style={{ backgroundColor: colors.background.secondary }}
-            >
-              <p className="text-sm" style={{ color: colors.text.primary }}>
-                <strong>File:</strong> {file?.name}
-              </p>
-              <p
-                className="mt-1 text-sm"
-                style={{ color: colors.text.primary }}
-              >
-                <strong>Total Records:</strong> {previewData.length}
-              </p>
-            </div>
-          </div>
+        <div
+          className="py-12 text-center"
+          style={{ color: colors.text.secondary }}
+        >
+          Loading preview...
         </div>
       );
-    }
+
+    if (!ckPreview)
+      return (
+        <div
+          className="py-12 text-center"
+          style={{ color: colors.text.secondary }}
+        >
+          No preview available
+        </div>
+      );
+
+    const summary = ckPreview.summary || {};
+    const insertSamples = ckPreview.insert_samples || [];
+    const existingSamples = ckPreview.existing_samples || [];
+    const skippedSamples = ckPreview.skipped_samples || [];
 
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-full max-w-md">
-          <div className="mb-6 text-center">
-            <CheckCircle
-              className="w-16 h-16 mx-auto mb-4"
-              style={{ color: colors.status.success }}
-            />
-            <h3
-              className="mb-2 text-lg font-semibold"
-              style={{ color: colors.text.primary }}
-            >
-              Import Successful!
-            </h3>
+      <div className="p-6 space-y-6">
+        {/* SUMMARY CARDS */}
+        <div className="grid grid-cols-4 gap-4">
+          {/* Total Rows */}
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              backgroundColor: `${colors.primary}15`,
+              borderColor: colors.primary,
+              borderWidth: "1px",
+            }}
+          >
+            <p className="text-xs" style={{ color: colors.text.secondary }}>
+              Total Rows
+            </p>
+            <p className="text-2xl font-bold" style={{ color: colors.primary }}>
+              {summary.total_rows}
+            </p>
           </div>
-          <div className="space-y-3">
-            <div
-              className="p-4 rounded-lg"
-              style={{
-                backgroundColor: `${colors.status.success}15`,
-                borderWidth: "1px",
-                borderColor: colors.status.success,
-              }}
+
+          {/* To Insert */}
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              backgroundColor: `${colors.status.success}15`,
+              borderColor: colors.status.success,
+              borderWidth: "1px",
+            }}
+          >
+            <p className="text-xs" style={{ color: colors.text.secondary }}>
+              To Insert
+            </p>
+            <p
+              className="text-2xl font-bold"
+              style={{ color: colors.status.success }}
             >
-              <p className="text-sm" style={{ color: colors.status.success }}>
-                <strong className="text-2xl">{importResult.added}</strong>{" "}
-                design(s) added
+              {summary.to_insert}
+            </p>
+          </div>
+
+          {/* Existing */}
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              backgroundColor: `${colors.status.info}15`,
+              borderColor: colors.status.info,
+              borderWidth: "1px",
+            }}
+          >
+            <p className="text-xs" style={{ color: colors.text.secondary }}>
+              Already Exists
+            </p>
+            <p
+              className="text-2xl font-bold"
+              style={{ color: colors.status.info }}
+            >
+              {summary.existing}
+            </p>
+          </div>
+
+          {/* Skipped */}
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              backgroundColor: `${colors.status.warning}15`,
+              borderColor: colors.status.warning,
+              borderWidth: "1px",
+            }}
+          >
+            <p className="text-xs" style={{ color: colors.text.secondary }}>
+              Skipped
+            </p>
+            <p
+              className="text-2xl font-bold"
+              style={{ color: colors.status.warning }}
+            >
+              {summary.skipped}
+            </p>
+          </div>
+        </div>
+
+        {/* Missing Types Warning */}
+        {summary.missing_types?.length > 0 && (
+          <div
+            className="p-4 rounded-lg flex gap-3"
+            style={{
+              backgroundColor: `${colors.status.error}15`,
+              borderColor: colors.status.error,
+              borderWidth: "1px",
+            }}
+          >
+            <AlertCircle
+              className="w-5 h-5"
+              style={{ color: colors.status.error }}
+            />
+            <div>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: colors.status.error }}
+              >
+                Missing Types ({summary.missing_types.length})
+              </p>
+              <p className="text-xs" style={{ color: colors.text.secondary }}>
+                These codes will be skipped.
               </p>
             </div>
-            {importResult.skipped > 0 && (
-              <div
-                className="p-4 rounded-lg"
-                style={{
-                  backgroundColor: `${colors.status.warning}15`,
-                  borderWidth: "1px",
-                  borderColor: colors.status.warning,
-                }}
-              >
-                <p className="text-sm" style={{ color: colors.status.warning }}>
-                  <strong>{importResult.skipped}</strong> design(s) skipped
-                  (duplicates)
-                </p>
+          </div>
+        )}
+
+        {/* INSERT SAMPLES */}
+        {insertSamples.length > 0 && (
+          <div>
+            <h4
+              className="mb-2 text-sm font-semibold"
+              style={{ color: colors.text.primary }}
+            >
+              Insert Samples ({insertSamples.length})
+            </h4>
+
+            <div
+              className="border rounded-lg overflow-hidden"
+              style={{ borderColor: colors.border.primary }}
+            >
+              <div className="overflow-x-auto max-h-64">
+                <table className="w-full text-xs">
+                  <thead
+                    style={{
+                      backgroundColor: colors.background.secondary,
+                      borderColor: colors.border.primary,
+                      borderBottomWidth: "1px",
+                    }}
+                  >
+                    <tr>
+                      <th className="px-3 py-2 text-left">Code</th>
+                      <th className="px-3 py-2 text-left">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insertSamples.slice(0, 30).map((row, i) => (
+                      <tr
+                        key={i}
+                        className="border-b"
+                        style={{ borderColor: colors.border.primary }}
+                      >
+                        <td className="px-3 py-2">{row.code}</td>
+                        <td className="px-3 py-2">{row.type}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-            {importResult.unknown_types &&
-              importResult.unknown_types.length > 0 && (
-                <div
-                  className="p-4 rounded-lg"
+            </div>
+          </div>
+        )}
+
+        {/* EXISTING SAMPLES */}
+        <div>
+          <h4
+            className="mb-2 text-sm font-semibold"
+            style={{ color: colors.text.primary }}
+          >
+            Existing Samples ({existingSamples.length})
+          </h4>
+
+          <div
+            className="border rounded-lg overflow-hidden"
+            style={{ borderColor: colors.border.primary }}
+          >
+            <div className="overflow-x-auto max-h-64">
+              <table className="w-full text-xs">
+                <thead
                   style={{
-                    backgroundColor: `${colors.primary}15`,
-                    borderWidth: "1px",
-                    borderColor: colors.primary,
+                    backgroundColor: colors.background.secondary,
+                    borderColor: colors.border.primary,
+                    borderBottomWidth: "1px",
                   }}
                 >
-                  <p
-                    className="mb-2 text-sm"
-                    style={{ color: colors.text.primary }}
-                  >
-                    <strong>New design types created:</strong>
-                  </p>
-                  <ul
-                    className="text-xs list-disc list-inside"
-                    style={{ color: colors.text.secondary }}
-                  >
-                    {importResult.unknown_types.map((type, i) => (
-                      <li key={i}>{type}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  <tr>
+                    <th className="px-3 py-2 text-left">Code</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {existingSamples.slice(0, 30).map((row, i) => (
+                    <tr
+                      key={i}
+                      className="border-b"
+                      style={{ borderColor: colors.border.primary }}
+                    >
+                      <td className="px-3 py-2">{row.code}</td>
+                      <td className="px-3 py-2">{row.type}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* SKIPPED SAMPLES */}
+        <div>
+          <h4
+            className="mb-2 text-sm font-semibold"
+            style={{ color: colors.text.primary }}
+          >
+            Skipped Samples ({skippedSamples.length})
+          </h4>
+
+          <div
+            className="border rounded-lg overflow-hidden"
+            style={{ borderColor: colors.border.primary }}
+          >
+            <div className="overflow-x-auto max-h-64">
+              <table className="w-full text-xs">
+                <thead
+                  style={{
+                    backgroundColor: colors.background.secondary,
+                    borderColor: colors.border.primary,
+                    borderBottomWidth: "1px",
+                  }}
+                >
+                  <tr>
+                    <th className="px-3 py-2 text-left">Code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {skippedSamples.slice(0, 30).map((code, i) => (
+                    <tr
+                      key={i}
+                      className="border-b"
+                      style={{ borderColor: colors.border.primary }}
+                    >
+                      <td className="px-3 py-2">{code}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     );
   };
 
-  const modalActions = (
-    <>
-      {currentStep > 1 && !importResult && (
-        <button
-          onClick={handleBack}
-          disabled={isProcessing}
-          className="px-4 py-2 text-sm font-medium transition-colors rounded-lg disabled:opacity-50"
+  // --- STEP 3: CONFIRM ---
+  const renderConfirm = () => {
+    if (ckResult) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <CheckCircle
+            className="w-20 h-20 mb-4"
+            style={{ color: colors.status.success }}
+          />
+
+          <h3
+            className="text-lg font-semibold"
+            style={{ color: colors.text.primary }}
+          >
+            Import CK Successful
+          </h3>
+
+          <p className="text-sm mt-2" style={{ color: colors.text.secondary }}>
+            Data CK berhasil diimport
+          </p>
+        </div>
+      );
+    }
+
+    const summary = ckPreview?.summary || {};
+
+    return (
+      <div className="text-center py-12">
+        <AlertCircle
+          className="w-16 h-16 mx-auto mb-4"
+          style={{ color: colors.primary }}
+        />
+
+        <h3
+          className="text-lg font-semibold"
           style={{ color: colors.text.primary }}
         >
-          Back
-        </button>
-      )}
-      <div className="flex gap-3 ml-auto">
-        <button
-          onClick={handleClose}
-          className="px-4 py-2 text-sm font-medium transition-colors rounded-lg"
+          Ready to Import
+        </h3>
+
+        <p className="mt-2 text-sm" style={{ color: colors.text.secondary }}>
+          {summary.total_insert || 0} record(s) will be imported
+        </p>
+
+        <div className="mt-4 text-sm">
+          <strong>File:</strong> {ckFile?.name}
+        </div>
+      </div>
+    );
+  };
+
+  const renderContent = () => (
+    <>
+      {ckError && (
+        <div
+          className="flex items-start gap-3 p-4 mb-4 rounded-lg"
           style={{
-            backgroundColor: colors.background.primary,
-            color: colors.text.primary,
+            backgroundColor: `${colors.status.error}15`,
+            borderColor: colors.status.error,
             borderWidth: "1px",
-            borderColor: colors.border.primary,
           }}
         >
-          {importResult ? "Close" : "Cancel"}
-        </button>
-        {!importResult && (
-          <>
-            {currentStep < 3 && (
-              <Button
-                icon={ChevronRight}
-                label="Next"
-                onClick={handleNext}
-                disabled={
-                  !file || (currentStep === 2 && previewData.length === 0)
-                }
-              />
-            )}
-            {currentStep === 3 && (
-              <button
-                onClick={handleImport}
-                disabled={isProcessing}
-                className="px-4 py-2 text-sm font-medium transition-colors rounded-lg disabled:opacity-50"
-                style={{
-                  backgroundColor: colors.status.success,
-                  color: colors.text.inverse,
-                }}
-              >
-                {isProcessing ? "Importing..." : "Import Now"}
-              </button>
-            )}
-          </>
-        )}
-      </div>
+          <AlertCircle
+            className="w-5 h-5"
+            style={{ color: colors.status.error }}
+          />
+          <p className="text-sm" style={{ color: colors.status.error }}>
+            {ckError}
+          </p>
+        </div>
+      )}
+
+      {subStep === 1 && renderUpload()}
+      {subStep === 2 && renderPreview()}
+      {subStep === 3 && renderConfirm()}
     </>
   );
 
@@ -615,19 +604,73 @@ export default function ImportDesignModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Import Design Data"
-      subtitle="Import design data from Excel file in 3 simple steps"
+      title="Import Data Master - Laporan CK"
+      subtitle="Import CK data with 3-step flow"
       size="xl"
-      actions={modalActions}
       closeOnOverlayClick={!isProcessing}
+      actions={
+        <>
+          {subStep > 1 && !ckResult && (
+            <button
+              onClick={handleBack}
+              disabled={isProcessing}
+              className="px-4 py-2 rounded-lg text-sm"
+              style={{ color: colors.text.primary }}
+            >
+              <ChevronLeft className="inline w-4 h-4 mr-1" />
+              Back
+            </button>
+          )}
+
+          <div className="ml-auto flex gap-3">
+            <button
+              onClick={handleClose}
+              disabled={isProcessing}
+              className="px-4 py-2 rounded-lg text-sm"
+              style={{
+                backgroundColor: colors.background.primary,
+                borderColor: colors.border.primary,
+                borderWidth: "1px",
+                color: colors.text.primary,
+              }}
+            >
+              {ckResult ? "Finish" : "Cancel"}
+            </button>
+
+            {!ckResult && (
+              <>
+                {subStep < 3 && (
+                  <Button
+                    icon={ChevronRight}
+                    label="Next"
+                    onClick={handleNext}
+                    disabled={
+                      !ckFile || (subStep === 2 && !ckPreview) || isProcessing
+                    }
+                  />
+                )}
+
+                {subStep === 3 && (
+                  <button
+                    className="px-4 py-2 rounded-lg text-sm"
+                    onClick={doImport}
+                    disabled={isProcessing}
+                    style={{
+                      backgroundColor: colors.status.success,
+                      color: colors.text.inverse,
+                    }}
+                  >
+                    {isProcessing ? "Importing..." : "Import"}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </>
+      }
     >
-      {renderStepIndicator()}
-      <div className="mt-6">
-        {renderContent()}
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
-      </div>
+      {renderSubSteps()}
+      <div className="mt-6">{renderContent()}</div>
     </Modal>
   );
 }

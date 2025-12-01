@@ -56,7 +56,7 @@ class PurchasingTrendService(BaseReportService):
             db.query(
                 period_expr.label("period"),
                 AccountParent.account_type.label("account_type"),
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price).label("total_value"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn).label("total_value"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Product, Product.id == PurchasingDetail.product_id)

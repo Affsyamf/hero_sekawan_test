@@ -1,6 +1,11 @@
 // src/stores/useDateFilterStore.js
 import { create } from "zustand";
 
+const toLocalYMD = (d) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate()).toLocaleDateString(
+    "en-CA"
+  );
+
 // Helper function untuk mendapatkan tanggal default (30 hari terakhir)
 const getDefaultDateRange = () => {
   const today = new Date();
@@ -10,8 +15,8 @@ const getDefaultDateRange = () => {
   return {
     mode: "days",
     days: 30,
-    dateFrom: thirtyDaysAgo.toISOString().split("T")[0],
-    dateTo: today.toISOString().split("T")[0],
+    dateFrom: toLocalYMD(thirtyDaysAgo),
+    dateTo: toLocalYMD(today),
   };
 };
 

@@ -1,33 +1,35 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../../../utils/cn";
-import { searchSupplier } from "../../../services/supplier_service";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { searchAccountParent } from "../../../services/account_service";
 
-export default function SupplierFilter({ value = [], onChange }) {
+export default function AccountParentFilter({ value = [], onChange }) {
   const { colors } = useTheme();
 
-  const [suppliers, setSuppliers] = useState([]);
+  const [accountParents, setAccountParents] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
+    const timeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await searchSupplier({
+        const res = await searchAccountParent({
           q: search,
           page: 1,
-          page_size: 100,
+          page_size: 1000,
         });
-        setSuppliers(res.data.data || []);
+        setAccountParents(res.data.data || []);
       } catch (err) {
-        console.error("Failed to load suppliers", err);
+        console.error("Failed to load account parents", err);
       } finally {
         setLoading(false);
       }
-    };
-    load();
+    }, 600);
+
+    // cleanup: cancel previous timeout when user types again
+    return () => clearTimeout(timeout);
   }, [search]);
 
   const toggle = (id) => {
@@ -39,14 +41,14 @@ export default function SupplierFilter({ value = [], onChange }) {
 
   return (
     <div>
-      <h3 className="font-semibold text-gray-800 mb-2">Suppliers</h3>
+      <h3 className="font-semibold text-gray-800 mb-3">Account</h3>
 
       {/* Search bar */}
       <div className="relative mb-3">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search suppliers..."
+          placeholder="Search account..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-8 pr-2 py-1.5 w-full text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -63,24 +65,28 @@ export default function SupplierFilter({ value = [], onChange }) {
           borderColor: colors.border.secondary,
         }}
       >
-        {suppliers.length === 0 && !loading ? (
-          <div className="p-2 text-xs text-gray-500 italic">
-            No suppliers found
+        {accountParents.length === 0 && !loading ? (
+          <div className="p-3 text-xs text-gray-500 italic">
+            No Account found
           </div>
         ) : (
-          suppliers.map((s) => (
+          accountParents.map((p) => (
             <label
-              key={s.id}
-              className="flex items-center gap-2 p-2 text-xs cursor-pointer hover:bg-gray-100"
-              title={s.name}
+              key={p.id}
+              className="flex items-center gap-2 p-2.5 text-xs cursor-pointer hover:bg-gray-100"
+              title={p.name}
             >
               <input
                 type="checkbox"
-                checked={value.includes(s.id)}
-                onChange={() => toggle(s.id)}
+                checked={value.includes(p.id)}
+                onChange={() => toggle(p.id)}
                 className="flex-shrink-0 accent-blue-600"
               />
-              <span className="text-gray-700 truncate">{s.name}</span>
+              <span className="text-gray-700 truncate">
+                {p.account_no} -{" "}
+                {p.account_type.charAt(0).toUpperCase() +
+                  p.account_type.slice(1)}
+              </span>
             </label>
           ))
         )}
@@ -88,8 +94,8 @@ export default function SupplierFilter({ value = [], onChange }) {
 
       {/* Selected count */}
       {value.length > 0 && (
-        <p className="text-[11px] text-gray-500 mt-1.5">
-          {value.length} supplier{value.length > 1 ? "s" : ""} selected
+        <p className="text-xs text-gray-500 mt-2">
+          {value.length} account{value.length > 1 ? "s" : ""} selected
         </p>
       )}
     </div>

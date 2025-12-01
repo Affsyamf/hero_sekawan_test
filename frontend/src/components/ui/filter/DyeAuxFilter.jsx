@@ -3,8 +3,8 @@ import Button from "../button/Button";
 export default function DyeAuxFilter({ value = null, onChange }) {
   const options = [
     { key: null, label: "Aux + Dye" },
-    { key: "aux", label: "Aux" },
-    { key: "dye", label: "Dye" },
+    { key: "AUX", label: "Aux" },
+    { key: "DYE", label: "Dye" },
   ];
 
   return (

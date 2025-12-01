@@ -14,8 +14,6 @@ import {
   updatePurchasing,
 } from "../../services/purchasing_service";
 import { searchSupplier } from "../../services/supplier_service";
-import { useFilteredFetch } from "../../hooks/useFilteredFetch";
-import { useGlobalFilter } from "../../contexts/GlobalFilterContext";
 import Button from "../../components/ui/button/Button";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useNavigate } from "react-router-dom";
@@ -30,14 +28,6 @@ export default function PurchasingsPage() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [selectedPurchasing, setSelectedPurchasing] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  //filter global
-  // const { dateRange } = useGlobalFilter();
-  // const filteredSearchPurchasing = useFilteredFetch(searchPurchasing, "date");
-
-  // useEffect(() => {
-  //   setRefreshKey((prev) => prev + 1);
-  // }, [dateRange.startDate, dateRange.endDate]);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
 

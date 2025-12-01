@@ -8,7 +8,7 @@ from app.models import (
     ColorKitchenBatchDetail as CKBatchDetail,
     ColorKitchenEntry as CKEntry,
     ColorKitchenEntryDetail as CKEntryDetail,
-    Product, Supplier, Purchasing, PurchasingDetail
+    Product, Supplier, Purchasing, PurchasingDetail, Account
 )
 from app.services.reporting.base_reporting_service import BaseReportService
 from app.services.reporting.color_kitchen.base_color_kitchen_service import ColorKitchenReportBase
@@ -40,6 +40,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
         db: Session = self.db
         start_date = filters.get("start_date")
         end_date = filters.get("end_date")
+        chem_type = self.normalise_chemical_type_filter(filters)
 
         # ----------------------------------------------
         # Total rolls processed
@@ -55,7 +56,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
         total_rolls_processed = q_rolls.scalar() or 0
 
         # ----------------------------------------------
-        # Total cost (entries: dyes)
+        # Total cost (entries: aux)
         # ----------------------------------------------
         q_cost_entry = (
             db.query(
@@ -67,6 +68,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
             .select_from(CKEntryDetail)
             .join(CKEntry, CKEntry.id == CKEntryDetail.color_kitchen_entry_id)
             .join(Product, Product.id == CKEntryDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_cost_entry = self.apply_supplier_filter(q_cost_entry, filters)
@@ -78,11 +80,13 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
 
         q_cost_entry = apply_common_report_filters(q_cost_entry, filters)
 
-        total_entry_cost = q_cost_entry.scalar() or 0.0
+        total_entry_cost = 0
+        if chem_type in ("AUX", "BOTH"):
+            total_entry_cost = q_cost_entry.scalar() or 0
 
 
         # ----------------------------------------------
-        # Total cost (batches: auxiliaries)
+        # Total cost (batches: dye)
         # ----------------------------------------------
         q_cost_batch = (
             db.query(
@@ -94,6 +98,7 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
             .select_from(CKBatchDetail)
             .join(CKBatch, CKBatch.id == CKBatchDetail.batch_id)
             .join(Product, Product.id == CKBatchDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
 
         q_cost_batch = self.apply_supplier_filter(q_cost_batch, filters)
@@ -105,7 +110,9 @@ class ColorKitchenSummaryService(BaseReportService, ColorKitchenReportBase):
 
         q_cost_batch = apply_common_report_filters(q_cost_batch, filters)
         
-        total_batch_cost = q_cost_batch.scalar() or 0.0
+        total_batch_cost = 0
+        if chem_type in ("DYE", "BOTH"):
+            total_batch_cost = q_cost_batch.scalar() or 0
 
         # ----------------------------------------------
         # Combine

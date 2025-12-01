@@ -15,7 +15,7 @@ from app.models import *
 
 from app.routers.auth.routes import auth_router
 
-from app.routers.dashboard.routes import dashboard_router as dashboard_router
+from app.routers.reporting.overview_report import router as overview_report_router
 from app.routers.reporting.purchasing_report import router as purchasing_report_router
 from app.routers.reporting.color_kitchen_report import router as color_kitchen_report_router
 
@@ -114,7 +114,7 @@ app.include_router(auth_router)
 app.include_router(excel_import_router)
 app.include_router(import_lap_pembelian_router)
 
-app.include_router(dashboard_router)
+app.include_router(overview_report_router)
 app.include_router(purchasing_report_router)
 app.include_router(color_kitchen_report_router)
 
