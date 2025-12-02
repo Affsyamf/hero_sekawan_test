@@ -3,9 +3,15 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from fastapi import Depends
 from app.core.database import get_db
+import logging
+from typing import Any
 
 from app.models.delivery import Delivery
 from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate
+
+logger = logging.getLogger(__name__)
+# USER_ID_CONTEXT_KEY = 'user_id'
+CONTEXT_KEYS = ['user_id', 'uid', 'id', 'user_id_context', 'current_user_id'] 
 
 
 class DeliveryService:
@@ -75,10 +81,18 @@ class DeliveryService:
         
         return delivery
 
-    def soft_delete_delivery(self, delivery_id: int):
+    def soft_delete_delivery(self, delivery_id: int, user_id: int):
+
         delivery = self.get_delivery_by_id(delivery_id)
+        if not delivery:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Delivery ID '{delivery_id}' not found"
+            )
 
         delivery.deleted_at = datetime.now()
+        delivery.deleted_by = user_id
+
         self.db.commit()
 
         return {"message": "Delivery deleted successfully"}
