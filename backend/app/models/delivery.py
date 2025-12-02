@@ -35,5 +35,5 @@ class Delivery(Base, AuditMixin):
             "(sale_id IS NOT NULL AND return_id IS NULL) OR "
             "(sale_id IS NULL AND return_id IS NOT NULL)",
             name="delivery_exclusive_arc",
-        )
+        ),
     )

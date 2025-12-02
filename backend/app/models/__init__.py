@@ -18,6 +18,7 @@ from .cache.product_avg_cost_cache import ProductAvgCostCache
 from .audit import *
 from .mixin.AuditMixin import AuditMixin
 from .mixin.TimestampMixin import TimestampMixin
+from .master import Supplier, Product, Design, Client
 
 __all__ = [
     "Base",
