@@ -1,0 +1,44 @@
+from typing import Optional, List, Union
+from pydantic import BaseModel, Field, constr, conint
+from datetime import date
+
+class PaymentCreate(BaseModel):
+    date: date
+    amount: float = Field(..., gt=0, description="Payment amount must be greater then zeri")
+    sale_id: int = Field(..., description="Related Sales ID")
+    
+class PaymentUpdate(BaseModel):
+    date: Optional[date]
+    amount: Optional[float] = Field(None, gt=0)
+    sale_id: Optional[int]
+    
+
+class SalesCreate(BaseModel):
+    date: date
+    code: constr(strip_whitespace=True, min_length=3) = Field(..., description="Sales Code")
+    quantity_start: int = Field(..., ge=0)
+    quantity_end: int = Field(..., ge=0)
+    color_kitchen_id: int
+    client_id: int
+    
+class SalesUpdate(BaseModel):
+    date: Optional[date]
+    code: Optional[constr(strip_whitespace=True, min_length=3)]
+    quantity_start: Optional[int] = Field(..., ge=0)
+    quantity_end: Optional[int] = Field(..., ge=0)
+    color_kitchen_id: Optional[int]
+    client_id: Optional[int]
+    
+
+class ReturnCreate(BaseModel):
+    date: date
+    quantity: int = Field(..., ge=1)
+    sale_id: int 
+    
+class ReturnUpdate(BaseModel):
+    date: Optional[date]
+    quantity: Optional[int] = Field(..., ge=1)
+    sale_id: Optional[int]
+    
+    
+    

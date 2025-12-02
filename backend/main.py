@@ -35,6 +35,10 @@ from app.routers.color_kitchen_entry.routes import color_kitchen_entry_router
 from app.routers.stock_movement.routes import stock_movement_router
 from app.routers.stock_opname.routes import stock_opname_router
 from app.routers.ledger.routes import ledger_router
+from app.routers.delivery.routes import delivery_router
+from app.routers.sales.routes import sales_router
+from app.routers.payment.routes import payment_router
+from app.routers.returns.routes import returns_router
 
 from app.routers.imports.routes import excel_import_router
 from app.routers.import_lap_pembelian.routes import import_lap_pembelian_router
@@ -129,6 +133,11 @@ app.include_router(client_router)
 app.include_router(supplier_router)
 app.include_router(design_type_router)
 app.include_router(design_router)
+app.include_router(delivery_router)
+app.include_router(sales_router)
+app.include_router(payment_router)
+app.include_router(returns_router)
+
 
 app.include_router(purchasing_router)
 app.include_router(color_kitchen_batch_router)
