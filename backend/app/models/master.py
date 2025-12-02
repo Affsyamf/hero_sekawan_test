@@ -44,3 +44,13 @@ class Design(Base, AuditMixin):
     type = relationship("DesignType", back_populates="designs", lazy='joined')
 
     color_kitchen_entries = relationship("ColorKitchenEntry", back_populates="design", lazy='select')
+
+class Client(Base, AuditMixin):
+    __tablename__ = 'clients'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    address = Column(Text, nullable=True)
+    phone_no = Column(String, nullable=True)
+
+    sales = relationship("Sale", back_populates="client", lazy='select')

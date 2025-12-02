@@ -54,6 +54,8 @@ class ColorKitchenEntry(Base, AuditMixin):
     # auxiliaries (per OPJ)
     details = relationship("ColorKitchenEntryDetail", back_populates="color_kitchen_entry", lazy='selectin', cascade="all, delete-orphan")
 
+    sales = relationship("Sale", back_populates="color_kitchen", lazy='select')
+
 class ColorKitchenEntryDetail(Base, AuditMixin):
     __tablename__ = 'color_kitchen_entry_details'
     
