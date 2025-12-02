@@ -1,7 +1,8 @@
 from typing import Optional, List, Union
 from pydantic import BaseModel, Field, constr, conint
 from datetime import date
-
+from datetime import datetime
+from decimal import Decimal
 class PaymentCreate(BaseModel):
     date: date
     amount: float = Field(..., gt=0, description="Payment amount must be greater then zeri")
@@ -32,13 +33,24 @@ class SalesUpdate(BaseModel):
 
 class ReturnCreate(BaseModel):
     date: date
-    quantity: int = Field(..., ge=1)
+    quantity: int = Field(ge=1)
     sale_id: int 
     
 class ReturnUpdate(BaseModel):
-    date: Optional[date]
-    quantity: Optional[int] = Field(..., ge=1)
-    sale_id: Optional[int]
+    date: Optional[date] 
+    quantity: Optional[int] = Field(None, ge=1)
+    sale_id: Optional[int] 
     
     
-    
+class ReturnResponse(BaseModel):
+    id: int
+    date: datetime
+    quantity: Decimal
+    sale_id: int
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            Decimal: lambda v: float(v),
+        }

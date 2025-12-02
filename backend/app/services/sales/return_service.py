@@ -14,22 +14,28 @@ class ReturnService:
         
     
     def create_return(self, request: ReturnCreate):
-        sale = self.db.query(Sale).filter(Sale.id == request.sale_id).first()
-        if not sale:
-            return APIResponse.not_found(message=f"Sale ID '{request.sale_id}' not found.")
-        
-        ret = Return(**request.model_dump())
-        
-        self.db.add(ret)
-        self.db.commit()
-        self.db.refresh(ret)
-        
-        return APIResponse.created(data={
-            "id": ret.id,
-            "date": ret.date,
-            "quantity": ret.quantity,
-            "sale_id": ret.sale_id,
-        })
+        try:
+            sale = self.db.query(Sale).filter(Sale.id == request.sale_id).first()
+            if not sale:
+                return APIResponse.not_found(message=f"Sale ID '{request.sale_id}' not found.")
+
+            ret = Return(**request.model_dump())
+
+            self.db.add(ret)
+            self.db.commit()
+            self.db.refresh(ret)
+            return ret
+
+            # return APIResponse.created(data={
+            #     "id": ret.id,
+            #     "date": ret.date,
+            #     "quantity": ret.quantity,
+            #     "sale_id": ret.sale_id,
+            # })
+
+        except Exception as e:
+            print("❌ ERROR:", e)
+            raise e   
         
         
     def list_return(self, request: ListRequest):
@@ -47,8 +53,8 @@ class ReturnService:
             return_query, request,
             lambda r: {
                 "id": r.id,
-                "date": r.date,
-                "quantity": r.quantity,
+                "date": r.date.isoformat() if r.date else None,
+                "quantity": float(r.quantity) if r.quantity is not None else None,
                 "sale_id": r.sale_id,
             }
         )
@@ -61,8 +67,8 @@ class ReturnService:
         
         return APIResponse.ok(data={
             "id": ret.id,
-            "date": ret.date,
-            "quantity": ret.quantity,
+            "date": ret.date.isoformat() if ret.date else None,
+            "quantity": float(ret.quantity) if ret.quantity is not None else None,
             "sale_id": ret.sale_id,
         })
         
