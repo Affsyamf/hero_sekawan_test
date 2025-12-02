@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.schemas.input_models.sales_input_models import PaymentCreate, PaymentUpdate
+from app.schemas.input_models.sales_input_models import PaymentCreate, PaymentUpdate, PaymentResponse
 from app.utils.datatable.request import ListRequest
 from app.services.sales.payment_service import PaymentService
 from app.utils.response import APIResponse
@@ -12,7 +12,7 @@ payment_router = APIRouter(prefix="/payment", tags=["payment"], dependencies=[re
 def search_payments(request: ListRequest = Depends(), service: PaymentService = Depends()):
     return service.list_payment(request=request)
 
-@payment_router.get("/{payment_id}")
+@payment_router.get("/{payment_id}", response_model=PaymentResponse)
 def get_payment_by_id(payment_id: int, service: PaymentService = Depends()):
     return service.get_payment(payment_id=payment_id)
 

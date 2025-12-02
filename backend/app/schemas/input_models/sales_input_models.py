@@ -13,6 +13,17 @@ class PaymentUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
     sale_id: Optional[int]
     
+class PaymentResponse(BaseModel):
+    id: int
+    date: date
+    amount: Decimal
+    sale_id: int
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            Decimal: lambda v: float(v)
+        }
 
 class SalesCreate(BaseModel):
     date: date

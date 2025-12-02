@@ -25,8 +25,8 @@ class PaymentService:
         
         return APIResponse.created(data={
             "id": payment.id,
-            "date": payment.date,
-            "amount": payment.amount,
+            "date": payment.date.isoformat() if payment.date else None,
+            "amount": float(payment.amount) if payment.amount is not None else None,
             "sale_id": payment.sale_id,
         })
         
@@ -45,8 +45,8 @@ class PaymentService:
             payment_query, request,
             lambda p: {
                 "id": p.id,
-                "date": p.date,
-                "amount": p.amount,
+                "date": p.date.isoformat() if p.date else None,
+                "amount": float(p.amount) if p.amount is not None else None,
                 "sale_id": p.sale_id
             }
         )
@@ -59,8 +59,8 @@ class PaymentService:
         
         return APIResponse.ok(data={
             "id": payment.id,
-            "date": payment.date,
-            "amount": payment.amount,
+            "date": payment.date.isoformat() if payment.date else None,
+            "amount": float(payment.amount) if payment.amount is not None else None,
             "sale_id": payment.sale_id,
         })
         
@@ -89,7 +89,7 @@ class PaymentService:
     
     
     def delete_payment(self, payment_id: int):
-        payment = self.db.query(Payment).filter(Paymet.id == payment_id).first()
+        payment = self.db.query(Payment).filter(Payment.id == payment_id).first()
         if not payment:
             return APIResponse.not_found(message=f"Payment ID '{payment_id}' not found.")
 
