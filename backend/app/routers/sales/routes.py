@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate
+from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate, SalesResponse
 from app.utils.datatable.request import ListRequest
 from app.services.sales.sale_service import SalesService
 from app.utils.response import APIResponse
@@ -16,7 +16,7 @@ sales_router = APIRouter(
 def search_sales(request: ListRequest = Depends(), service: SalesService = Depends()):
     return service.list_sale(request=request)
 
-@sales_router.get("/{sale_id}")
+@sales_router.get("/{sale_id}", response_model=SalesResponse)
 def get_sale_by_id(sale_id: int, service: SalesService = Depends()):
     return service.get_sale(sale_id=sale_id)
 

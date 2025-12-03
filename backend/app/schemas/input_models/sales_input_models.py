@@ -42,6 +42,15 @@ class SalesUpdate(BaseModel):
     client_id: Optional[int]
     
 
+class SalesResponse(BaseModel):
+    id: int
+    code: str
+    date: date
+    quantity_start: int
+    quantity_end: int
+    client_id: int
+    color_kitchen_id: int
+
 class ReturnCreate(BaseModel):
     date: date
     quantity: int = Field(ge=1)

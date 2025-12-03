@@ -55,9 +55,9 @@ class SalesService:
             sale_query, request, lambda sale: {
                 "id": sale.id,
                 "code": sale.code,
-                "date": sale.date,
-                "quantity_start": sale.quantity_start,
-                "quantity_end": sale.quantity_end,
+                "date": sale.date.isoformat() if sale.date else None,
+                "quantity_start": float(sale.quantity_start),
+                "quantity_end": float(sale.quantity_end),
                 "client_id": sale.client_id,
                 "color_kitchen_id": sale.color_kitchen_id,
             }
@@ -74,9 +74,9 @@ class SalesService:
         return APIResponse.ok(data={
             "id": sale.id,
             "code": sale.code,
-            "date": sale.date,
-            "quantity_start": sale.quantity_start,
-            "quantity_end": sale.quantity_end,
+            "date": sale.date.isoformat() if sale.date else None,
+            "quantity_start": float(sale.quantity_start),
+            "quantity_end": float(sale.quantity_end),
             "client_id": sale.client_id,
             "color_kitchen_id": sale.color_kitchen_id,
         })
