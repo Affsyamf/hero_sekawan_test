@@ -28,8 +28,8 @@ class ReturnService:
 
             # return APIResponse.created(data={
             #     "id": ret.id,
-            #     "date": ret.date,
-            #     "quantity": ret.quantity,
+            #     "date": ret.date.isoformat() if ret.date else None,
+            #     "quantity": float(ret.quantity) if ret.quantity is not None else None,
             #     "sale_id": ret.sale_id,
             # })
 

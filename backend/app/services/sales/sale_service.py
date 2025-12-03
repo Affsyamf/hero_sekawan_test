@@ -1,10 +1,10 @@
 from fastapi import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from datetime import datetime
 
 from app.core.database import get_db
 from app.models import Sale
-from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate
+from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate, SalesFilter
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
 
@@ -40,16 +40,27 @@ class SalesService:
             return APIResponse.error(message=str(e))
         
         
-    def list_sale(self, request: ListRequest):
+    def list_sale(self, request: ListRequest, filters: SalesFilter):
         sale_query = self.db.query(Sale)
+        filter_conditions = []
         
         if request.q:
             like = f"%{request.q}%"
-            sale_query = sale_query.filter(
+            filter_conditions.append(
                 or_(
                     Sale.code.ilike(like),
                 )
             )
+            
+        if filters.start_date:
+            filter_conditions.append(Sale.date >= filters.start_date)
+            
+        if filters.end_date:
+            filter_conditions.append(Sale.date <= filters.end_date)
+            
+        if filter_conditions:
+            sale_query = sale_query.filter(and_(*filter_conditions))
+            
             
         return APIResponse.paginated(
             sale_query, request, lambda sale: {
@@ -80,6 +91,8 @@ class SalesService:
             "client_id": sale.client_id,
             "color_kitchen_id": sale.color_kitchen_id,
         })
+        
+        
         
     def update_sale(self, sale_id: int, request: SalesUpdate):
         

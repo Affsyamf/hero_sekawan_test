@@ -51,6 +51,16 @@ class SalesResponse(BaseModel):
     client_id: int
     color_kitchen_id: int
 
+
+class SalesFilter(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    
+    class Config:
+        from_attributes = True
+
+
+
 class ReturnCreate(BaseModel):
     date: date
     quantity: int = Field(ge=1)
