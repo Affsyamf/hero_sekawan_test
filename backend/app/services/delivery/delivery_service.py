@@ -1,98 +1,108 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-from datetime import datetime
 from fastapi import Depends
-from app.core.database import get_db
-import logging
-from typing import Any
+from sqlalchemy import or_
 
+from app.core.database import get_db
 from app.models.delivery import Delivery
 from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate
-
-logger = logging.getLogger(__name__)
-# USER_ID_CONTEXT_KEY = 'user_id'
-CONTEXT_KEYS = ['user_id', 'uid', 'id', 'user_id_context', 'current_user_id'] 
+from app.utils.datatable.request import ListRequest
+from app.utils.response import APIResponse
 
 
 class DeliveryService:
     def __init__(self, db=Depends(get_db)):
         self.db = db
-        
-    def create_delivery(self, payload: DeliveryCreate):
+
+
+    def create_delivery(self, request: DeliveryCreate):
+        # check duplicate code
         existing = self.db.query(Delivery).filter(
-            Delivery.code == payload.code,
-            Delivery.deleted_at.is_(None)
+            Delivery.code == request.code
         ).first()
-        
+
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Delivery code '{payload.code}' alredy exist."
+            return APIResponse.bad_request(
+                message=f"Delivery code '{request.code}' already exists."
             )
-            
-        new_delivery = Delivery(
-            code = payload.code,
-            date = payload.date,
-            quantity = payload.quantity,
-            sale_id = payload.sale_id,
-            return_id = payload.return_id,
-        )
-        
-        
-        self.db.add(new_delivery)
-        self.db.commit()
-        self.db.refresh(new_delivery)
-        
-        return new_delivery
 
-
-    def get_all_deliveries(self):
-        return self.db.query(Delivery).filter(
-            Delivery.deleted_at.is_(None)
-        ).all()
-        
-        
-        
-    def get_delivery_by_id(self, delivery_id: int):
-        delivery = self.db.query(Delivery).filter(
-            Delivery.id == delivery_id,
-            Delivery.deleted_at.is_(None)
-        ).first()
-        
-        if not delivery:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Delivery Not Found"
-            )
-            
-        return delivery
-
-
-    def update_delivery(self, delivery_id: int, payload: DeliveryUpdate):
-        delivery = self.get_delivery_by_id(delivery_id)
-        
-        update_data = payload.dict(exclude_unset=True)
-        
-        for key, value in update_data.items():
-            setattr(delivery, key, value)
-        
+        delivery = Delivery(**request.model_dump())
+        self.db.add(delivery)
         self.db.commit()
         self.db.refresh(delivery)
-        
-        return delivery
 
-    def soft_delete_delivery(self, delivery_id: int, user_id: int):
+        return APIResponse.created(data={
+            "id": delivery.id,
+            "code": delivery.code,
+            "date": delivery.date.isoformat() if delivery.date else None,
+            "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
+            "sale_id": delivery.sale_id,
+            "return_id": delivery.return_id,
+        })
 
-        delivery = self.get_delivery_by_id(delivery_id)
-        if not delivery:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Delivery ID '{delivery_id}' not found"
+
+    def list_delivery(self, request: ListRequest):
+        delivery_query = self.db.query(Delivery)
+
+        if request.q:
+            like = f"%{request.q}%"
+            delivery_query = delivery_query.filter(
+                or_(
+                    Delivery.code.ilike(like),
+                )
             )
 
-        delivery.deleted_at = datetime.now()
-        delivery.deleted_by = user_id
+        return APIResponse.paginated(
+            delivery_query, request,
+            lambda d: {
+                "id": d.id,
+                "code": d.code,
+                "date": d.date.isoformat() if d.date else None,
+                "quantity": float(d.quantity) if d.quantity is not None else None,
+                "sale_id": d.sale_id,
+                "return_id": d.return_id,
+            }
+        )
 
+
+    def get_delivery(self, delivery_id: int):
+        delivery = self.db.query(Delivery).filter(Delivery.id == delivery_id).first()
+
+        if not delivery:
+            return APIResponse.not_found(message=f"Delivery ID '{delivery_id}' not found.")
+
+        return APIResponse.ok(data={
+            "id": delivery.id,
+            "code": delivery.code,
+            "date": delivery.date.isoformat() if delivery.date else None,
+            "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
+            "sale_id": delivery.sale_id,
+            "return_id": delivery.return_id,
+        })
+
+
+    def update_delivery(self, delivery_id: int, request: DeliveryUpdate):
+        delivery = self.db.query(Delivery).filter(Delivery.id == delivery_id).first()
+
+        if not delivery:
+            return APIResponse.not_found(message=f"Delivery ID '{delivery_id}' not found.")
+
+        update_data = request.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(delivery, key, value)
+
+        self.db.add(delivery)
+        self.db.commit()
+        self.db.refresh(delivery)
+
+        return APIResponse.ok(f"Delivery ID '{delivery_id}' updated.")
+
+
+    def delete_delivery(self, delivery_id: int):
+        delivery = self.db.query(Delivery).filter(Delivery.id == delivery_id).first()
+
+        if not delivery:
+            return APIResponse.not_found(message=f"Delivery ID '{delivery_id}' not found.")
+
+        self.db.delete(delivery)
         self.db.commit()
 
-        return {"message": "Delivery deleted successfully"}
+        return APIResponse.ok(f"Delivery ID '{delivery_id}' deleted.")
