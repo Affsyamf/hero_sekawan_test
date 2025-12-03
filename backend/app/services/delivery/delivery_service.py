@@ -6,6 +6,7 @@ from app.models.delivery import Delivery
 from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
+from app.models.sales import Sale
 
 
 class DeliveryService:
@@ -14,6 +15,9 @@ class DeliveryService:
 
 
     def create_delivery(self, request: DeliveryCreate):
+        sale = self.db.query(Sale).filter(Sale.id == request.sale_id).first()
+        if not sale:
+            return APIResponse.bad_request(message=f"Sale ID '{request.sale_id}' not found. ")
         # check duplicate code
         existing = self.db.query(Delivery).filter(
             Delivery.code == request.code
@@ -86,6 +90,22 @@ class DeliveryService:
             return APIResponse.not_found(message=f"Delivery ID '{delivery_id}' not found.")
 
         update_data = request.model_dump(exclude_unset=True)
+        
+        if "sale_id" in update_data and update_data["sale_id"] is not None:
+            sale = self.db.query(Sale).filter(Sale.id == update_data["sale_id"]).first()
+            if not sale:
+                return APIResponse.bad_request(message=f"Sale ID '{update_data['sale_id']}' not found.")
+            
+        if "code" in update_data and update_data["code"] != delivery.code:
+            existing = self.db.query(Delivery).filter(
+                Delivery.code == update_data["code"],
+                Delivery.id != delivery_id
+            ).first()
+            if existing:
+                return APIResponse.bad_request(
+                    message=f"Delivery Code '{update_data['code']}' alredy exist."
+                )
+                
         for key, value in update_data.items():
             setattr(delivery, key, value)
 
