@@ -48,9 +48,16 @@ class DeliveryService:
         delivery_query = self.db.query(Delivery)
         filter_conditions = []
         
-        # join deliv (sale_id) ke Sale (id)
-        if filters.client_id:
+        # jika client_id atau ck_id diminta, jalankan join ni
+        needs_sale_join = filters.client_id or filters.color_kitchen_id
+        
+        if needs_sale_join or request.q:
+             # join deliv (sale_id) ke Sale (id)
             delivery_query = delivery_query.outerjoin(Sale, Delivery.sale_id == Sale.id)
+        
+        # # join deliv (sale_id) ke Sale (id)
+        # if filters.client_id:
+        #     delivery_query = delivery_query.outerjoin(Sale, Delivery.sale_id == Sale.id)
 
         if request.q:
             like = f"%{request.q}%"
@@ -69,6 +76,9 @@ class DeliveryService:
         
         if filters.client_id:
             filter_conditions.append(Sale.client_id == filters.client_id)    
+            
+        if filters.color_kitchen_id:
+            filter_conditions.append(Sale.color_kitchen_id == filters.color_kitchen_id)
         
         if filter_conditions:
             delivery_query = delivery_query.filter(and_(*filter_conditions))
@@ -83,7 +93,8 @@ class DeliveryService:
                 "quantity": float(d.quantity) if d.quantity is not None else None,
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
-                "sale_client_id": d.sale.client_id if d.sale else None
+                "sale_client_id": d.sale.client_id if d.sale else None,
+                "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )
 
