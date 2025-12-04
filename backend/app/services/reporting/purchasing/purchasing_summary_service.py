@@ -37,6 +37,7 @@ class PurchasingSummaryService(BaseReportService):
             )
             .join(Product, Product.id == PurchasingDetail.product_id)
             .join(Account, Account.id == Product.account_id)
+            .join(AccountParent, AccountParent.id == Account.parent_id)
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
         )
 

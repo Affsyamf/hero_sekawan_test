@@ -85,6 +85,18 @@ export default function OverviewNew() {
     });
   }, []);
 
+  const generateFilters = () => {
+    return {
+      product_ids: filters.product_ids?.length
+        ? filters.product_ids
+        : undefined,
+      supplier_ids: filters.supplier_ids?.length
+        ? filters.supplier_ids
+        : undefined,
+      category: filters.category,
+    };
+  };
+
   // 1. Fetch Dashboard Data (Metrics, Cost Trend, Stock Flow)
   const fetchDashboardData = useCallback(async () => {
     if (!dateRange?.dateFrom || !dateRange?.dateTo) {
@@ -96,6 +108,7 @@ export default function OverviewNew() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
+        ...generateFilters(),
       };
 
       const response = await getDashboardData(params);
@@ -106,7 +119,7 @@ export default function OverviewNew() {
     } finally {
       setLoading(false);
     }
-  }, [dateRange]);
+  }, [dateRange, JSON.stringify(filters)]);
 
   // 2. Fetch Purchasing Trend Data
   const fetchPurchasingTrendData = useCallback(async () => {
@@ -116,6 +129,7 @@ export default function OverviewNew() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
+        ...generateFilters(),
         granularity: purchasingTrendGranularity,
       };
 
@@ -124,7 +138,12 @@ export default function OverviewNew() {
     } catch (error) {
       console.error("Error fetching purchasing trend data:", error);
     }
-  }, [dateRange, purchasingTrendGranularity, transformTrendData]);
+  }, [
+    dateRange,
+    purchasingTrendGranularity,
+    JSON.stringify(filters),
+    transformTrendData,
+  ]);
 
   // 3. Fetch Color Kitchen (CK) Trend Data
   const fetchCkTrend = useCallback(async () => {
@@ -134,6 +153,7 @@ export default function OverviewNew() {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
+        ...generateFilters(),
         granularity: ckTrendGranularity,
       };
 
@@ -142,7 +162,12 @@ export default function OverviewNew() {
     } catch (error) {
       console.error("Error fetching CK trend data:", error);
     }
-  }, [dateRange, ckTrendGranularity, transformTrendData]);
+  }, [
+    dateRange,
+    ckTrendGranularity,
+    JSON.stringify(filters),
+    transformTrendData,
+  ]);
 
   // --- EFFECT HOOKS FOR ISOLATED FETCHING ---
 
