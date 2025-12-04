@@ -7,6 +7,7 @@ from app.schemas.input_models.deliveries_input_models import DeliveryCreate, Del
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
 from app.models.sales import Sale
+from app.models.master import Client
 
 
 class DeliveryService:
@@ -46,6 +47,10 @@ class DeliveryService:
     def list_delivery(self, request: ListRequest, filters: DeliveryFilter):
         delivery_query = self.db.query(Delivery)
         filter_conditions = []
+        
+        # join deliv (sale_id) ke Sale (id)
+        if filters.client_id:
+            delivery_query = delivery_query.outerjoin(Sale, Delivery.sale_id == Sale.id)
 
         if request.q:
             like = f"%{request.q}%"
@@ -61,7 +66,10 @@ class DeliveryService:
             
         if filters.end_date:
             filter_conditions.append(Delivery.date <= filters.end_date)
-            
+        
+        if filters.client_id:
+            filter_conditions.append(Sale.client_id == filters.client_id)    
+        
         if filter_conditions:
             delivery_query = delivery_query.filter(and_(*filter_conditions))
             
@@ -75,6 +83,7 @@ class DeliveryService:
                 "quantity": float(d.quantity) if d.quantity is not None else None,
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
+                "sale_client_id": d.sale.client_id if d.sale else None
             }
         )
 
