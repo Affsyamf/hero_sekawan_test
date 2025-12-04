@@ -87,6 +87,26 @@ export const protectedRoutes = [
     permission: "stock_opname.read",
   },
 
+  {
+    path: "sales",
+    element: StockOpnamePage,
+    permission: "sales.read",
+  },
+  {
+    path: "delivery",
+    element: StockOpnamePage,
+    permission: "delivery.read",
+  },
+  {
+    path: "return",
+    element: StockOpnamePage,
+    permission: "return.read",
+  },
+  {
+    path: "sampling",
+    element: StockOpnamePage,
+    permission: "sampling.read",
+  },
   //   {
   //     path: "reports/purchasings",
   //     element: PurchasingReportsPage,
