@@ -23,3 +23,8 @@ class DeliveryResponse(BaseModel):
     quantity: Optional[int] = None
     sale_id: Optional[int] = None
     return_id: Optional[int] = None
+    
+
+class DeliveryFilter(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None

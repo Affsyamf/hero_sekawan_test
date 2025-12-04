@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryResponse
+from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryResponse, DeliveryFilter
 from app.utils.datatable.request import ListRequest
 from app.services.delivery.delivery_service import DeliveryService
 from app.utils.response import APIResponse
@@ -11,8 +11,8 @@ delivery_router = APIRouter(prefix="/delivery", tags=["delivery"], dependencies=
 
 
 @delivery_router.get("/search")
-def search_deliveries(request: ListRequest = Depends(), service: DeliveryService = Depends()):
-    return service.list_delivery(request=request)
+def search_deliveries(request: ListRequest = Depends(), filters: DeliveryFilter = Depends(), service: DeliveryService = Depends()):
+    return service.list_delivery(request=request, filters=filters)
 
 
 @delivery_router.get("/{delivery_id}", response_model=DeliveryResponse)

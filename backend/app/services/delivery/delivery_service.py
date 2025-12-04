@@ -1,9 +1,9 @@
 from fastapi import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from app.core.database import get_db
 from app.models.delivery import Delivery
-from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate
+from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryFilter
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
 from app.models.sales import Sale
@@ -43,16 +43,28 @@ class DeliveryService:
         })
 
 
-    def list_delivery(self, request: ListRequest):
+    def list_delivery(self, request: ListRequest, filters: DeliveryFilter):
         delivery_query = self.db.query(Delivery)
+        filter_conditions = []
 
         if request.q:
             like = f"%{request.q}%"
-            delivery_query = delivery_query.filter(
+            filter_conditions.append(
                 or_(
                     Delivery.code.ilike(like),
                 )
             )
+            
+        
+        if filters.start_date:
+            filter_conditions.append(Delivery.date >= filters.start_date)
+            
+        if filters.end_date:
+            filter_conditions.append(Delivery.date <= filters.end_date)
+            
+        if filter_conditions:
+            delivery_query = delivery_query.filter(and_(*filter_conditions))
+            
 
         return APIResponse.paginated(
             delivery_query, request,
