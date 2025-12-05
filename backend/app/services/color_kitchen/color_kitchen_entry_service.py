@@ -49,10 +49,11 @@ class ColorKitchenEntryService:
         
         entry_query = apply_common_report_filters(entry_query, filters)
                                      
+        filter_conditions = []
 
         if request.q:
             like = f"%{request.q}%"
-            entry_query = entry_query.filter(
+            filter_conditions.append(
                 or_(
                     ColorKitchenEntry.code.ilike(like),
                     ColorKitchenEntry.design.has(Design.name.ilike(like)),
@@ -61,17 +62,26 @@ class ColorKitchenEntryService:
                 )
             )
             
-        if request.start_date and request.end_date:
-            # try:
-            start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        if filters.start_date:
+            filter_conditions.append(ColorKitchenEntry.date >= filters.start_date[0])
             
-            entry_query = entry_query.filter(
-                and_(
-                    ColorKitchenEntry.date >= start,
-                    ColorKitchenEntry.date <= end
-                )
-            )
+        if filters.end_date:
+            filter_conditions.append(ColorKitchenEntry.date <= filters.end_date[0])
+            
+        if filter_conditions:
+            entry_query = entry_query.filter(and_(*filter_conditions))
+            
+        # if request.start_date and request.end_date:
+        #     # try:
+        #     start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
+        #     end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+            
+        #     entry_query = entry_query.filter(
+        #         and_(
+        #             ColorKitchenEntry.date >= start,
+        #             ColorKitchenEntry.date <= end
+        #         )
+        #     )
             
         entry_query = entry_query.order_by(ColorKitchenEntry.id.desc())
 
