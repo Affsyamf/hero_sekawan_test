@@ -51,6 +51,8 @@ class PurchasingUpdate(BaseModel):
 
 
 class PurchasingFilter(BaseModel):
+    start_date: Optional[List[date]] = None
+    end_date: Optional[List[date]] = None
     supplier_ids: Optional[List[int]] = None
     product_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None

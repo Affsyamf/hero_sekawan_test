@@ -63,16 +63,11 @@ class PurchasingService:
                 )
             )
         
-        if request.start_date and request.end_date:
-            try:
-                start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-                end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
-                
-                filter_conditions.append(Purchasing.date >= start)
-                filter_conditions.append(Purchasing.date <= end)
-                
-            except ValueError:
-                pass
+        if filters.start_date:
+            filter_conditions.append(Purchasing.date >= filters.start_date[0])
+            
+        if filters.end_date:
+            filter_conditions.append(Purchasing.date <= filters.end_date[0])
                 # purchasing = purchasing.filter(
                 #     and_(
                 #         Purchasing.date >= start,
