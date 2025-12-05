@@ -5,33 +5,43 @@ from fastapi.params import Depends
 from sqlalchemy import or_, func, and_
 from sqlalchemy.orm import joinedload
 
-from app.schemas.input_models.stock_opname_input_models import StockOpnameCreate, StockOpnameUpdate
+from app.schemas.input_models.stock_opname_input_models import StockOpnameCreate, StockOpnameUpdate, StockOpnameFilter
 from app.services.common.audit_logger import AuditLoggerService
 from app.core.database import Session, get_db
-from app.models import StockOpname, StockOpnameDetail
+from app.models import StockOpname, StockOpnameDetail, Account, AccountParent, Product
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
-
+from app.utils.filters import apply_common_report_filters
 
 class StockOpnameService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_stock_opname(self, request: ListRequest):
-        stock_opname = self.db.query(
+    def list_stock_opname(self, request: ListRequest, filters: StockOpnameFilter):
+        stock_opname_query = self.db.query(
             StockOpname,
             func.count(StockOpnameDetail.id).label('item_count'),
             func.sum(StockOpnameDetail.system_quantity).label('total_system_qty'),
             func.sum(StockOpnameDetail.physical_quantity).label('total_physical_qty')
-        ).outerjoin(StockOpname.details)\
-        .group_by(StockOpname.id)
+        )
+        # ).outerjoin(StockOpname.details)\
+        # .group_by(StockOpname.id)
 
+        stock_opname_query = stock_opname_query.join(StockOpname.details)\
+                                               .join(Product, StockOpnameDetail.product_id == Product.id)\
+                                               .join(Account, Product.account_id == Account.id)\
+                                               .join(AccountParent, Account.parent_id == AccountParent.id)
+        
+        stock_opname_query = stock_opname_query.group_by(StockOpname.id)
+        stock_opname_query = apply_common_report_filters(stock_opname_query, filters)
+        
         if request.q:
             like = f"%{request.q}%"
-            stock_opname = stock_opname.filter(
+            stock_opname_query = stock_opname_query.filter(
                 or_(
                     StockOpname.code.ilike(like),
+                    Product.name.ilike(like)
                 )
             )
             
@@ -40,7 +50,7 @@ class StockOpnameService:
             start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
             end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
             
-            stock_opname = stock_opname.filter(
+            stock_opname_query = stock_opname_query.filter(
                 and_(
                     StockOpname.date >= start,
                     StockOpname.date <= end
@@ -51,11 +61,11 @@ class StockOpnameService:
             sort_col = getattr(StockOpname, request.sort_by)
             if request.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
-            stock_opname = stock_opname.order_by(sort_col)
+            stock_opname_query = stock_opname_query.order_by(sort_col)
             
-        stock_opname = stock_opname.order_by(StockOpname.id.desc())
+        stock_opname_query = stock_opname_query.order_by(StockOpname.id.desc())
 
-        return APIResponse.paginated(stock_opname, request, lambda row: {
+        return APIResponse.paginated(stock_opname_query, request, lambda row: {
             "id": row.StockOpname.id,
             "date": row.StockOpname.date.isoformat() if row.StockOpname.date else None,
             "code": row.StockOpname.code,

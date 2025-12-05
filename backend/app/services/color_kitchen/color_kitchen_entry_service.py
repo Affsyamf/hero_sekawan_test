@@ -66,7 +66,7 @@ class ColorKitchenEntryService:
             start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
             end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
             
-            entry = entry.filter(
+            entry_query = entry_query.filter(
                 and_(
                     ColorKitchenEntry.date >= start,
                     ColorKitchenEntry.date <= end
