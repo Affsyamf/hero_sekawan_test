@@ -13,7 +13,7 @@ from app.models import (
     Product, PurchasingDetail, StockMovementDetail, 
     ColorKitchenEntryDetail, Ledger, StockOpnameDetail,
     Account, ColorKitchenBatch, ColorKitchenBatchDetail,
-    AccountParent
+    AccountParent, Purchasing
 )
 from app.models.enum.ledger_enum import LedgerLocation
 from app.utils.datatable.request import ListRequest
@@ -35,6 +35,17 @@ class ProductService:
             .join(AccountParent, Account.parent_id == AccountParent.id)
         )
         
+        supplier_join = filters.supplier_ids is not None and len(filters.supplier_ids) > 0
+        
+        if supplier_join:
+            product_query = product_query.join(
+                PurchasingDetail, Product.id == PurchasingDetail.product_id
+            )
+            
+            product_query = product_query.join(
+                Purchasing, PurchasingDetail.purchasing_id == Purchasing.id
+            )
+        
         product_query = apply_common_report_filters(product_query, filters)
 
         # === Filter (search) ===
@@ -46,6 +57,7 @@ class ProductService:
                     Product.name.ilike(like),
                     Product.unit.ilike(like),
                     Account.name.ilike(like),
+                    Purchasing.supplier.name.ilike(like),
                 )
             )
 
