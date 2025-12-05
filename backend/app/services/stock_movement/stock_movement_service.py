@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 from app.schemas.input_models.stock_movement_input_models import StockMovementCreate, StockMovementUpdate, StockMovementFilter
 from app.services.common.audit_logger import AuditLoggerService
 from app.core.database import Session, get_db
-from app.models import StockMovement, StockMovementDetail, Product
+from app.models import StockMovement, StockMovementDetail, Product, Account, AccountParent, Purchasing, PurchasingDetail
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
@@ -23,18 +23,29 @@ class StockMovementService:
             StockMovement,
             func.count(StockMovementDetail.id).label('item_count'),
             func.sum(StockMovementDetail.quantity).label('total_quantity')
-        ).outerjoin(StockMovement.details)\
-        .group_by(StockMovement.id)
+        )
             
-        stock_movement_query = stock_movement_query.join(StockMovement.details)
+        stock_movement_query = stock_movement_query.join(StockMovement.details)\
+                                                   .join(Product, StockMovementDetail.product_id == Product.id)\
+                                                   .join(Account, Product.account_id == Account.id)\
+                                                   .join(AccountParent, Account.parent_id  == AccountParent.id)
+            
+        supplier_join = filters.supplier_ids
         
-        if filters.product_ids:
-            stock_movement_query = stock_movement_query.join(Product, StockMovementDetail.product_id == Product.id)
+        if supplier_join:
+            stock_movement_query = stock_movement_query.join(
+                PurchasingDetail,
+                Product.id == PurchasingDetail.product_id
+            )
             
+            stock_movement_query = stock_movement_query.join(
+                Purchasing,
+                PurchasingDetail.purchasing_id == Purchasing.id
+            )
+        
         stock_movement_query = stock_movement_query.group_by(StockMovement.id)
         
-        if filters.product_ids:
-            stock_movement_query = apply_common_report_filters(stock_movement_query, filters)
+        stock_movement_query = apply_common_report_filters(stock_movement_query, filters)
             
         filter_conditions = []
         
@@ -43,6 +54,7 @@ class StockMovementService:
             filter_conditions.append(
                 or_(
                     StockMovement.code.ilike(like),
+                    Product.name.ilike(like) if Product.name else None,
                 )
             )
             

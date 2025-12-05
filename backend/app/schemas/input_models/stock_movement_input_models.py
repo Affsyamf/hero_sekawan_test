@@ -32,5 +32,8 @@ class StockMovementUpdate(BaseModel):
 
 class StockMovementFilter(BaseModel):
     product_ids: Optional[List[int]]
+    account_ids: Optional[List[int]]
+    account_parent_ids: Optional[List[int]]
+    supplier_ids: Optional[List[int]]
     
 
