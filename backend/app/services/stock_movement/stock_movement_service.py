@@ -58,18 +58,23 @@ class StockMovementService:
                 )
             )
             
-        if request.start_date and request.end_date:
-            # try:
-            start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        if filters.start_date:
+            filter_conditions.append(StockMovement.date >= filters.start_date[0])
+            
+        if filters.end_date:
+            filter_conditions.append(StockMovement.date <= filters.end_date[0])
+        # if request.start_date and request.end_date:
+        #     # try:
+        #     start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
+        #     end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
             
             
-            stock_movement = stock_movement.filter(
-                and_(
-                    StockMovement.date >= start,
-                    StockMovement.date <= end
-                )
-            )
+        #     stock_movement = stock_movement.filter(
+        #         and_(
+        #             StockMovement.date >= start,
+        #             StockMovement.date <= end
+        #         )
+        #     )
         
         if filter_conditions:
             stock_movement_query = stock_movement_query.filter(and_(*filter_conditions))
