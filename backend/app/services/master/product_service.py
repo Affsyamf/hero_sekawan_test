@@ -38,13 +38,8 @@ class ProductService:
         supplier_join = filters.supplier_ids is not None and len(filters.supplier_ids) > 0
         
         if supplier_join:
-            product_query = product_query.join(
-                PurchasingDetail, Product.id == PurchasingDetail.product_id
-            )
-            
-            product_query = product_query.join(
-                Purchasing, PurchasingDetail.purchasing_id == Purchasing.id
-            )
+            product_query = product_query.join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
+                                         .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)
         
         product_query = apply_common_report_filters(product_query, filters)
 
