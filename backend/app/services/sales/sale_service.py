@@ -7,7 +7,7 @@ from app.models import Sale, Client, ColorKitchenEntry, Design
 from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate, SalesFilter
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
-
+from app.utils.filters import apply_common_report_filters
 
 
 class SalesService:
@@ -78,27 +78,14 @@ class SalesService:
         
     def list_sale(self, request: ListRequest, filters: SalesFilter):
         sale_query = self.db.query(Sale)
+        
+        sale_query = sale_query.join(Client, Sale.client_id == Client.id)\
+                               .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
+                               .join(Design, ColorKitchenEntry.design_id == Design.id)
+        
+        sale_query = apply_common_report_filters(sale_query, filters)
+        
         filter_conditions = []
-        
-        # join ke client atu ck enty
-        design_ck_join = filters.design_id or filters.color_kitchen_id
-        
-        if request.q:
-            sale_query = sale_query.outerjoin(Client, Sale.client_id == Client.id)
-        
-        # join ke ck untuk filter ck atau design_id
-        if design_ck_join:
-            sale_query = sale_query.outerjoin(
-                ColorKitchenEntry,
-                Sale.color_kitchen_id == ColorKitchenEntry.id
-            )
-        
-        # join ke design jika filter design_id ada
-        if filters.design_id:
-            sale_query = sale_query.outerjoin(
-                Design,
-                ColorKitchenEntry.design_id == Design.id
-            )
         
         if request.q:
             like = f"%{request.q}%"
@@ -106,6 +93,7 @@ class SalesService:
                 or_(
                     Sale.code.ilike(like),
                     Client.name.ilike(like),
+                    Design.name.ilike(like),
                 )
             )
             
@@ -114,20 +102,12 @@ class SalesService:
             
         if filters.end_date:
             filter_conditions.append(Sale.date <= filters.end_date)
-        
-        if filters.client_id:
-            filter_conditions.append(Sale.client_id == filters.client_id)
-            
-        if filters.color_kitchen_id:
-            filter_conditions.append(Sale.color_kitchen_id == filters.color_kitchen_id)
-            
-        if filters.design_id:
-            filter_conditions.append(Design.id == filters.design_id)
-            
+                
         if filter_conditions:
             sale_query = sale_query.filter(and_(*filter_conditions))
             
-            
+        sale_query = sale_query.order_by(Sale.id.desc())
+        
         return APIResponse.paginated(
             sale_query, request, lambda sale: {
                 "id": sale.id,

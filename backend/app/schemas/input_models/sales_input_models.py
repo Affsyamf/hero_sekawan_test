@@ -55,12 +55,10 @@ class SalesResponse(BaseModel):
 class SalesFilter(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    client_id: Optional[int] = None
-    color_kitchen_id: Optional[int] = None
-    design_id: Optional[int] = None
+    client_ids: Optional[List[int]] = None
+    ck_ids: Optional[List[int]] = None
+    design_ids: Optional[List[int]] = None
     
-    class Config:
-        from_attributes = True
 
 
 

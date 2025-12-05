@@ -12,8 +12,8 @@ sales_router = APIRouter(
     dependencies=[require_user()]
 )
 
-@sales_router.get("/search")
-def search_sales(request: ListRequest = Depends(), filters: SalesFilter = Depends(), service: SalesService = Depends()):
+@sales_router.post("/search")
+def search_sales(filters: SalesFilter, request: ListRequest = Depends(), service: SalesService = Depends()):
     return service.list_sale(request=request, filters=filters)
 
 @sales_router.get("/{sale_id}", response_model=SalesResponse)
