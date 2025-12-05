@@ -26,7 +26,8 @@ class DeliveryResponse(BaseModel):
     
 
 class DeliveryFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    client_id: Optional[int] = None
-    color_kitchen_id: Optional[int] = None
+    start_date: Optional[List[date]] = None
+    end_date: Optional[List[date]] = None
+    client_ids: Optional [List[int]] = None
+    ck_ids: Optional[List[int]] = None
+    product_ids: Optional[List[int]] = None

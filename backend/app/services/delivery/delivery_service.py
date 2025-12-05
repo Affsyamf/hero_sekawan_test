@@ -2,12 +2,13 @@ from fastapi import Depends
 from sqlalchemy import or_, and_
 
 from app.core.database import get_db
-from app.models.delivery import Delivery
+from app.models import Delivery, Product, Client, ColorKitchenEntry, ColorKitchenEntryDetail
 from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryFilter
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
 from app.models.sales import Sale
-from app.models.master import Client
+from app.utils.filters import apply_common_report_filters
+
 
 
 class DeliveryService:
@@ -46,39 +47,33 @@ class DeliveryService:
 
     def list_delivery(self, request: ListRequest, filters: DeliveryFilter):
         delivery_query = self.db.query(Delivery)
+        
+        delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
+                                       .join(Client, Sale.client_id == Client.id)\
+                                       .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
+                                       .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
+                                       .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                       
+        delivery_query = apply_common_report_filters(delivery_query, filters)
+        
         filter_conditions = []
         
-        # jika client_id atau ck_id diminta, jalankan join ni
-        needs_sale_join = filters.client_id or filters.color_kitchen_id
-        
-        if needs_sale_join or request.q:
-             # join deliv (sale_id) ke Sale (id)
-            delivery_query = delivery_query.outerjoin(Sale, Delivery.sale_id == Sale.id)
-        
-        # # join deliv (sale_id) ke Sale (id)
-        # if filters.client_id:
-        #     delivery_query = delivery_query.outerjoin(Sale, Delivery.sale_id == Sale.id)
-
         if request.q:
             like = f"%{request.q}%"
             filter_conditions.append(
                 or_(
                     Delivery.code.ilike(like),
+                    Client.name.ilike(like),
+                    Product.name.ilike(like)
                 )
             )
             
         
         if filters.start_date:
-            filter_conditions.append(Delivery.date >= filters.start_date)
+            filter_conditions.append(Delivery.date >= filters.start_date[0])
             
         if filters.end_date:
-            filter_conditions.append(Delivery.date <= filters.end_date)
-        
-        if filters.client_id:
-            filter_conditions.append(Sale.client_id == filters.client_id)    
-            
-        if filters.color_kitchen_id:
-            filter_conditions.append(Sale.color_kitchen_id == filters.color_kitchen_id)
+            filter_conditions.append(Delivery.date <= filters.end_date[0])
         
         if filter_conditions:
             delivery_query = delivery_query.filter(and_(*filter_conditions))

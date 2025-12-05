@@ -10,8 +10,8 @@ from app.dependencies.rbac import require_user
 delivery_router = APIRouter(prefix="/delivery", tags=["delivery"], dependencies=[require_user()])
 
 
-@delivery_router.get("/search")
-def search_deliveries(request: ListRequest = Depends(), filters: DeliveryFilter = Depends(), service: DeliveryService = Depends()):
+@delivery_router.post("/search")
+def search_deliveries(filters: DeliveryFilter, request: ListRequest = Depends(), service: DeliveryService = Depends()):
     return service.list_delivery(request=request, filters=filters)
 
 
