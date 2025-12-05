@@ -36,26 +36,37 @@ class StockOpnameService:
         stock_opname_query = stock_opname_query.group_by(StockOpname.id)
         stock_opname_query = apply_common_report_filters(stock_opname_query, filters)
         
+        filter_conditions = []
+        
         if request.q:
             like = f"%{request.q}%"
-            stock_opname_query = stock_opname_query.filter(
+            filter_conditions.append(
                 or_(
                     StockOpname.code.ilike(like),
                     Product.name.ilike(like)
                 )
             )
             
-        if request.start_date and request.end_date:
-            # try:
-            start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        if filters.start_date:
+            filter_conditions.append(StockOpname.date >= filters.start_date[0])
             
-            stock_opname_query = stock_opname_query.filter(
-                and_(
-                    StockOpname.date >= start,
-                    StockOpname.date <= end
-                )
-            )
+        if filters.end_date:
+            filter_conditions.append(StockOpname.date <= filters.end_date[0])
+            
+        if filter_conditions:
+            stock_opname_query = stock_opname_query.filter(and_(*filter_conditions))
+            
+        # if request.start_date and request.end_date:
+        #     # try:
+        #     start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
+        #     end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+            
+        #     stock_opname_query = stock_opname_query.filter(
+        #         and_(
+        #             StockOpname.date >= start,
+        #             StockOpname.date <= end
+        #         )
+        #     )
             
         if request.sort_by and request.sort_dir:
             sort_col = getattr(StockOpname, request.sort_by)

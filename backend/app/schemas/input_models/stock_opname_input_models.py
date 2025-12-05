@@ -1,5 +1,5 @@
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
 
@@ -34,6 +34,8 @@ class StockOpnameUpdate(BaseModel):
 
 
 class StockOpnameFilter(BaseModel):
+    start_date: Optional[List[date]] = None
+    end_date: Optional[List[date]] = None
     product_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None
     account_parent_ids: Optional[List[int]] = None
