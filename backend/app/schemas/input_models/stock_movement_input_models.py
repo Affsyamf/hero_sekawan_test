@@ -30,5 +30,7 @@ class StockMovementUpdate(BaseModel):
     code: Optional[str] = None
     details: Optional[List[StockMovementDetailUpdate]] = None
 
-
+class StockMovementFilter(BaseModel):
+    product_ids: Optional[List[int]]
+    
 

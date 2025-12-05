@@ -5,30 +5,42 @@ from fastapi.params import Depends
 from sqlalchemy import or_, func, and_
 from sqlalchemy.orm import joinedload
 
-from app.schemas.input_models.stock_movement_input_models import StockMovementCreate, StockMovementUpdate
+from app.schemas.input_models.stock_movement_input_models import StockMovementCreate, StockMovementUpdate, StockMovementFilter
 from app.services.common.audit_logger import AuditLoggerService
 from app.core.database import Session, get_db
-from app.models import StockMovement, StockMovementDetail
+from app.models import StockMovement, StockMovementDetail, Product
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
-
+from app.utils.filters import apply_common_report_filters
 
 class StockMovementService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_stock_movement(self, request: ListRequest):
-        stock_movement = self.db.query(
+    def list_stock_movement(self, request: ListRequest, filters: StockMovementFilter):
+        stock_movement_query = self.db.query(
             StockMovement,
             func.count(StockMovementDetail.id).label('item_count'),
             func.sum(StockMovementDetail.quantity).label('total_quantity')
         ).outerjoin(StockMovement.details)\
         .group_by(StockMovement.id)
             
+        stock_movement_query = stock_movement_query.join(StockMovement.details)
+        
+        if filters.product_ids:
+            stock_movement_query = stock_movement_query.join(Product, StockMovementDetail.product_id == Product.id)
+            
+        stock_movement_query = stock_movement_query.group_by(StockMovement.id)
+        
+        if filters.product_ids:
+            stock_movement_query = apply_common_report_filters(stock_movement_query, filters)
+            
+        filter_conditions = []
+        
         if request.q:
             like = f"%{request.q}%"
-            stock_movement = stock_movement.filter(
+            filter_conditions.append(
                 or_(
                     StockMovement.code.ilike(like),
                 )
@@ -39,6 +51,7 @@ class StockMovementService:
             start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
             end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
             
+            
             stock_movement = stock_movement.filter(
                 and_(
                     StockMovement.date >= start,
@@ -46,15 +59,18 @@ class StockMovementService:
                 )
             )
         
+        if filter_conditions:
+            stock_movement_query = stock_movement_query.filter(and_(*filter_conditions))
+        
         if request.sort_by and request.sort_dir:
             sort_col = getattr(StockMovement, request.sort_by)
             if request.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
-            stock_movement = stock_movement.order_by(sort_col)
+            stock_movement_query = stock_movement_query.order_by(sort_col)
 
-        stock_movement = stock_movement.order_by(StockMovement.id.desc())
+        stock_movement_query = stock_movement_query.order_by(StockMovement.id.desc())
         
-        return APIResponse.paginated(stock_movement, request, lambda row: {
+        return APIResponse.paginated(stock_movement_query, request, lambda row: {
             "id": row.StockMovement.id,
             "date": row.StockMovement.date.isoformat() if row.StockMovement.date else None,
             "code": row.StockMovement.code,
