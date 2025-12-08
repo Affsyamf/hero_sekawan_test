@@ -5,6 +5,12 @@ from sqlalchemy import Enum as SQLAlchemyEnum
 ENUM_NAMES = {
     "ledgerref": "ledger_ref_enum",
     "ledgerlocation": "ledger_location_enum",
+    "opjprocessenum": "opj_process_enum",
+    "printinginkenum": "printing_ink_enum",
+    "petypeenum": "pe_type_enum",
+    "foldingenum": "folding_enum",
+    "facedirectionenum": "face_direction_enum",
+    "printingmachineenum": "printing_machine_enum",
     # add more here
 }
 

@@ -55,6 +55,9 @@ class ColorKitchenEntry(Base, AuditMixin):
     details = relationship("ColorKitchenEntryDetail", back_populates="color_kitchen_entry", lazy='selectin', cascade="all, delete-orphan")
 
     sales = relationship("Sale", back_populates="color_kitchen", lazy='select')
+    
+    opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="SET NULL"), nullable=True) # TODO: make non-nullable later
+    opj = relationship("Opj", back_populates="color_kitchen_entries", lazy='selectin')
 
 class ColorKitchenEntryDetail(Base, AuditMixin):
     __tablename__ = 'color_kitchen_entry_details'

@@ -21,6 +21,9 @@ class Sale(Base, AuditMixin):
     client_id = Column(Integer, ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False)
     client = relationship("Client", back_populates="sales", lazy='joined')
 
+    opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="RESTRICT"), nullable=True) # TODO: make non-nullable later
+    opj = relationship("Opj", back_populates="sales", lazy='joined')
+
     returns = relationship("Return", back_populates="sale", cascade="all, delete-orphan", lazy='select')
     payments = relationship("Payment", back_populates="sale", cascade="all, delete-orphan", lazy='select')
     deliveries = relationship("Delivery", back_populates="sale", foreign_keys="Delivery.sale_id", cascade="all, delete-orphan", lazy='select')
