@@ -1,11 +1,12 @@
 # FastAPI framework
-fastapi
+fastapi==0.118.0
 uvicorn[standard]==0.35.0
 
 # Database ORM & Migration
 SQLAlchemy==2.0.43
-starlette
+starlette==0.48.0
 alembic==1.13.2
+psycopg2-binary==2.9.10
 
 # Environment config
 python-dotenv==1.0.1
@@ -17,16 +18,20 @@ openpyxl==3.1.5
 
 # Schema & validation
 pydantic==2.11.7
+pydantic[email]
 pydantic_core==2.33.2
 
 # Utilities
 typing-inspection==0.4.1
-typing_extensions
+typing_extensions==4.15.0
 wheel==0.45.1
 
 # Security
-argon2_cffi
-passlib[bcrypt]
+python-multipart==0.0.20
+argon2_cffi==25.1.0
+passlib[bcrypt]==1.7.4
+PyJWT[crypto]==2.10.1
+bcrypt==4.2.0
 
 # Production server
 gunicorn
