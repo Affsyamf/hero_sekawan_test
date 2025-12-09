@@ -35,3 +35,11 @@ class SalesTrendData(BaseModel):
     
 class SalesTrendResponse(BaseModel):
     results: List[SalesTrendData] = Field(..., description="List of sales trend")
+    
+class PaymentReceivableTrend(BaseModel):
+    time_period: datetime = Field(..., description="Start aggregation period")
+    total_payment: float = Field(..., description="Total Value of payments")
+    total_receivable: Optional[float] = Field(None, description="Total receivable during this period")
+    
+class PaymentReceivableResponse(BaseModel):
+    results: List[PaymentReceivableTrend] = Field(..., description="List of payment and receivable trend")
