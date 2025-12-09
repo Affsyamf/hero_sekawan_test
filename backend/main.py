@@ -52,6 +52,9 @@ async def lifespan(app: FastAPI):
     from app.seeder.rbac_seeder import run
     run()   # <-- safe because DB session is sync
 
+    from app.seeder.opj_repairs import repair_color_kitchen_missing_opj
+    repair_color_kitchen_missing_opj()
+
     yield   # required or FastAPI won't start
 
     print("🛑 Shutting down...")

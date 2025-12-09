@@ -39,7 +39,7 @@ class Opj(Base, AuditMixin):
     unit_price = Column(Numeric(18, 2), nullable=True)
     unit_type = Column(String, nullable=False, default="KG")
 
-    client_id = Column(Integer, ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False) # TODO: make non-nullable later
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="RESTRICT"), nullable=True) # TODO: make non-nullable later
     client = relationship("Client", lazy='selectin')
 
     design_id = Column(Integer, ForeignKey("designs.id", ondelete="RESTRICT"), nullable=True)
