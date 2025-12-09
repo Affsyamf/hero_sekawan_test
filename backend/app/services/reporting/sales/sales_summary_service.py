@@ -13,15 +13,15 @@ from decimal import Decimal
 from typing import Optional, Any, List
 
 
-DEFAULT_SALE_VALUE = Decimal(1)
+# DEFAULT_SALE_VALUE = Decimal(1)
 
 
 # --- Helper function for joins ---
 def _add_sale_related_joins(query):
     return (
-        query.outerjoin(Client, Sale.client_id == Client.id)
-             .outerjoin(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)
-             .outerjoin(Design, ColorKitchenEntry.design_id == Design.id)
+        query.join(Client, Sale.client_id == Client.id)
+             .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)
+             .join(Design, ColorKitchenEntry.design_id == Design.id)
     )
 
 
@@ -70,14 +70,14 @@ class SalesSummaryService(BaseReportService):
         end_date: Optional[date] = filters.get("end_date")
 
         # ---------------------------------------------------------
-        # 1. Total Sales Count
+        # 1. Total Sales sum
         # ---------------------------------------------------------
-        sales_count_query = db.query(func.count(Sale.id)).filter(Sale.deleted_at.is_(None))
-        sales_count_query = _add_sale_related_joins(sales_count_query)
-        sales_count_query = _apply_date_filter(sales_count_query, start_date, end_date, Sale)
-        sales_count_query = apply_common_report_filters(sales_count_query, filters)
+        sales_sum_query = db.query(func.sum(Sale.quantity_end)).filter(Sale.deleted_at.is_(None))
+        sales_sum_query = _add_sale_related_joins(sales_sum_query)
+        sales_sum_query = _apply_date_filter(sales_sum_query, start_date, end_date, Sale)
+        sales_sum_query = apply_common_report_filters(sales_sum_query, filters)
 
-        total_sales_count = sales_count_query.scalar() or 0
+        total_sales_quantity = sales_sum_query.scalar() or 0
 
         # ---------------------------------------------------------
         # 2. Total Returns Count
@@ -104,30 +104,31 @@ class SalesSummaryService(BaseReportService):
         # ---------------------------------------------------------
         # 4. Total Receivable Value (Piutang)
         # ---------------------------------------------------------
-        sales_total_sq = db.query(
-            Sale.id,
-            cast(DEFAULT_SALE_VALUE, Numeric).label("sale_total")
-        ).filter(Sale.deleted_at.is_(None)).subquery()
+        # sales_total_sq = db.query(
+        #     Sale.id,
+        #     cast(DEFAULT_SALE_VALUE, Numeric).label("sale_total")
+        # ).filter(Sale.deleted_at.is_(None)).subquery()
 
-        payment_total_sq = db.query(
-            Payment.sale_id,
-            func.sum(Payment.amount).label("payment_total")
-        ).filter(Payment.deleted_at.is_(None)).group_by(Payment.sale_id).subquery()
+        # payment_total_sq = db.query(
+        #     Payment.sale_id,
+        #     func.sum(Payment.amount).label("payment_total")
+        # ).filter(Payment.deleted_at.is_(None)).group_by(Payment.sale_id).subquery()
 
-        receivable_query = db.query(
-            func.sum(
-                sales_total_sq.c.sale_total -
-                func.coalesce(cast(payment_total_sq.c.payment_total, Numeric), 0)
-            )
-        ).select_from(sales_total_sq) \
-         .outerjoin(payment_total_sq, sales_total_sq.c.id == payment_total_sq.c.sale_id)
+        # receivable_query = db.query(
+        #     func.sum(
+        #         sales_total_sq.c.sale_total -
+        #         func.coalesce(cast(payment_total_sq.c.payment_total, Numeric), 0)
+        #     )
+        # ).select_from(sales_total_sq) \
+        #  .outerjoin(payment_total_sq, sales_total_sq.c.id == payment_total_sq.c.sale_id)
 
-        receivable_query = receivable_query.join(Sale, sales_total_sq.c.id == Sale.id)
-        receivable_query = _add_sale_related_joins(receivable_query)
-        receivable_query = _apply_date_filter(receivable_query, start_date, end_date, Sale)
-        receivable_query = apply_common_report_filters(receivable_query, filters)
+        # receivable_query = receivable_query.join(Sale, sales_total_sq.c.id == Sale.id)
+        # receivable_query = _add_sale_related_joins(receivable_query)
+        # receivable_query = _apply_date_filter(receivable_query, start_date, end_date, Sale)
+        # receivable_query = apply_common_report_filters(receivable_query, filters)
 
-        total_receivable_value = _to_float(receivable_query.scalar() or 0)
+        # total_receivable_value = _to_float(receivable_query.scalar() or 0)
+        total_receivable_value = None
 
         # ---------------------------------------------------------
         # 5. Serialize response
@@ -138,7 +139,7 @@ class SalesSummaryService(BaseReportService):
         }
 
         serialized_data = SalesSummaryResponse(
-            total_sales=int(total_sales_count),
+            total_sales=int(total_sales_quantity),
             total_returns=int(total_returns_count),
             total_payments=total_payments_value,
             total_receivable=total_receivable_value
