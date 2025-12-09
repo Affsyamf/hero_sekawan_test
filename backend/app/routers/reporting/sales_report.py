@@ -5,7 +5,7 @@ from app.schemas.report_response.reporting_schemas import SalesSummaryResponse, 
 from app.services.reporting.sales.sales_summary_service import SalesSummaryService
 from app.services.reporting.sales.sales_trend_service import SalesTrendService
 from app.services.reporting.sales.sales_client_top_service import SalesClientTopService
-from app.services.reporting.sales.sales_payment_receivable_trend import PaymentReceivableService
+from app.services.reporting.sales.sales_payment_receivable_trend_service import PaymentReceivableService
 from app.utils.response import APIResponse
 from app.dependencies.rbac import require_user 
 

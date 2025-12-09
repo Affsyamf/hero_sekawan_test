@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Union
 from pydantic import BaseModel, Field
 
 class BaseReportFilter(BaseModel):
@@ -60,6 +60,9 @@ class SalesReportFilter(BaseReportFilter):
     design_ids: Optional[List[int]] = Field(
         None, description="filter by list of design id (via ck)"
     )
+    sale_ids: Optional[Union[int, List[int]]] = Field(
+        None, description="Filter by list of Sale IDs"
+    )
     granularity: Optional[str] = Field(
-        "monthly", description="Data level: daily, weekly, monthly, yearly"
+        "mont", description="Data level: day, week, month, year"
     )
