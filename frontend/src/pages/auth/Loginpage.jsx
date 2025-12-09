@@ -127,7 +127,7 @@ export default function LoginPage() {
               Hello Again!
             </h1>
             <p className="text-sm" style={{ color: colors.text.secondary }}>
-              Welcome back to Heri Sekawan! Please login to your account.
+              Welcome back to Hero Sekawan! Please login to your account.
             </p>
           </div>
 
