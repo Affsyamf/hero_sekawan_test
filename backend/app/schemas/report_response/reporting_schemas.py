@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
 from typing import Optional, List
-
+from datetime import date, datetime
 class SalesSummaryResponse(BaseModel):
     """Schema for the Sales Reporting Summary Data (Output)."""
    
@@ -27,3 +27,11 @@ class ClientSalesData(BaseModel):
     
 class SalesClientTopResponse(BaseModel):
     results: List[ClientSalesData] = Field(..., description="List of top clients by sales quantity.")
+    
+
+class SalesTrendData(BaseModel):
+    time_period: datetime = Field(..., description="Start aggregation month/week")
+    total_quantity: float = Field(..., description="Total Quantity sold during this period")
+    
+class SalesTrendResponse(BaseModel):
+    results: List[SalesTrendData] = Field(..., description="List of sales trend")
