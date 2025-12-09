@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 
 class SalesSummaryResponse(BaseModel):
     """Schema for the Sales Reporting Summary Data (Output)."""
@@ -18,3 +18,12 @@ class SalesSummaryResponse(BaseModel):
         json_encoders = {
             Decimal: lambda v: float(v)
         }
+        
+
+class ClientSalesData(BaseModel):
+    client_id: int
+    client_name: str
+    total_quantity: float = Field(..., description="Total quantity (SUM of quantity_end) sold to this client.")
+    
+class SalesClientTopResponse(BaseModel):
+    results: List[ClientSalesData] = Field(..., description="List of top clients by sales quantity.")

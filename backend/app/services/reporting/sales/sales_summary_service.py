@@ -16,7 +16,7 @@ from typing import Optional, Any, List
 # DEFAULT_SALE_VALUE = Decimal(1)
 
 
-# --- Helper function for joins ---
+# helper join
 def _add_sale_related_joins(query):
     return (
         query.join(Client, Sale.client_id == Client.id)
@@ -25,7 +25,7 @@ def _add_sale_related_joins(query):
     )
 
 
-# --- Date filter helper ---
+# helper date filter
 def _apply_date_filter(query, start_date: date, end_date: date, model: Any):
     date_col = getattr(model, "date", None)
     if not date_col:
@@ -37,7 +37,7 @@ def _apply_date_filter(query, start_date: date, end_date: date, model: Any):
     return query
 
 
-# --- Decimal fix ---
+# helper convert decimal to float
 def _to_float(v):
     return float(v) if isinstance(v, Decimal) else v
 
@@ -69,9 +69,7 @@ class SalesSummaryService(BaseReportService):
         start_date: Optional[date] = filters.get("start_date")
         end_date: Optional[date] = filters.get("end_date")
 
-        # ---------------------------------------------------------
-        # 1. Total Sales sum
-        # ---------------------------------------------------------
+        # sales SUM
         sales_sum_query = db.query(func.sum(Sale.quantity_end)).filter(Sale.deleted_at.is_(None))
         sales_sum_query = _add_sale_related_joins(sales_sum_query)
         sales_sum_query = _apply_date_filter(sales_sum_query, start_date, end_date, Sale)
@@ -79,9 +77,7 @@ class SalesSummaryService(BaseReportService):
 
         total_sales_quantity = sales_sum_query.scalar() or 0
 
-        # ---------------------------------------------------------
-        # 2. Total Returns Count
-        # ---------------------------------------------------------
+        # return count
         returns_count_query = db.query(func.count(Return.id)).filter(Return.deleted_at.is_(None))
         returns_count_query = returns_count_query.join(Sale, Return.sale_id == Sale.id)
         returns_count_query = _add_sale_related_joins(returns_count_query)
@@ -90,9 +86,7 @@ class SalesSummaryService(BaseReportService):
 
         total_returns_count = returns_count_query.scalar() or 0
 
-        # ---------------------------------------------------------
-        # 3. Total Payments Value
-        # ---------------------------------------------------------
+        # total payment value
         payments_query = db.query(func.sum(Payment.amount)).filter(Payment.deleted_at.is_(None))
         payments_query = payments_query.join(Sale, Payment.sale_id == Sale.id)
         payments_query = _add_sale_related_joins(payments_query)
@@ -101,9 +95,8 @@ class SalesSummaryService(BaseReportService):
 
         total_payments_value = _to_float(payments_query.scalar() or 0)
 
-        # ---------------------------------------------------------
-        # 4. Total Receivable Value (Piutang)
-        # ---------------------------------------------------------
+        #total piutang
+        
         # sales_total_sq = db.query(
         #     Sale.id,
         #     cast(DEFAULT_SALE_VALUE, Numeric).label("sale_total")
@@ -130,9 +123,9 @@ class SalesSummaryService(BaseReportService):
         # total_receivable_value = _to_float(receivable_query.scalar() or 0)
         total_receivable_value = None
 
-        # ---------------------------------------------------------
-        # 5. Serialize response
-        # ---------------------------------------------------------
+
+
+        # serial response
         meta_response = {
             k: (v.isoformat() if isinstance(v, date) and v is not None else v)
             for k, v in filters.items()
