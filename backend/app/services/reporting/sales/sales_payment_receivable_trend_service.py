@@ -22,6 +22,10 @@ class PaymentReceivableService(BaseReportService):
     
     def run(self, filters: SalesReportFilter):
         filters_dict = self.normalize_filters(filters.model_dump(exclude_none=False))
+        # convert int ke list pada sale_ids
+        sale_ids_input = filters_dict.get("sale_ids")
+        if isinstance(sale_ids_input, int):
+            filters_dict["sale_ids"] = [sale_ids_input]
         return self.get_trend(filters_dict)
     
     def get_receivable(self, filters: dict) -> dict[str, float]:

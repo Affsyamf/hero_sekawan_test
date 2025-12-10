@@ -23,6 +23,10 @@ class SalesSummaryService(BaseReportService):
 
     def run(self, filters: SalesReportFilter):
         filters_dict = self.normalize_filters(filters.model_dump(exclude_none=False))
+        # convert int ke list pada sale_ids
+        sale_ids_input = filters_dict.get("sale_ids")
+        if isinstance(sale_ids_input, int):
+            filters_dict["sale_ids"] = [sale_ids_input]
         return self.get_summary(filters_dict)
 
     def get_summary(self, filters: dict):
@@ -68,10 +72,7 @@ class SalesSummaryService(BaseReportService):
         
 
         # serial response
-        meta_response = {
-            # k: (v.isoformat() if isinstance(v, date) and v is not None else v)
-            # for k, v in filters.items()
-        }
+        meta_response = {}
         
         for k, v in filters.items():
             if v is None:
@@ -79,13 +80,13 @@ class SalesSummaryService(BaseReportService):
             elif isinstance(v, date):
                 meta_response[k] = v.isoformat()
             else:
-                # 1. Penanganan Granularity: Pastikan selalu string tunggal dan disanitasi
+                #pastikan selalu string tunggal dan disanitasi
                 if k == 'granularity':
                     granularity_raw = str(v).lower()
                     PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
                     meta_response[k] = PG_UNITS.get(granularity_raw, "month") 
                 
-                # 2. Penanganan sale_ids: Pastikan dikembalikan sebagai list, jika perlu
+                #sale_ids: Pastikan dikembalikan sebagai list, jika perlu
                 elif k == 'sale_ids':
                     if isinstance(v, int):
                          meta_response[k] = [v]

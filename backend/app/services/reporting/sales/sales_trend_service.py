@@ -22,6 +22,10 @@ class SalesTrendService(BaseReportService):
     
     def run(self, filters: SalesReportFilter):
         filters_dict = self.normalize_filters(filters.model_dump(exclude_none=False))
+        # convert int ke list pada sale_ids
+        sale_ids_input = filters_dict.get("sale_ids")
+        if isinstance(sale_ids_input, int):
+            filters_dict["sale_ids"] = [sale_ids_input]
         return self.get_trend(filters_dict)
     
     def get_trend(self, filters: dict):
@@ -31,11 +35,11 @@ class SalesTrendService(BaseReportService):
         
         granularity = filters.get("granularity", "month").lower()
         
-        allowed_granularity = ["days", "week", "month", "year"]
-        if granularity.lower() not in allowed_granularity:
-            granularity = "month"
+        granularity_raw = filters.get("granularity", "month").lower()
+        PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
+        granularity_pg = PG_UNITS.get(granularity_raw, "month")
             
-        time_period_alias = func.date_trunc(granularity, Sale.date).label("time_period")
+        time_period_alias = func.date_trunc(granularity_pg, Sale.date).label("time_period")
         total_quantity_alias = func.sum(Sale.quantity_end).label("total_quantity")
         
         trend_query = db.query(
