@@ -34,7 +34,12 @@ class Return(Base, AuditMixin):
 
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, default=datetime.utcnow)
+    code = Column(String, nullable=False) # No Faktur Penjualan
     quantity = Column(Numeric(18, 2), nullable=False)
+
+    # If new OPJ is assigned to perbaikan
+    opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="RESTRICT"), nullable=True) # TODO: maybe? make non-nullable later
+    opj = relationship("Opj", back_populates="return_obj", lazy='joined')
 
     sale_id = Column(Integer, ForeignKey("sales.id", ondelete="RESTRICT"), nullable=False)
     sale = relationship("Sale", back_populates="returns", lazy='joined')
