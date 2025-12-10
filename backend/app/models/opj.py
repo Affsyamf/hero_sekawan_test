@@ -6,7 +6,7 @@ from app.models.enum.registry import enum_column
 
 from app.models import Base
 from app.models.mixin.AuditMixin import AuditMixin
-from app.models.enum.opj_enum import (OpjProcessEnum, PrintingInkEnum, PeTypeEnum, 
+from app.models.enum.opj_enum import (ProcessConditionEnum, OpjProcessEnum, PeTypeEnum, 
                                       FoldingEnum, FaceDirectionEnum, PrintingMachineEnum)
 
 class Opj(Base, AuditMixin):
@@ -22,7 +22,7 @@ class Opj(Base, AuditMixin):
     gs_jadi = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
 
-    printing_ink = Column(enum_column(PrintingInkEnum), nullable=False)
+    process_type = Column(enum_column(OpjProcessEnum), nullable=False)
     jenis_kain = Column(String, nullable=True)
     kode_kain = Column(String, nullable=True)
 
@@ -46,9 +46,10 @@ class Opj(Base, AuditMixin):
     design = relationship("Design", lazy='selectin')
 
     details = relationship("OpjDetail", back_populates="opj", cascade="all, delete-orphan", lazy='selectin')
-    processes = relationship("OpjProcess", back_populates="opj", cascade="all, delete-orphan", lazy='selectin')
+    processes = relationship("OpjProcessCondition", back_populates="opj", cascade="all, delete-orphan", lazy='selectin')
     color_kitchen_entries = relationship("ColorKitchenEntry", back_populates="opj", lazy='selectin')
     sales = relationship("Sale", back_populates="opj", lazy='selectin')
+    return_obj = relationship("Return", back_populates="opj", lazy="selectin")
 
 
 class OpjDetail(Base, AuditMixin):
@@ -62,11 +63,11 @@ class OpjDetail(Base, AuditMixin):
     opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="CASCADE"), nullable=False)
     opj = relationship("Opj", back_populates="details", lazy='selectin')
 
-class OpjProcess(Base, AuditMixin):
+class OpjProcessCondition(Base, AuditMixin):
     __tablename__ = 'opj_processes'
     
     id = Column(Integer, primary_key=True)
-    process_type = Column(enum_column(OpjProcessEnum), nullable=False)
+    process_type = Column(enum_column(ProcessConditionEnum), nullable=False)
 
     opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="CASCADE"), nullable=False)
     opj = relationship("Opj", back_populates="processes", lazy='selectin')
