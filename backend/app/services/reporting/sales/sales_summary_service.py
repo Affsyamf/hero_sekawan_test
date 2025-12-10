@@ -69,9 +69,34 @@ class SalesSummaryService(BaseReportService):
 
         # serial response
         meta_response = {
-            k: (v.isoformat() if isinstance(v, date) and v is not None else v)
-            for k, v in filters.items()
+            # k: (v.isoformat() if isinstance(v, date) and v is not None else v)
+            # for k, v in filters.items()
         }
+        
+        for k, v in filters.items():
+            if v is None:
+                meta_response[k] = None
+            elif isinstance(v, date):
+                meta_response[k] = v.isoformat()
+            else:
+                # 1. Penanganan Granularity: Pastikan selalu string tunggal dan disanitasi
+                if k == 'granularity':
+                    granularity_raw = str(v).lower()
+                    PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
+                    meta_response[k] = PG_UNITS.get(granularity_raw, "month") 
+                
+                # 2. Penanganan sale_ids: Pastikan dikembalikan sebagai list, jika perlu
+                elif k == 'sale_ids':
+                    if isinstance(v, int):
+                         meta_response[k] = [v]
+                    elif isinstance(v, str) and v.isdigit():
+                         meta_response[k] = [int(v)]
+                    else:
+                        # Jika sudah list dari pydantic, atau list of string/int
+                        meta_response[k] = v
+                else:
+                    meta_response[k] = v
+                    
 
         serialized_data = SalesSummaryResponse(
             total_sales=int(total_sales_quantity),

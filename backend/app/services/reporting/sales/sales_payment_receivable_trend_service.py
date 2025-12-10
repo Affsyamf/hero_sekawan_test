@@ -28,12 +28,12 @@ class PaymentReceivableService(BaseReportService):
         db: Session = self.db
         start_date: Optional[date] = filters.get("start_date")
         end_date: Optional[date] = filters.get("end_date")
-        granularity = filters.get("granularity", "month").lower()
         
+        granularity_raw = filters.get("granularity", "month").lower()
         PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
-        granularity = PG_UNITS.get(granularity, "month")
+        granularity_pg = PG_UNITS.get(granularity_raw, "month")
         
-        time_period_alias = func.date_trunc(granularity, Sale.date).label("time_period")
+        time_period_alias = func.date_trunc(granularity_pg, Sale.date).label("time_period")
         total_sales_proxy_alias = func.sum(Sale.quantity_end).label("total_sale_proxy")
         
         receivable_query = db.query(
@@ -42,7 +42,7 @@ class PaymentReceivableService(BaseReportService):
         ).filter(Sale.deleted_at.is_(None))
         
         receivable_query = sale_joins(receivable_query)
-        receivable_query = date_filter(receivable_query, start_date, end_date, filters)
+        receivable_query = date_filter(receivable_query, start_date, end_date, Sale)
         receivable_query = apply_common_report_filters(receivable_query, filters)
         receivable_query = receivable_query.group_by(time_period_alias)\
                                            .order_by(time_period_alias.asc())
@@ -58,30 +58,26 @@ class PaymentReceivableService(BaseReportService):
         start_date: Optional[date] = filters.get("start_date")
         end_date: Optional[date] = filters.get("end_date")
         
-        granularity = filters.get("granularity", "month").lower()
+        granularity_raw = filters.get("granularity", "month").lower()
         PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
-        granularity = PG_UNITS.get(granularity, "month")
-        
-        # allowed_granularity = ["days", "week", "month", "year"]
-        # if granularity.lower() not in allowed_granularity:
-        #     granularity = "month"
+        granularity_pg = PG_UNITS.get(granularity_raw, "month")
             
-        time_period_alias = func.date_trunc(granularity, Payment.date).label("time_period")
+        time_period_alias = func.date_trunc(granularity_pg, Payment.date).label("time_period")
         total_payment_alias = func.sum(Payment.amount).label("total_payment")
         
-        trend_query = db.query(
+        payment_query = db.query(
             time_period_alias,
             total_payment_alias
         ).filter(Payment.deleted_at.is_(None))
         
-        trend_query = trend_query.join(Sale, Payment.sale_id == Sale.id)
-        trend_query = sale_joins(trend_query)
-        trend_query = date_filter(trend_query, start_date, end_date, Payment)
-        trend_query = apply_common_report_filters(trend_query, filters)
-        trend_query = trend_query.group_by(time_period_alias)\
+        payment_query = payment_query.join(Sale, Payment.sale_id == Sale.id)
+        payment_query = sale_joins(payment_query)
+        payment_query = date_filter(payment_query, start_date, end_date, Payment)
+        payment_query = apply_common_report_filters(payment_query, filters)
+        payment_query = payment_query.group_by(time_period_alias)\
                                  .order_by(time_period_alias.asc())
                                  
-        results = trend_query.all()
+        results = payment_query.all()
         
         receivable_dict = self.get_receivable(filters)
         
@@ -121,7 +117,7 @@ class PaymentReceivableService(BaseReportService):
             for k, v in filters.items()   
         }
         
-        meta_response["granularity"] = granularity
+        meta_response["granularity"] = granularity_pg
         
         if filters.get("sale_ids"):
             meta_response["sale_ids"] = filters["sale_ids"]

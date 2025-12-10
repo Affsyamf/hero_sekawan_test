@@ -63,6 +63,6 @@ class SalesReportFilter(BaseReportFilter):
     sale_ids: Optional[Union[int, List[int]]] = Field(
         None, description="Filter by list of Sale IDs"
     )
-    granularity: Optional [List[str]] = Field(
+    granularity: Optional [str] = Field(
         "month", description="Data level: day, week, month, year"
     )
