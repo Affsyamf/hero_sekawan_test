@@ -19,7 +19,7 @@ from .audit import *
 from .mixin.AuditMixin import AuditMixin
 from .mixin.TimestampMixin import TimestampMixin
 from .master import Supplier, Product, Design, Client
-from .opj import Opj, OpjDetail, OpjProcess
+from .opj import Opj, OpjDetail, OpjProcessCondition
 
 __all__ = [
     "Base",
@@ -31,7 +31,7 @@ __all__ = [
     # master.py
     "Supplier", "Product", "Design", "Client", 
     # opj.py
-    "Opj", "OpjDetail", "OpjProcess",
+    "Opj", "OpjDetail", "OpjProcessCondition",
     # ledger.py
     "Ledger",
     # purchasing.py
