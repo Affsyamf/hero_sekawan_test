@@ -14,10 +14,9 @@ class OpjService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    # ------------------------
     # CREATE
-    # ------------------------
     def create_opj(self, request: OpjCreate):
+        # cek client dan design, lalu barengan dengan detail dsan proses
         try:
             existing = self.db.query(Opj).filter(Opj.code == request.code).first()
             if existing:
@@ -59,9 +58,7 @@ class OpjService:
             self.db.rollback()
             return APIResponse.error(message=str(e))
 
-    # ------------------------
     # LIST
-    # ------------------------
     def list_opj(self, request: ListRequest):
         query = self.db.query(Opj)
 
@@ -84,9 +81,7 @@ class OpjService:
             }
         )
 
-    # ------------------------
     # GET BY ID
-    # ------------------------
     def get_opj(self, opj_id: int):
         opj = (
             self.db.query(Opj)
@@ -103,9 +98,8 @@ class OpjService:
 
         return OpjResponse.from_orm(opj)
     
-    # ------------------------
+
     # UPDATE
-    # ------------------------
     def update_opj(self, opj_id: int, request: OpjUpdate):
         opj = self.db.query(Opj).filter(Opj.id == opj_id).first()
         if not opj:
@@ -136,9 +130,8 @@ class OpjService:
 
         return APIResponse.ok(message=f"OPJ ID '{opj_id}' updated.")
 
-    # ------------------------
+
     # DELETE
-    # ------------------------
     def delete_opj(self, opj_id: int):
         opj = self.db.query(Opj).filter(Opj.id == opj_id).first()
         if not opj:
