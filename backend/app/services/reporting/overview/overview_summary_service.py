@@ -1,7 +1,7 @@
 # app/services/reporting/purchasing/purchasing_summary_service.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models import Product, Account, Purchasing, PurchasingDetail, ColorKitchenBatchDetail, ColorKitchenBatch, ColorKitchenEntryDetail, ColorKitchenEntry
+from app.models import Product, Account, AccountParent, Purchasing, PurchasingDetail, ColorKitchenBatchDetail, ColorKitchenBatch, ColorKitchenEntryDetail, ColorKitchenEntry
 from app.services.reporting.base_reporting_service import BaseReportService
 
 from app.utils.response import APIResponse
@@ -48,13 +48,16 @@ class OverviewSummaryService(BaseReportService):
         q = (
             db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn))
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
+            .join(Product, Product.id == PurchasingDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
+            .join(AccountParent, AccountParent.id == Account.parent_id)
         )
         if start_date:
             q = q.filter(Purchasing.date >= start_date)
         if end_date:
             q = q.filter(Purchasing.date <= end_date)
             
-        # q = apply_common_report_filters(q, filters) TODO
+        q = apply_common_report_filters(q, filters)
 
         return float(q.scalar() or 0)
 
@@ -66,10 +69,14 @@ class OverviewSummaryService(BaseReportService):
         q_dye = (
             db.query(func.sum(ColorKitchenBatchDetail.quantity * ColorKitchenBatchDetail.unit_cost_used))
             .join(ColorKitchenBatch, ColorKitchenBatch.id == ColorKitchenBatchDetail.batch_id)
+            .join(Product, Product.id == ColorKitchenBatchDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
         q_aux = (
             db.query(func.sum(ColorKitchenEntryDetail.quantity * ColorKitchenEntryDetail.unit_cost_used))
             .join(ColorKitchenEntry, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
+            .join(Product, Product.id == ColorKitchenEntryDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
         )
         if start_date:
             q_dye = q_dye.filter(ColorKitchenBatch.date >= start_date)
