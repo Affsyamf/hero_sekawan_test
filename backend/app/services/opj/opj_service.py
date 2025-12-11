@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from fastapi import HTTPException
 
 from app.core.database import get_db
-from app.models import Opj, OpjDetail, OpjProcess, Client, Design
+from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design
 from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
@@ -46,7 +46,7 @@ class OpjService:
 
             # Add Processes
             for p in request.processes:
-                opj.processes.append(OpjProcess(**p.model_dump()))
+                opj.processes.append(OpjProcessCondition(**p.model_dump()))
 
             self.db.add(opj)
             self.db.commit()
@@ -123,7 +123,7 @@ class OpjService:
         if "processes" in data:
             opj.processes.clear()
             for p in data["processes"]:
-                opj.processes.append(OpjProcess(**p))
+                opj.processes.append(OpjProcessCondition(**p))
 
         self.db.commit()
         self.db.refresh(opj)

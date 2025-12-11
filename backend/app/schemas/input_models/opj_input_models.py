@@ -4,13 +4,13 @@ from datetime import datetime, date
 from decimal import Decimal
 
 from app.models.enum.opj_enum import (
-    OpjProcessEnum, PrintingInkEnum, PeTypeEnum,
+    OpjProcessEnum, ProcessConditionEnum, PeTypeEnum,
     FoldingEnum, FaceDirectionEnum, PrintingMachineEnum
 )
 
-# ------------------------
+
 # DETAIL SCHEMAS
-# ------------------------
+
 
 class OpjDetailCreate(BaseModel):
     ground_color: str
@@ -36,28 +36,27 @@ class OpjDetailResponse(BaseModel):
         }
 
 
-# ------------------------
+
 # PROCESS SCHEMAS
-# ------------------------
+
 
 class OpjProcessCreate(BaseModel):
-    process_type: OpjProcessEnum
+    process_type: ProcessConditionEnum
 
 class OpjProcessUpdate(BaseModel):
-    process_type: Optional[OpjProcessEnum] = None
+    process_type: Optional[ProcessConditionEnum] = None
     
 
 class OpjProcessResponse(BaseModel):
     id: int
-    process_type: OpjProcessEnum
+    process_type: ProcessConditionEnum
 
     class Config:
         from_attributes = True
 
 
-# ------------------------
 # MAIN OPJ SCHEMAS
-# ------------------------
+
 
 class OpjCreate(BaseModel):
     code: str
@@ -69,7 +68,7 @@ class OpjCreate(BaseModel):
     gs_jadi: Optional[str] = None
     notes: Optional[str] = None
 
-    printing_ink: PrintingInkEnum
+    process_type: OpjProcessEnum
     jenis_kain: Optional[str] = None
     kode_kain: Optional[str] = None
 
@@ -101,7 +100,7 @@ class OpjUpdate(BaseModel):
     gs_grey: Optional[str] = None
     gs_jadi: Optional[str] = None
     notes: Optional[str] = None
-    printing_ink: Optional[PrintingInkEnum] = None
+    process_type: Optional[OpjProcessEnum] = None
     printing_machine: Optional[PrintingMachineEnum] = None
     jenis_kain: Optional[str] = None
     kode_kain: Optional[str] = None
@@ -129,7 +128,7 @@ class OpjResponse(BaseModel):
     date: datetime
     term: Optional[str]
 
-    printing_ink: PrintingInkEnum
+    process_type: OpjProcessEnum
     folding: Optional[FoldingEnum]
     face_direction: Optional[FaceDirectionEnum]
     pe_type: Optional[PeTypeEnum]
