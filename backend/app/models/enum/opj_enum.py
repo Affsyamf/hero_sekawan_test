@@ -1,6 +1,6 @@
 from enum import Enum
 
-class OpjProcessEnum(str, Enum):
+class ProcessConditionEnum(str, Enum):
     GREY = 'grey'
     PERBAIKAN = 'perbaikan'
 
@@ -13,7 +13,7 @@ class OpjProcessEnum(str, Enum):
     SERBLEACH = 'ser_bleach'
     RESINFINISH = 'resin_finish'
 
-class PrintingInkEnum(str, Enum):
+class OpjProcessEnum(str, Enum):
     DISPERSE = "DISPERSE"
     REACTIVE = "REACTIVE"
     PIGMENT = "PIGMENT"

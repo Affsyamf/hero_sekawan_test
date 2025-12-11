@@ -4,13 +4,13 @@ from datetime import datetime
 
 from app.core.database import SessionLocal
 from app.models.color_kitchen import ColorKitchenEntry
-from app.models import Opj, OpjProcess, OpjDetail
-from app.models.enum.opj_enum import PrintingInkEnum, PrintingMachineEnum, OpjProcessEnum
+from app.models import Opj, OpjProcessCondition, OpjDetail
+from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
 
 DEFAULT_OPJ_PROCESSES = [
-    OpjProcessEnum.GREY,
-    OpjProcessEnum.DYEING,
-    OpjProcessEnum.PRINTING,
+    ProcessConditionEnum.GREY,
+    ProcessConditionEnum.DYEING,
+    ProcessConditionEnum.PRINTING,
 ]
 
 def make_opj_code(ck_code: str) -> str:
@@ -47,7 +47,7 @@ def repair_color_kitchen_missing_opj():
                 opj = Opj(
                     code=make_opj_code(entry.code),
                     date=entry.date or datetime.utcnow(),
-                    printing_ink=PrintingInkEnum.DISPERSE,
+                    process_type=OpjProcessEnum.DISPERSE,
                     printing_machine=PrintingMachineEnum.ROTARY,
                     client_id=None,
                     design_id=entry.design_id,
@@ -57,7 +57,7 @@ def repair_color_kitchen_missing_opj():
 
                 # ADD DEFAULT OPJ PROCESS ROWS (FIXED)
                 for p in DEFAULT_OPJ_PROCESSES:
-                    opj.processes.append(OpjProcess(process_type=p))
+                    opj.processes.append(OpjProcessCondition(process_type=p))
 
                 # ADD OPJ DETAIL
                 opj.details.append(
