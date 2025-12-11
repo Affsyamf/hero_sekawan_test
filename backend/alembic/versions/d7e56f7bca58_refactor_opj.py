@@ -49,7 +49,9 @@ def upgrade() -> None:
 
     # Remove old column
     op.drop_column('opjs', 'printing_ink')
-    op.add_column('returns', sa.Column('code', sa.String(), nullable=False))
+    op.add_column('returns', sa.Column('code', sa.String(), nullable=True))
+    op.execute("UPDATE returns SET code = '' WHERE code IS NULL")
+    op.alter_column('returns', 'code', nullable=False)
     op.add_column('returns', sa.Column('opj_id', sa.Integer(), nullable=True))
     op.create_foreign_key(None, 'returns', 'opjs', ['opj_id'], ['id'], ondelete='RESTRICT')
     # ### end Alembic commands ###
