@@ -64,22 +64,22 @@ class OpjCreate(BaseModel):
     date: datetime
     term: Optional[str]
 
-    no_dyeing: Optional[str]
-    gs_grey: Optional[str]
-    gs_jadi: Optional[str]
-    notes: Optional[str]
+    no_dyeing: Optional[str] = None
+    gs_grey: Optional[str] = None
+    gs_jadi: Optional[str] = None
+    notes: Optional[str] = None
 
     printing_ink: PrintingInkEnum
-    jenis_kain: Optional[str]
-    kode_kain: Optional[str]
+    jenis_kain: Optional[str] = None
+    kode_kain: Optional[str] = None
 
-    lebar: Optional[float]
-    repeat_gambar: Optional[float]
-    garis_potong: Optional[float]
+    lebar: Optional[float] = None
+    repeat_gambar: Optional[float] = None
+    garis_potong: Optional[float] = None
 
-    folding: Optional[FoldingEnum]
-    face_direction: Optional[FaceDirectionEnum]
-    pe_type: Optional[PeTypeEnum]
+    folding: Optional[FoldingEnum] = None
+    face_direction: Optional[FaceDirectionEnum] = None
+    pe_type: Optional[PeTypeEnum] = None
     printing_machine: PrintingMachineEnum
 
     jumlah_warna: Optional[int]
