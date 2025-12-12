@@ -105,11 +105,11 @@ class SalesService:
         if filters.end_date:
             filter_conditions.append(Sale.date <= filters.end_date[0])
     
-        if filters.opj_ids:
-            filter_conditions.append(Sale.opj_id.in_(filters.opj_ids))
+        # if filters.opj_ids:
+        #     filter_conditions.append(Sale.opj_id.in_(filters.opj_ids))
             
-        if filters.ck_ids:
-            filter_conditions.append(ColorKitchenEntry.id.in_(filters.ck_ids))
+        # if filters.ck_ids:
+        #     filter_conditions.append(ColorKitchenEntry.id.in_(filters.ck_ids))
                 
         if filter_conditions:
             sale_query = sale_query.filter(and_(*filter_conditions))
