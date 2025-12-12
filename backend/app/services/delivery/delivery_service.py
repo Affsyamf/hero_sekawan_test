@@ -2,7 +2,7 @@ from fastapi import Depends
 from sqlalchemy import or_, and_
 
 from app.core.database import get_db
-from app.models import Delivery, Product, Client, ColorKitchenEntry, ColorKitchenEntryDetail
+from app.models import Delivery, Product, Client, ColorKitchenEntry, ColorKitchenEntryDetail, Opj
 from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryFilter
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
@@ -50,7 +50,8 @@ class DeliveryService:
         
         delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
                                        .join(Client, Sale.client_id == Client.id)\
-                                       .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
+                                       .join(Opj, Sale.opj_id == Opj.id)\
+                                       .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
                                        .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
                                        .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
                                        
@@ -89,7 +90,7 @@ class DeliveryService:
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
                 "sale_client_id": d.sale.client_id if d.sale else None,
-                "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
+                # "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )
 
