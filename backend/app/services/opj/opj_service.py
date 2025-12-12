@@ -4,10 +4,31 @@ from sqlalchemy import or_
 from fastapi import HTTPException
 
 from app.core.database import get_db
-from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design
-from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
+
+from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design, ColorKitchenEntry
+from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
+from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse
+
+DEFAULT_OPJ_PROCESSES = [
+    ProcessConditionEnum.GREY,
+    ProcessConditionEnum.DYEING,
+    ProcessConditionEnum.PRINTING,
+]
+
+def make_opj_code(ck_code: str) -> str:
+    """
+    Convert '123 - 123' → 'OPJ123-123'
+    """
+    if not ck_code:
+        return None
+
+    # remove spaces
+    cleaned = ck_code.replace(" ", "")
+
+    # ensure consistent format
+    return f"OPJ{cleaned}"
 
 
 class OpjService:
@@ -141,3 +162,43 @@ class OpjService:
         self.db.commit()
 
         return APIResponse.ok(message=f"OPJ ID '{opj_id}' deleted.")
+    
+    def ensure_opj_for_entry(self, entry: ColorKitchenEntry):
+        """
+        Creates or reuses OPJ for the given ColorKitchenEntry.
+        Returns the OPJ instance.
+        """
+
+        opj_code = make_opj_code(entry.code)
+
+        # 1) Find existing OPJ
+        opj = self.db.query(Opj).filter(Opj.code == opj_code).first()
+
+        # 2) Create if missing
+        if not opj:
+            opj = Opj(
+                code=opj_code,
+                date=entry.date,
+                process_type=OpjProcessEnum.DISPERSE,
+                printing_machine=PrintingMachineEnum.ROTARY,
+                client_id=None,
+                design_id=entry.design_id,
+            )
+            self.db.add(opj)
+            self.db.flush()  # get opj.id
+
+            # Default process conditions
+            for p in DEFAULT_OPJ_PROCESSES:
+                self.db.add(OpjProcessCondition(opj_id=opj.id, process_type=p))
+
+            # Default detail
+            self.db.add(
+                OpjDetail(
+                    opj_id=opj.id,
+                    roll=entry.rolls,
+                    ground_color="UNKNOWN",
+                    quantity=None
+                )
+            )
+
+        return opj

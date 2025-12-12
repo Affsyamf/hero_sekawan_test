@@ -61,7 +61,7 @@ class OpjProcessResponse(BaseModel):
 class OpjCreate(BaseModel):
     code: str
     date: datetime
-    term: Optional[str]
+    term: Optional[str] = None
 
     no_dyeing: Optional[str] = None
     gs_grey: Optional[str] = None
@@ -72,24 +72,24 @@ class OpjCreate(BaseModel):
     jenis_kain: Optional[str] = None
     kode_kain: Optional[str] = None
 
-    lebar: Optional[float] = None
-    repeat_gambar: Optional[float] = None
-    garis_potong: Optional[float] = None
+    lebar: Optional[Decimal] = None # in cm
+    repeat_gambar: Optional[Decimal] = None # in cm
+    garis_potong: Optional[Decimal] = None # in mm
 
-    folding: Optional[FoldingEnum] = None
-    face_direction: Optional[FaceDirectionEnum] = None
-    pe_type: Optional[PeTypeEnum] = None
-    printing_machine: PrintingMachineEnum
-
-    jumlah_warna: Optional[int]
-    unit_price: Optional[float]
+    folding: Optional[FoldingEnum] = None # Lipatan Yard / Gulung
+    face_direction: Optional[FaceDirectionEnum] = None # Muka ke Dalam / Muka ke Luar
+    pe_type: Optional[PeTypeEnum] = None # PE-I (Krg) PE / PE-II (Krg) PE
+    printing_machine: PrintingMachineEnum # Rotary / Flat
+    
+    jumlah_warna: Optional[int] = None
+    unit_price: Optional[Decimal] = None
     unit_type: Optional[str] = "KG"
 
-    client_id: Optional[int]
-    design_id: Optional[int]
+    client_id: Optional[int] = None # TODO: make non-nullable later
+    design_id: Optional[int] = None # TODO: make non-nullable later
 
-    details: List[OpjDetailCreate] = []
-    processes: List[OpjProcessCreate] = []
+    details: List[OpjDetailCreate] = Field(default_factory=list)
+    processes: List[OpjProcessCreate] = Field(default_factory=list)
 
 
 class OpjUpdate(BaseModel):
