@@ -14,6 +14,7 @@ class Sale(Base, AuditMixin):
     code = Column(String, nullable=True) # No Faktur Penjualan
     quantity_start = Column(Numeric(18, 2), nullable=False) # Quantity asal
     quantity_end = Column(Numeric(18, 2), nullable=False) # Quantity jadi
+    ppn = Column(Numeric(18, 2), nullable=False, default=0)
 
     color_kitchen_id = Column(Integer, ForeignKey("color_kitchen_entries.id", ondelete="RESTRICT"), nullable=True)
     color_kitchen = relationship("ColorKitchenEntry", lazy='joined')
