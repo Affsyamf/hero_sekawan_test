@@ -15,6 +15,16 @@ from app.utils.deps import DB
 from app.utils.response import APIResponse
 from app.utils.filters import apply_common_report_filters
 
+from app.utils.product import get_product_avg_cost
+from decimal import Decimal
+
+# helper convert
+def serialize_value(value):
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, Decimal):
+            return float(value)
+        return value
 class ColorKitchenEntryService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
@@ -156,7 +166,16 @@ class ColorKitchenEntryService:
         return APIResponse.ok(data=response)
 
     def create_color_kitchen_entry(self, request: ColorKitchenEntryCreate):
+        # existing = self.db.query(ColorKitchenEntry).filter(
+        #     ColorKitchenEntry.code == request.code
+        # ).first()
+        
+        # if existing:
+        #     raise HTTPException(
+        #         status_code=400, detail=f"CODE CK dengan '{request.code}' sudah ada")
+            
         entry = ColorKitchenEntry(
+            opj_id = request.opj_id,
             code=request.code,
             date=request.date,
             rolls=request.rolls,
@@ -169,16 +188,18 @@ class ColorKitchenEntryService:
 
         if request.details:
             for detail_data in request.details:
+                unit_cost_used = get_product_avg_cost(self.db, detail_data.product_id)
                 detail = ColorKitchenEntryDetail(
                     color_kitchen_entry_id=entry.id,
                     product_id=detail_data.product_id,
-                    quantity=detail_data.quantity
+                    quantity=detail_data.quantity,
+                    unit_cost_used=unit_cost_used
                 )
                 self.db.add(detail)
 
         return APIResponse.created()
 
-    def update_color_kitchen_entry(self, entry_id: int, request: ColorKitchenEntryUpdate):
+    def update_color_kitchen_entry(self, entry_id: int, request: ColorKitchenEntryUpdate, code: str):
         entry = self.db.query(ColorKitchenEntry).filter(ColorKitchenEntry.id == entry_id).first()
         if not entry:
             raise HTTPException(status_code=404, detail=f"Color Kitchen Entry ID '{entry_id}' not found.")
@@ -192,6 +213,10 @@ class ColorKitchenEntryService:
             "batch_id": entry.batch_id,
         }
 
+        if request.opj_id is not None:
+            entry.opj_id = request.opj_id
+            entry.code = code
+        
         if request.code is not None:
             entry.code = request.code
         if request.date is not None:
@@ -211,10 +236,12 @@ class ColorKitchenEntryService:
             ).delete(synchronize_session=False)
 
             for detail_data in request.details:
+                unit_cost_used = get_product_avg_cost(self.db, detail_data.product_id)
                 detail = ColorKitchenEntryDetail(
                     color_kitchen_entry_id=entry_id,
                     product_id=detail_data.product_id,
-                    quantity=detail_data.quantity
+                    quantity=detail_data.quantity,
+                    unit_cost_used=unit_cost_used
                 )
                 self.db.add(detail)
 
@@ -237,15 +264,18 @@ class ColorKitchenEntryService:
 
         return APIResponse.ok(f"Color Kitchen Entry ID '{entry_id}' updated.")
 
+
+    
+    
     def delete_color_kitchen_entry(self, entry_id: int):
         entry = self.db.query(ColorKitchenEntry).filter(ColorKitchenEntry.id == entry_id).first()
         if not entry:
             raise HTTPException(status_code=404, detail=f"Color Kitchen Entry ID '{entry_id}' not found.")
-
+        
+        # agar bisa di jsonkan
         old_data = {
-            key: value
-            for key, value in vars(entry).items()
-            if not key.startswith("_")
+            c.name: serialize_value(getattr(entry, c.name))
+            for c in entry.__table__.columns
         }
 
         AuditLoggerService(self.db).log_delete(
@@ -256,5 +286,6 @@ class ColorKitchenEntryService:
         )
 
         self.db.delete(entry)
+        self.db.commit()
 
         return APIResponse.ok(f"Color Kitchen Entry ID '{entry_id}' deleted.")

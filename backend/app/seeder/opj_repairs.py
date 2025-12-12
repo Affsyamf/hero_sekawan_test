@@ -1,74 +1,23 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from datetime import datetime
-
+from app.services.opj.opj_service import OpjService
 from app.core.database import SessionLocal
 from app.models.color_kitchen import ColorKitchenEntry
-from app.models import Opj, OpjProcessCondition, OpjDetail
-from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
-
-DEFAULT_OPJ_PROCESSES = [
-    ProcessConditionEnum.GREY,
-    ProcessConditionEnum.DYEING,
-    ProcessConditionEnum.PRINTING,
-]
-
-def make_opj_code(ck_code: str) -> str:
-    """
-    Convert '123 - 123' → 'OPJ123-123'
-    """
-    if not ck_code:
-        return None
-
-    # remove spaces
-    cleaned = ck_code.replace(" ", "")
-
-    # ensure consistent format
-    return f"OPJ{cleaned}"
 
 def repair_color_kitchen_missing_opj():
     db = SessionLocal()
 
     try:
-        missing = db.execute(
-            select(ColorKitchenEntry).where(ColorKitchenEntry.opj_id == None)
-        ).scalars().all()
+        service = OpjService(db)
+
+        missing = (
+            db.query(ColorKitchenEntry)
+              .filter(ColorKitchenEntry.opj_id == None)
+              .all()
+        )
 
         print(f"[Startup] Found {len(missing)} entries missing OPJ → repairing...")
-
+        
         for entry in missing:
-
-            # Reuse OPJ if exists
-            opj = db.execute(
-                select(Opj).where(Opj.code == make_opj_code(entry.code))
-            ).scalars().first()
-
-            if not opj:
-                opj = Opj(
-                    code=make_opj_code(entry.code),
-                    date=entry.date or datetime.utcnow(),
-                    process_type=OpjProcessEnum.DISPERSE,
-                    printing_machine=PrintingMachineEnum.ROTARY,
-                    client_id=None,
-                    design_id=entry.design_id,
-                )
-                db.add(opj)
-                db.flush()
-
-                # ADD DEFAULT OPJ PROCESS ROWS (FIXED)
-                for p in DEFAULT_OPJ_PROCESSES:
-                    opj.processes.append(OpjProcessCondition(process_type=p))
-
-                # ADD OPJ DETAIL
-                opj.details.append(
-                    OpjDetail(
-                        roll=entry.rolls,
-                        ground_color="UNKNOWN",
-                        quantity=None
-                    )
-                )
-
-            # Link CK entry → OPJ
+            opj = service.ensure_opj_for_entry(entry)
             entry.opj_id = opj.id
 
         db.commit()

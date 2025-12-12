@@ -21,6 +21,7 @@ from app.utils.normalise import normalise_design_name, normalise_product_name
 from app.utils.safe_parse import safe_str, safe_date, safe_number
 from app.utils.cost_helper import get_avg_cost_for_product
 from app.utils.response import APIResponse
+from app.services.opj.opj_service import OpjService
 
 SKIP_NAMES = {"0.4", "0.5", "0.6", "0.65"}
 
@@ -195,6 +196,11 @@ class ColorKitchenImportService(BaseImportService):
                         unit_cost_used=unit_cost
                     )
                     self.db.add(detail)
+
+                opj_service = OpjService(self.db)
+                # ensure OPJ exists
+                opj = opj_service.ensure_opj_for_entry(entry)
+                entry.opj_id = opj.id
 
         self.db.commit()
 
