@@ -5,55 +5,87 @@ from fastapi.params import Depends
 from sqlalchemy import or_, func, and_
 from sqlalchemy.orm import joinedload
 
-from app.schemas.input_models.color_kitchen_input_models import ColorKitchenEntryCreate, ColorKitchenEntryUpdate
+from app.schemas.input_models.color_kitchen_input_models import ColorKitchenEntryCreate, ColorKitchenEntryUpdate, ColorKitchenEntryFilter
 from app.models.master import Design
 from app.services.common.audit_logger import AuditLoggerService
 from app.core.database import Session, get_db
-from app.models import ColorKitchenEntry, ColorKitchenEntryDetail, ColorKitchenBatch, ColorKitchenBatchDetail
+from app.models import ColorKitchenEntry, ColorKitchenEntryDetail, ColorKitchenBatch, ColorKitchenBatchDetail, Product, Account, AccountParent, Purchasing, PurchasingDetail, Supplier
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
-
+from app.utils.filters import apply_common_report_filters
 
 class ColorKitchenEntryService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_color_kitchen_entry(self, request: ListRequest):
-        entry = self.db.query(
+    def list_color_kitchen_entry(self, request: ListRequest, filters: ColorKitchenEntryFilter):
+        entry_query = self.db.query(
             ColorKitchenEntry,
             func.count(ColorKitchenEntryDetail.id).label("item_count"),
             func.sum(ColorKitchenEntryDetail.quantity).label("total_quantity"),
             func.sum(ColorKitchenEntryDetail.total_cost).label("total_cost")
-        ).outerjoin(ColorKitchenEntry.details)\
-        .outerjoin(ColorKitchenEntry.design)\
-        .outerjoin(ColorKitchenEntry.batch)\
-        .group_by(ColorKitchenEntry.id)
+        )
+        # ).outerjoin(ColorKitchenEntry.details)\
+        # .outerjoin(ColorKitchenEntry.design)\
+        # .outerjoin(ColorKitchenEntry.batch)\
+        # .group_by(ColorKitchenEntry.id)
+        
+        
+        entry_query = entry_query.join(ColorKitchenEntry.details)\
+                                 .join(ColorKitchenEntry.design)\
+                                 .join(ColorKitchenEntry.batch)\
+                                 .join(Product, ColorKitchenEntryDetail.product_id == Product.id)\
+                                 .join(Account, Product.account_id == Account.id)\
+                                 .join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
+                                 .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)\
+                                 .join(Supplier, Purchasing.supplier_id == Supplier.id)
+                                
+        # jaga jaga kalau butuh akun parent
+        if filters.account_parent_ids:
+            entry_query = entry_query.join(AccountParent, Account.parent_id == AccountParent.id)
+            
+        entry_query = entry_query.group_by(ColorKitchenEntry.id, Design.id, ColorKitchenBatch.id)
+        
+        entry_query = apply_common_report_filters(entry_query, filters)
+                                     
+        filter_conditions = []
 
         if request.q:
             like = f"%{request.q}%"
-            entry = entry.filter(
+            filter_conditions.append(
                 or_(
                     ColorKitchenEntry.code.ilike(like),
-                    ColorKitchenEntry.design.has(Design.name.ilike(like))
+                    ColorKitchenEntry.design.has(Design.name.ilike(like)),
+                    Product.name.ilike(like),
+                    Supplier.name.ilike(like),
                 )
             )
             
-        if request.start_date and request.end_date:
-            # try:
-            start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        if filters.start_date:
+            filter_conditions.append(ColorKitchenEntry.date >= filters.start_date[0])
             
-            entry = entry.filter(
-                and_(
-                    ColorKitchenEntry.date >= start,
-                    ColorKitchenEntry.date <= end
-                )
-            )
+        if filters.end_date:
+            filter_conditions.append(ColorKitchenEntry.date <= filters.end_date[0])
             
-        entry = entry.order_by(ColorKitchenEntry.id.desc())
+        if filter_conditions:
+            entry_query = entry_query.filter(and_(*filter_conditions))
+            
+        # if request.start_date and request.end_date:
+        #     # try:
+        #     start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
+        #     end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+            
+        #     entry_query = entry_query.filter(
+        #         and_(
+        #             ColorKitchenEntry.date >= start,
+        #             ColorKitchenEntry.date <= end
+        #         )
+        #     )
+            
+        entry_query = entry_query.order_by(ColorKitchenEntry.id.desc())
 
-        return APIResponse.paginated(entry, request, lambda row: {
+        return APIResponse.paginated(entry_query, request, lambda row: {
             "id": row.ColorKitchenEntry.id,
             "date": row.ColorKitchenEntry.date.isoformat() if row.ColorKitchenEntry.date else None,
             "code": row.ColorKitchenEntry.code,

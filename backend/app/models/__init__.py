@@ -11,11 +11,14 @@ from .stock_movement import *
 from .color_kitchen import *
 from .stock_opname import *
 from .types import *
+from .sales import *
+from .delivery import *
 from .analytics.product_avg_cost import *
 from .cache.product_avg_cost_cache import ProductAvgCostCache
 from .audit import *
 from .mixin.AuditMixin import AuditMixin
 from .mixin.TimestampMixin import TimestampMixin
+from .master import Supplier, Product, Design, Client
 
 __all__ = [
     "Base",
@@ -25,7 +28,7 @@ __all__ = [
     # user.py
     "User", "Role", "Permission", "UserLoginLog",
     # master.py
-    "Supplier", "Product", "Design",
+    "Supplier", "Product", "Design", "Client", 
     # ledger.py
     "Ledger",
     # purchasing.py
@@ -39,6 +42,10 @@ __all__ = [
     "StockOpname", "StockOpnameDetail",
     # types.py
     "Account", "DesignType", "AccountParent",
+    # sales.py
+    "Sale", "Return", "Payment",
+    # delivery.py
+    "Delivery",
     # audit.py
     "AuditColumnLog",
     # product_avg_cost.py

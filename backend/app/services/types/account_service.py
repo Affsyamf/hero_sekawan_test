@@ -2,35 +2,54 @@ from datetime import datetime
 
 from fastapi import HTTPException
 from fastapi.params import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
+from sqlalchemy.orm import joinedload
 
 from app.models.user import User
 from app.dependencies.auth_dependency import AuthDependency
 
-from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate
+from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate, AccountFilter
 from app.core.database import Session, get_db
-from app.models import Account, Product, AccountParent
+from app.models import Account, Product, AccountParent, Purchasing, PurchasingDetail, Supplier
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
-
+from app.utils.filters import apply_common_report_filters
 
 class AccountService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_account(self, request: ListRequest):
-        account = self.db.query(Account).join(Account.parent)
-
+    def list_account(self, request: ListRequest, filters: AccountFilter):
+        account_query = self.db.query(Account).join(Account.parent)
+        
+        account_query = account_query.join(Product, Product.account_id == Account.id)\
+                                     .join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
+                                     .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)\
+                                     .join(Supplier, PurchasingDetail.purchasing_id == Purchasing.id)\
+                    
+        account_query = apply_common_report_filters(account_query, filters)
+        
+        filter_conditions = []
+        
         if request.q:
             like = f"%{request.q}%"
-            account = account.filter(
+            filter_conditions.append(
                 or_(
                     Account.name.ilike(like),
+                    Product.name.ilike(like),
+                    Supplier.name.ilike(like),
                 )
-            ).order_by(Account.id)
+            )
+            
+        if filter_conditions:   
+            account_query = account_query.filter(and_(*filter_conditions))
+            
+        account_query = account_query.group_by(Account.id, AccountParent.id, Supplier.id)
+        
+        account_query = account_query.order_by(Account.id)
 
-        return APIResponse.paginated(account, request, lambda account: {
+        return APIResponse.paginated(account_query, request, lambda account: {
                 "id": account.id,
                 "name": account.name,
                 "account_no": str(account.parent.account_no) if account.parent.account_no else None,

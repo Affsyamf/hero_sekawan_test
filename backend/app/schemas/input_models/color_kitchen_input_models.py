@@ -1,5 +1,5 @@
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
 
@@ -42,6 +42,15 @@ class ColorKitchenEntryDetailUpdate(BaseModel):
     quantity: Optional[Decimal] = None
     product_id: Optional[int] = None
     color_kitchen_entry_id: Optional[int] = None
+    
+    
+class ColorKitchenEntryFilter(BaseModel):
+    start_date: Optional[List[date]] = None
+    end_date: Optional[List[date]] = None
+    account_ids: Optional[List[int]] = None
+    account_parent_ids: Optional[List[int]] = None
+    supplier_ids: Optional[List[int]] = None
+    product_ids: Optional[List[int]] = None
 
 
 # ===============================

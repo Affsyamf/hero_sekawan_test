@@ -1,10 +1,15 @@
 import {
+  CircleDollarSign,
   ClipboardCheck,
+  Database,
   FileBarChart2,
   FlaskConical,
   Package,
+  Shell,
   ShoppingBag,
   ShoppingCart,
+  TestTubeDiagonal,
+  Truck,
 } from "lucide-react";
 
 export const menuItems = [
@@ -37,7 +42,7 @@ export const menuItems = [
 
   {
     label: "Master Data",
-    icon: ShoppingBag,
+    icon: Database,
     children: [
       { label: "Products", path: "/products", perm: "product.read" },
       { label: "Suppliers", path: "/suppliers", perm: "supplier.read" },
@@ -46,7 +51,7 @@ export const menuItems = [
     ],
   },
 
-  { isHeader: true, text: "Transactions" },
+  { isHeader: true, text: "Process" },
 
   {
     label: "Purchasing",
@@ -71,5 +76,31 @@ export const menuItems = [
     icon: ClipboardCheck,
     path: "/stock-opnames",
     perm: "stock_opname.read",
+  },
+
+  { isHeader: true, text: "Sales" },
+  {
+    label: "Sales",
+    icon: CircleDollarSign,
+    path: "/sales",
+    perm: "sales.read",
+  },
+  {
+    label: "Delivery",
+    icon: Truck,
+    path: "/delivery",
+    perm: "delivery.read",
+  },
+  {
+    label: "Perbaikan",
+    icon: Shell,
+    path: "/return",
+    perm: "return.read",
+  },
+  {
+    label: "Test",
+    icon: TestTubeDiagonal,
+    path: "/sampling",
+    perm: "sampling.read",
   },
 ];

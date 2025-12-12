@@ -4,43 +4,55 @@ from datetime import datetime
 from fastapi import HTTPException
 from fastapi.params import Depends
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from sqlalchemy.orm import joinedload
 
-from app.schemas.input_models.master_input_models import ProductCreate, ProductUpdate
+from app.schemas.input_models.master_input_models import ProductCreate, ProductUpdate, ProductFilter
 from app.core.database import Session, get_db
 from app.models import (
     Product, PurchasingDetail, StockMovementDetail, 
     ColorKitchenEntryDetail, Ledger, StockOpnameDetail,
-    Account, ColorKitchenBatch, ColorKitchenBatchDetail
+    Account, ColorKitchenBatch, ColorKitchenBatchDetail,
+    AccountParent, Purchasing
 )
 from app.models.enum.ledger_enum import LedgerLocation
 from app.utils.datatable.request import ListRequest
 from app.utils.deps import DB
 from app.utils.response import APIResponse
+from app.utils.filters import apply_common_report_filters
 
 
 class ProductService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_product(self, request: ListRequest):
+    def list_product(self, request: ListRequest, filters: ProductFilter):
         # === Base product query ===
-        product = (
+        product_query = (
             self.db.query(Product)
             .outerjoin(Account)
             .options(joinedload(Product.account))
+            .join(AccountParent, Account.parent_id == AccountParent.id)
         )
+        
+        supplier_join = filters.supplier_ids is not None and len(filters.supplier_ids) > 0
+        
+        if supplier_join:
+            product_query = product_query.join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
+                                         .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)
+        
+        product_query = apply_common_report_filters(product_query, filters)
 
         # === Filter (search) ===
         if request.q:
             like = f"%{request.q}%"
-            product = product.filter(
+            product_query = product_query.filter(
                 or_(
                     Product.code.ilike(like),
                     Product.name.ilike(like),
                     Product.unit.ilike(like),
                     Account.name.ilike(like),
+                    Purchasing.supplier.name.ilike(like),
                 )
             )
 
@@ -49,9 +61,9 @@ class ProductService:
             sort_col = getattr(Product, request.sort_by)
             if request.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
-            product = product.order_by(sort_col)
+            product_query = product_query.order_by(sort_col)
         else:
-            product = product.order_by(Product.id)
+            product_query = product_query.order_by(Product.id)
 
         # === Subquery: aggregate ledger per product per location ===
         ledger_subq = (
@@ -65,8 +77,8 @@ class ProductService:
         )
 
         # === Join aggregated ledger to product ===
-        product = (
-            product.outerjoin(ledger_subq, ledger_subq.c.product_id == Product.id)
+        product_query = (
+            product_query.outerjoin(ledger_subq, ledger_subq.c.product_id == Product.id)
             .add_columns(
                 ledger_subq.c.stock_qty.label("stock_qty"),
             )
@@ -74,7 +86,7 @@ class ProductService:
 
         # === Paginate using your existing helper ===
         return APIResponse.paginated(
-            product,
+            product_query,
             request,
             lambda row: {
                 "id": row.Product.id,
