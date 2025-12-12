@@ -54,9 +54,6 @@ class SalesReportFilter(BaseReportFilter):
     client_ids: Optional[List[int]] = Field(
         None, description="Filter by list of Client ID"
     )
-    ck_ids: Optional[List[int]] = Field(
-        None, description="Filter by list of CK ID"
-    )
     design_ids: Optional[List[int]] = Field(
         None, description="filter by list of design id (via ck)"
     )

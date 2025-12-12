@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Query, Session
-from app.models import Sale, Client, ColorKitchenEntry, Design
+from app.models import Sale, Client, ColorKitchenEntry, Design, Opj
 from datetime import date, datetime
 from typing import Any
 from decimal import Decimal
@@ -7,9 +7,9 @@ from decimal import Decimal
 
 def sale_joins(query:Query) -> Query:
     return(
-        query.join(Client, Sale.client_id == Client.id)
-             .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)
-             .join(Design, ColorKitchenEntry.design_id == Design.id)
+        query.join(Opj, Sale.opj_id == Opj.id)\
+             .join(Client, Sale.client_id == Client.id)\
+             .join(Design, Opj.design_id == Design.id)
     )
     
 def date_filter(query:Query, start_date: date, end_date: date, model: any) -> Query:

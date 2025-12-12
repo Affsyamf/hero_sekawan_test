@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Query
-from app.models import Product, Purchasing, Account, AccountParent, Design, ColorKitchenEntry, Client, Sale
+from app.models import Product, Purchasing, Account, AccountParent, Design, ColorKitchenEntry, Client, Sale, Opj
 
 def get_field(name, filters):
     return filters.get(name) if isinstance(filters, dict) else getattr(filters, name, None)
@@ -16,6 +16,7 @@ def apply_common_report_filters(query: Query, filters) -> Query:
     ck_ids = get_field("ck_ids", filters)
     client_ids = get_field("client_ids", filters)
     sale_ids = get_field("sale_ids", filters)
+    opj_ids = get_field("opj_ids", filters)
 
     if sale_ids:
         query = query.filter(Sale.id.in_(sale_ids))
@@ -35,8 +36,8 @@ def apply_common_report_filters(query: Query, filters) -> Query:
     if design_ids:
         query = query.filter(Design.id.in_(design_ids))
         
-    if ck_ids:
-        query = query.filter(ColorKitchenEntry.id.in_(ck_ids))
+    if opj_ids:
+        query = query.filter(Opj.id.in_(opj_ids))
         
     if client_ids:
         query = query.filter(Client.id.in_(client_ids))

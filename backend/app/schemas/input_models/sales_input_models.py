@@ -30,16 +30,20 @@ class SalesCreate(BaseModel):
     code: constr(strip_whitespace=True, min_length=3) = Field(..., description="Sales Code")
     quantity_start: int = Field(..., ge=0)
     quantity_end: int = Field(..., ge=0)
-    color_kitchen_id: int
+    opj_id: int = Field(..., description="Order Penjualan (OPJ) ID")
+    ppn: float = Field(0.0, ge=0, description="Pajak Pertambahan Nilai (PPN) percentage")
     client_id: int
+    # color_kitchen_id: int
     
 class SalesUpdate(BaseModel):
     date: Optional[date]
     code: Optional[constr(strip_whitespace=True, min_length=3)]
     quantity_start: Optional[int] = Field(..., ge=0)
     quantity_end: Optional[int] = Field(..., ge=0)
-    color_kitchen_id: Optional[int]
+    opj_id: Optional[int]
+    ppn: Optional[float] = Field(None, ge=0)
     client_id: Optional[int]
+    # color_kitchen_id: Optional[int]
     
 
 class SalesResponse(BaseModel):
@@ -49,18 +53,18 @@ class SalesResponse(BaseModel):
     quantity_start: int
     quantity_end: int
     client_id: int
-    color_kitchen_id: int
-
+    opj_id: int
+    ppn: float
+    
 
 class SalesFilter(BaseModel):
     start_date: Optional[List[date]] = None
     end_date: Optional[List[date]] = None
+    opj_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
-    ck_ids: Optional[List[int]] = None
     design_ids: Optional[List[int]] = None
+    sale_ids: Optional[Union[int, List[int]]] = None
     
-
-
 
 class ReturnCreate(BaseModel):
     date: date
@@ -91,4 +95,4 @@ class ReturnFilter(BaseModel):
     end_date: Optional[List[date]] = None
     product_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
-    ck_ids: Optional[List[int]] = None
+    # ck_ids: Optional[List[int]] = None

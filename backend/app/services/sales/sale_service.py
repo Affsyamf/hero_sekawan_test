@@ -3,7 +3,7 @@ from sqlalchemy import or_, and_
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models import Sale, Client, ColorKitchenEntry, Design
+from app.models import Sale, Client, Design, Opj
 from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate, SalesFilter
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
@@ -32,22 +32,22 @@ class SalesService:
                 else:
                     return APIResponse.not_found(message=f"Client ID '{request.client_id}' not found.")
             
-            active_ck_entry = self.db.query(ColorKitchenEntry).filter(
-                ColorKitchenEntry.id == request.color_kitchen_id,
-                ColorKitchenEntry.deleted_at.is_(None)
+            active_opj_entry = self.db.query(Opj).filter(
+                Opj.id == request.opj_id,
+                Opj.deleted_at.is_(None)
             ).first()
             
-            if not active_ck_entry:
-                deleted_ck_entry = self.db.query(ColorKitchenEntry).filter(ColorKitchenEntry.id == request.color_kitchen_id).first()
+            if not active_opj_entry:
+                deleted_opj_entry = self.db.query(Opj).filter(Opj.id == request.opj_id).first()
                 
-                if deleted_ck_entry and deleted_ck_entry.deleted_at is not None:
+                if deleted_opj_entry and deleted_opj_entry.deleted_at is not None:
                     return APIResponse.error(
                         status_code = status.HTTP_400_BAD_REQUEST,
-                        message=f"Color Kitchen ID '{request.color_kitchen_id}' has been deleted."
+                        message=f"OPJ ID '{request.opj_id}' has been deleted."
                     )
                     
                 else:
-                    return APIResponse.not_found(message=f"Color Kitchen '{request.color_kitchen_id}' not found.")
+                    return APIResponse.not_found(message=f"OPJ '{request.opj_id}' not found.")
             
             
             existing = self.db.query(Sale).filter(Sale.code == request.code).first()
@@ -66,7 +66,8 @@ class SalesService:
                 "quantity_start": float(sale.quantity_start),
                 "quantity_end": float(sale.quantity_end),
                 "client_id": sale.client_id,
-                "color_kitchen_id": sale.color_kitchen_id,
+                "opj_id": sale.opj_id,
+                "ppn": float(sale.ppn)
             })
         
         except HTTPException as e:
@@ -79,9 +80,9 @@ class SalesService:
     def list_sale(self, request: ListRequest, filters: SalesFilter):
         sale_query = self.db.query(Sale)
         
-        sale_query = sale_query.join(Client, Sale.client_id == Client.id)\
-                               .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
-                               .join(Design, ColorKitchenEntry.design_id == Design.id)
+        sale_query = sale_query.join(Opj, Sale.opj_id == Opj.id)\
+                               .join(Client, Sale.client_id == Client.id)\
+                               .join(Design, Opj.design_id == Design.id)
         
         sale_query = apply_common_report_filters(sale_query, filters)
         
@@ -102,6 +103,10 @@ class SalesService:
             
         if filters.end_date:
             filter_conditions.append(Sale.date <= filters.end_date[0])
+    
+        opj_ids = getattr(filters, 'opj_ids', None)
+        if opj_ids and isinstance(opj_ids, list):
+            filter_conditions.append(Sale.opj_id.in_(opj_ids))
                 
         if filter_conditions:
             sale_query = sale_query.filter(and_(*filter_conditions))
@@ -116,8 +121,11 @@ class SalesService:
                 "quantity_start": float(sale.quantity_start),
                 "quantity_end": float(sale.quantity_end),
                 "client_id": sale.client_id,
-                "color_kitchen_id": sale.color_kitchen_id,
-                "client_name": sale.client.name if sale.client else None
+                "opj_id": sale.opj_id,
+                "ppn": float(sale.ppn),
+                "client_name": sale.client.name if sale.client else None,
+                "opj_code": sale.opj.code if sale.opj else None,
+                "design_code": sale.opj.design.code if sale.opj and sale.opj.design else None
             }
         )
         
@@ -136,7 +144,8 @@ class SalesService:
             "quantity_start": float(sale.quantity_start),
             "quantity_end": float(sale.quantity_end),
             "client_id": sale.client_id,
-            "color_kitchen_id": sale.color_kitchen_id,
+            "opj_id": sale.opj_id,
+            "ppn":float (sale.ppn),
         })
         
         
@@ -167,24 +176,24 @@ class SalesService:
                 else:
                     return APIResponse.not_found(message=f"Client ID '{client_id_to_check}' not found.")
         
-        if "color_kitchen_id" in update_data:
-            ck_id_to_check = update_data["color_kitchen_id"]
-            active_ck_entry = self.db.query(ColorKitchenEntry).filter(
-                ColorKitchenEntry.id == ck_id_to_check,
-                ColorKitchenEntry.deleted_at.is_(None)
+        if "opj_id" in update_data:
+            opj_id_to_check = update_data["opj_id"]
+            active_opj_entry = self.db.query(Opj).filter(
+                Opj.id == opj_id_to_check,
+                Opj.deleted_at.is_(None)
             ).first()
             
-            if not active_ck_entry:
-                deleted_ck_entry = self.db.query(ColorKitchenEntry).filter(ColorKitchenEntry.id == ck_id_to_check).first()
+            if not active_opj_entry:
+                deleted_opj_entry = self.db.query(Opj).filter(Opj.id == opj_id_to_check).first()
                 
-                if deleted_ck_entry and deleted_ck_entry.deleted_at is not None:
+                if deleted_opj_entry and deleted_opj_entry.deleted_at is not None:
                     return APIResponse.error(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        message=f"Color Kitchen '{ck_id_to_check} has been deleted'"
+                        message=f"Color Kitchen '{opj_id_to_check} has been deleted'"
                     )
                     
                 else:
-                    return APIResponse.not_found(message=f"Color Kitchen ID '{ck_id_to_check}' not found.")
+                    return APIResponse.not_found(message=f"Color Kitchen ID '{opj_id_to_check}' not found.")
         
         
         if "code" in update_data:
