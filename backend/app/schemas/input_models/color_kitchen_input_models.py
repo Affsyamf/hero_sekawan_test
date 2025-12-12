@@ -36,20 +36,21 @@ class ColorKitchenBatchUpdate(BaseModel):
 class ColorKitchenEntryDetailCreate(BaseModel):
     quantity: Decimal
     product_id: int
-    color_kitchen_entry_id: int
+    # color_kitchen_entry_id: int
 
 class ColorKitchenEntryDetailUpdate(BaseModel):
     quantity: Optional[Decimal] = None
     product_id: Optional[int] = None
-    color_kitchen_entry_id: Optional[int] = None
+    # color_kitchen_entry_id: Optional[int] = None
 
 
 # ===============================
 # 4️⃣ ColorKitchenEntry
 # ===============================
 class ColorKitchenEntryCreate(BaseModel):
+    opj_id: int
     date: Optional[datetime] = None
-    code: str
+    code: Optional [str] = None
     rolls: Optional[int] = None
     paste_quantity: Decimal
     design_id: int
@@ -57,6 +58,7 @@ class ColorKitchenEntryCreate(BaseModel):
     details: Optional[list[ColorKitchenEntryDetailCreate]] = None
 
 class ColorKitchenEntryUpdate(BaseModel):
+    opj_id: Optional[int] = None
     date: Optional[datetime] = None
     code: Optional[str] = None
     rolls: Optional[int] = None
