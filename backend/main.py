@@ -39,6 +39,7 @@ from app.routers.delivery.routes import delivery_router
 from app.routers.sales.routes import sales_router
 from app.routers.payment.routes import payment_router
 from app.routers.returns.routes import returns_router
+from app.routers.opj.routes import opj_router
 
 from app.routers.imports.routes import excel_import_router
 from app.routers.import_lap_pembelian.routes import import_lap_pembelian_router
@@ -51,6 +52,9 @@ async def lifespan(app: FastAPI):
     
     from app.seeder.rbac_seeder import run
     run()   # <-- safe because DB session is sync
+
+    from app.seeder.opj_repairs import repair_color_kitchen_missing_opj
+    repair_color_kitchen_missing_opj()
 
     yield   # required or FastAPI won't start
 
@@ -137,7 +141,7 @@ app.include_router(delivery_router)
 app.include_router(sales_router)
 app.include_router(payment_router)
 app.include_router(returns_router)
-
+app.include_router(opj_router)
 
 app.include_router(purchasing_router)
 app.include_router(color_kitchen_batch_router)
