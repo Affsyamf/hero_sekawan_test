@@ -1,21 +1,25 @@
 from fastapi import Depends
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from fastapi import HTTPException
 
 from app.core.database import get_db
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
+from app.utils.filters import apply_common_report_filters
 
 from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design, ColorKitchenEntry
 from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
-from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse
+from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse, OpjFilter
 
 DEFAULT_OPJ_PROCESSES = [
     ProcessConditionEnum.GREY,
     ProcessConditionEnum.DYEING,
     ProcessConditionEnum.PRINTING,
 ]
+
+VALID_PRINTING_MACHINES = {'ROTARY', 'FLAT'}
+VALID_PROCESSES_TYPES = {'DISPERSE', 'REACTIVE', 'PIGMENT'}
 
 def make_opj_code(ck_code: str) -> str:
     """
@@ -80,9 +84,14 @@ class OpjService:
             return APIResponse.error(message=str(e))
 
     # LIST
-    def list_opj(self, request: ListRequest):
+    def list_opj(self, request: ListRequest, filters: OpjFilter):
         query = self.db.query(Opj)
 
+        query = query.join(Design, Opj.design_id == Design.id) 
+        query = apply_common_report_filters(query, filters)
+        
+        filter_conditions = []
+        
         if request.q:
             like = f"%{request.q}%"
             query = query.filter(
@@ -92,6 +101,44 @@ class OpjService:
                 )
             )
 
+        if filters.start_date:
+            filter_conditions.append(Opj.date >= filters.start_date[0])
+            
+        if filters.end_date:
+            filter_conditions.append(Opj.date <= filters.end_date[0])
+
+        if filters.printing_machine:
+            #  filter TYPO
+            validated_machines = [
+                m for m in filters.printing_machine 
+                if m in VALID_PRINTING_MACHINES
+            ]
+            
+            if validated_machines:
+                # Gunakan nilai UPPERCASE langsung
+                filter_conditions.append(Opj.printing_machine.in_(validated_machines))
+            else:
+                # Jika semua input tidak valid (typo), kembalikan kosong (anti-crash)
+                filter_conditions.append(False)
+            
+        if filters.processes_type:
+            # filter TYPO.
+            validated_processes = [
+                p for p in filters.processes_type
+                if p in VALID_PROCESSES_TYPES
+            ]
+            
+            if validated_processes:
+                # Gunakan nilai UPPERCASE langsung
+                filter_conditions.append(Opj.process_type.in_(validated_processes)) 
+            else:
+                 # jika semua input tidak valid (typo), kembalikan kosong (anti-crash)
+                filter_conditions.append(False)
+        
+        if filter_conditions:
+            query = query.filter(and_(*filter_conditions))
+                
+   
         return APIResponse.paginated(
             query, request, lambda opj: {
                 "id": opj.id,
@@ -99,6 +146,8 @@ class OpjService:
                 "date": opj.date.isoformat(),
                 "client_id": opj.client_id,
                 "design_id": opj.design_id,
+                "printing_machine": opj.printing_machine,
+                "process_type": opj.process_type,
             }
         )
 

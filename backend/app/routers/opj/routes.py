@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.schemas.input_models.opj_input_models import (
-    OpjCreate, OpjUpdate, OpjResponse
+    OpjCreate, OpjUpdate, OpjResponse, OpjFilter
 )
 from app.services.opj.opj_service import OpjService
 from app.utils.datatable.request import ListRequest
@@ -14,9 +14,13 @@ opj_router = APIRouter(
     dependencies=[require_user()]
 )
 
-@opj_router.get("/search")
-def search_opj(request: ListRequest = Depends(), service: OpjService = Depends()):
-    return service.list_opj(request)
+@opj_router.post("/search", response_model=OpjResponse)
+def search_opj(filters: OpjFilter, request: ListRequest = Depends(), service: OpjService = Depends()):
+    return service.list_opj(request=request, filters=filters)
+
+# @opj_router.get("/search")
+# def search_opj(request: ListRequest = Depends(), service: OpjService = Depends()):
+#     return service.list_opj(request)
 
 @opj_router.get("/{opj_id}", response_model=OpjResponse)
 def get_opj(opj_id: int, service: OpjService = Depends()):
