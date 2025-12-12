@@ -3,7 +3,7 @@ from sqlalchemy import or_, and_
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models import Sale, Client, Design, Opj
+from app.models import Sale, Client, Design, Opj, ColorKitchenEntry
 from app.schemas.input_models.sales_input_models import SalesCreate, SalesUpdate, SalesFilter
 from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
@@ -82,6 +82,7 @@ class SalesService:
         
         sale_query = sale_query.join(Opj, Sale.opj_id == Opj.id)\
                                .join(Client, Sale.client_id == Client.id)\
+                               .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
                                .join(Design, Opj.design_id == Design.id)
         
         sale_query = apply_common_report_filters(sale_query, filters)
@@ -104,9 +105,11 @@ class SalesService:
         if filters.end_date:
             filter_conditions.append(Sale.date <= filters.end_date[0])
     
-        opj_ids = getattr(filters, 'opj_ids', None)
-        if opj_ids and isinstance(opj_ids, list):
-            filter_conditions.append(Sale.opj_id.in_(opj_ids))
+        if filters.opj_ids:
+            filter_conditions.append(Sale.opj_id.in_(filters.opj_ids))
+            
+        if filters.ck_ids:
+            filter_conditions.append(ColorKitchenEntry.id.in_(filters.ck_ids))
                 
         if filter_conditions:
             sale_query = sale_query.filter(and_(*filter_conditions))
@@ -125,6 +128,7 @@ class SalesService:
                 "ppn": float(sale.ppn),
                 "client_name": sale.client.name if sale.client else None,
                 "opj_code": sale.opj.code if sale.opj else None,
+                "color_kitchen_id":filters.ck_ids[0] if filters.ck_ids else None,
                 "design_code": sale.opj.design.code if sale.opj and sale.opj.design else None
             }
         )

@@ -39,6 +39,8 @@ def apply_common_report_filters(query: Query, filters) -> Query:
     if opj_ids:
         query = query.filter(Opj.id.in_(opj_ids))
         
+    if ck_ids:
+        query = query.filter(ColorKitchenEntry.id.in_(ck_ids))
     if client_ids:
         query = query.filter(Client.id.in_(client_ids))
         

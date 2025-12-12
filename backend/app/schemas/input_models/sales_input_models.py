@@ -64,25 +64,30 @@ class SalesFilter(BaseModel):
     client_ids: Optional[List[int]] = None
     design_ids: Optional[List[int]] = None
     sale_ids: Optional[Union[int, List[int]]] = None
+    ck_ids: Optional[List[int]] = None
     
 
 class ReturnCreate(BaseModel):
     date: date
     quantity: int = Field(ge=1)
     sale_id: int 
+    opj_id: Optional[int]
+    code: Optional[str] = None
     
 class ReturnUpdate(BaseModel):
     date: Optional[date] 
     quantity: Optional[int] = Field(None, ge=1)
     sale_id: Optional[int] 
-    
+    opj_id: Optional[int]
+    code: Optional[str] = None
     
 class ReturnResponse(BaseModel):
     id: int
     date: datetime
     quantity: Decimal
     sale_id: int
-
+    code: str 
+    opj_id: Optional[int] = None
     class Config:
         from_attributes = True
         json_encoders = {
@@ -95,4 +100,5 @@ class ReturnFilter(BaseModel):
     end_date: Optional[List[date]] = None
     product_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
-    # ck_ids: Optional[List[int]] = None
+    ck_ids: Optional[List[int]] = None
+    # opj_ids: Optional[List[int]] = None
