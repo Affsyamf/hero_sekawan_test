@@ -8,6 +8,7 @@ from decimal import Decimal
 def sale_joins(query:Query) -> Query:
     return(
         query.join(Opj, Sale.opj_id == Opj.id)\
+             .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id )\
              .join(Client, Sale.client_id == Client.id)\
              .join(Design, Opj.design_id == Design.id)
     )
