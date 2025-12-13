@@ -20,6 +20,7 @@ class Delivery(Base, AuditMixin):
     date = Column(DateTime, default=datetime.utcnow)
     code = Column(String, nullable=True)  # NO SJ
     quantity = Column(Numeric(18, 2), nullable=False)
+    roll = Column(Numeric(18, 2), nullable=False)
 
     # FK to Sale OR Return (exclusive)
     sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
