@@ -36,6 +36,9 @@ bcrypt==4.2.0
 # Production server
 gunicorn
 
+# Caching for uploads
+cachetools==6.2.3
+
 # Optional (kalau nanti butuh autentikasi JWT)
 # python-jose==3.3.0
 # passlib[bcrypt]==1.7.4
