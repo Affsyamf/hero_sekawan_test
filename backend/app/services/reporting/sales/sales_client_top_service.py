@@ -38,6 +38,8 @@ class SalesClientTopService(BaseReportService):
         ).select_from(Sale)\
          .filter(Sale.deleted_at.is_(None))
          
+        
+        top_query = top_query.filter(Sale.opj_id.isnot(None)) 
         top_query = sale_joins(top_query)
         
         top_query = date_filter(top_query, start_date, end_date, Sale)
