@@ -1,30 +1,18 @@
-from typing import Optional, List
-from datetime import date
+from typing import Optional
 from pydantic import BaseModel, validator, field_validator, model_validator
 
-class UniversalFilters(BaseModel):
-    start_date: Optional[List[date]] = None
-    end_date: Optional[List[date]] = None
-
-    client_ids: Optional[List[int]] = None
-    ck_ids: Optional[List[int]] = None
-    design_ids: Optional[List[int]] = None
-    supplier_ids: Optional[List[int]] = None
-    product_ids: Optional[List[int]] = None
-    account_ids: Optional[List[int]] = None
-    account_parent_ids: Optional[List[int]] = None
-    category: Optional[str] = None
 
 class ListRequest(BaseModel):
     page: Optional[int] = 1
     page_size: Optional[int] = 10
     q: Optional[str] = None
+    require_filter: Optional[bool] = False  # opsional, default False
+    
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     
     sort_by: Optional[str] = None
     sort_dir: Optional[str] = None
-    
-    # UNIVERSAL FILTER (Opsional, bisa tidak dipakai tiap modul)
-    filters: UniversalFilters = UniversalFilters()
     
     @field_validator("page")
     @classmethod
@@ -45,8 +33,8 @@ class ListRequest(BaseModel):
         return (self.q or "").strip()
 
     # ✅ Model validator untuk cek filter wajib
-    # @model_validator(mode="after")
-    # def check_required_filter(self):
-    #     if self.require_filter and not self.q:
-    #         raise ValueError("Filter is required but missing")
-    #     return self
+    @model_validator(mode="after")
+    def check_required_filter(self):
+        if self.require_filter and not self.q:
+            raise ValueError("Filter is required but missing")
+        return self

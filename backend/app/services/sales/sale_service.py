@@ -67,7 +67,8 @@ class SalesService:
                 "quantity_end": float(sale.quantity_end),
                 "client_id": sale.client_id,
                 "opj_id": sale.opj_id,
-                "ppn": float(sale.ppn)
+                "ppn": float(sale.ppn),
+                "discount": float(sale.discount)
             })
         
         except HTTPException as e:
