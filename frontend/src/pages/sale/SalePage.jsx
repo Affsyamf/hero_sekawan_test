@@ -13,6 +13,7 @@ import {
 import { formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
+import OpjFilter from "../../components/ui/filter/OpjFilter";
 
 export default function SalePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,6 +41,11 @@ export default function SalePage() {
         value={filters.design_ids || []}
         onChange={(v) => setFilter("design_ids", v)}
       />,
+      <OpjFilter
+        key="design-filter"
+        value={filters.opj_ids || []}
+        onChange={(v) => setFilter("opj_ids", v)}
+      />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
@@ -47,32 +53,28 @@ export default function SalePage() {
     async (params) => {
       try {
         const queryParams = { ...params };
-
-        // Build filters object
         const filtersPayload = {};
 
-        // Add date range filters
+        // Date filter (ALWAYS array)
         if (dateRange?.dateFrom && dateRange?.dateTo) {
           filtersPayload.start_date = [dateRange.dateFrom];
           filtersPayload.end_date = [dateRange.dateTo];
         }
 
-        // Add client_ids filter
-        if (filters.client_ids?.length) {
-          filtersPayload.client_ids = filters.client_ids;
-        }
+        // Dynamic multi-select filters
+        const mapping = {
+          client_ids: filters.client_ids,
+          ck_ids: filters.ck_ids,
+          design_ids: filters.design_ids,
+          opj_ids: filters.opj_ids,
+        };
 
-        // Add ck_ids filter
-        if (filters.ck_ids?.length) {
-          filtersPayload.ck_ids = filters.ck_ids;
-        }
+        Object.entries(mapping).forEach(([key, value]) => {
+          if (value?.length) {
+            filtersPayload[key] = value;
+          }
+        });
 
-        // Add design_ids filter
-        if (filters.design_ids?.length) {
-          filtersPayload.design_ids = filters.design_ids;
-        }
-
-        // Only add filters to params if there are any
         if (Object.keys(filtersPayload).length > 0) {
           queryParams.filters = filtersPayload;
         }

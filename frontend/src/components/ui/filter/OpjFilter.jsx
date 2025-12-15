@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "../../../utils/cn";
-import { searchColorKitchen } from "../../../services/color_kitchen_service";
+import { searchOpj } from "../../../services/opj_service";
 import { useTheme } from "../../../contexts/ThemeContext";
 
-export default function ColorKitchenFilter({ value = [], onChange }) {
+export default function OpjFilter({ value = [], onChange }) {
   const { colors } = useTheme();
 
-  const [colorKitchens, setColorKitchens] = useState([]);
+  const [opjs, setOpjs] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,14 +15,14 @@ export default function ColorKitchenFilter({ value = [], onChange }) {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await searchColorKitchen({
+        const res = await searchOpj({
           q: search,
           page: 1,
           page_size: 100,
         });
-        setColorKitchens(res.data.data || []);
+        setOpjs(res.data.data || []);
       } catch (err) {
-        console.error("Failed to load color kitchens", err);
+        console.error("Failed to load opjs", err);
       } finally {
         setLoading(false);
       }
@@ -39,14 +39,14 @@ export default function ColorKitchenFilter({ value = [], onChange }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-semibold text-gray-800">Color Kitchen</h3>
+      <h3 className="mb-2 text-sm font-semibold text-gray-800">Opjs</h3>
 
       {/* Search bar */}
       <div className="relative mb-3">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search color kitchen..."
+          placeholder="Search opjs..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-8 pr-2 py-1.5 w-full text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -63,24 +63,24 @@ export default function ColorKitchenFilter({ value = [], onChange }) {
           borderColor: colors.border.secondary,
         }}
       >
-        {colorKitchens.length === 0 && !loading ? (
+        {opjs.length === 0 && !loading ? (
           <div className="p-2 text-xs italic text-gray-500">
-            No color kitchens found
+            No opjs found
           </div>
         ) : (
-          colorKitchens.map((ck) => (
+          opjs.map((c) => (
             <label
-              key={ck.id}
+              key={c.id}
               className="flex items-center gap-2 p-2 text-xs cursor-pointer hover:bg-gray-100"
-              title={ck.code}
+              title={c.code}
             >
               <input
                 type="checkbox"
-                checked={value.includes(ck.id)}
-                onChange={() => toggle(ck.id)}
+                checked={value.includes(c.id)}
+                onChange={() => toggle(c.id)}
                 className="flex-shrink-0 accent-blue-600"
               />
-              <span className="text-gray-700 truncate">{ck.code}</span>
+              <span className="text-gray-700 truncate">{c.code}</span>
             </label>
           ))
         )}
@@ -89,7 +89,7 @@ export default function ColorKitchenFilter({ value = [], onChange }) {
       {/* Selected count */}
       {value.length > 0 && (
         <p className="text-[11px] text-gray-500 mt-1.5">
-          {value.length} color kitchen{value.length > 1 ? "s" : ""} selected
+          {value.length} opj{value.length > 1 ? "s" : ""} selected
         </p>
       )}
     </div>
