@@ -24,26 +24,20 @@ class LapChemicalImportService(BaseImportService):
     def __init__(self, db: DB):
         super().__init__(db)
 
-    def _run(self, file: UploadFile):
-        contents: bytes = file.file.read()
-
-        df = pd.read_excel(
-            BytesIO(contents),
-            sheet_name="CHEMICAL",
-            header=4
-        )
-        df = df.iloc[:, :-2]  # drop trailing junk cols
+    def _run(self, preview_id: str):
+        payload = self.consume_preview(preview_id)
+        rows = payload["rows"]
 
         inserted = {"movements": 0, "details": 0, "skipped": 0, "errors": []}
         movements_map = {}  # (code, date) -> StockMovement
 
-        for idx, row in df.iterrows():
+        for idx, row in enumerate(rows):
             excel_row = idx + 5  # offset since header=4
 
-            code = safe_str(row.get("NOBUKTI"))
-            tanggal = safe_date(row.get("TANGGAL"))
-            qty = safe_number(row.get("QTY"))
-            nama_brg = safe_str(row.get("NAMABRG"))
+            code = row["code"]
+            tanggal = row["date"]
+            qty = row["quantity"]
+            nama_brg = product["product_name"]
 
             # --- Required fields check ---
             if not code or not tanggal or qty is None or not nama_brg:
@@ -109,6 +103,7 @@ class LapChemicalImportService(BaseImportService):
         df = df.iloc[:, :-2]
 
         summary = {
+            "preview_id": 0,
             "total_rows": len(df),
             "valid_rows": 0,
             "skipped": 0,
@@ -117,6 +112,7 @@ class LapChemicalImportService(BaseImportService):
         }
 
         movements_map = defaultdict(lambda: {"date": None, "code": None, "details": []})
+        parsed_rows = []
 
         for idx, row in df.iterrows():
             excel_row = idx + 5
@@ -148,6 +144,14 @@ class LapChemicalImportService(BaseImportService):
                 summary["skipped"] += 1
                 continue
 
+            parsed_rows.append({
+                "code": code,
+                "date": tanggal,
+                "product_name": product.name,
+                "quantity": qty,
+                "unit_cost": unit_cost
+            })
+
             key = (code, tanggal)
             if movements_map[key]["code"] is None:
                 movements_map[key]["code"] = code
@@ -170,6 +174,11 @@ class LapChemicalImportService(BaseImportService):
 
         summary["movements"] = movements
         summary["total_movements"] = len(movements)
+
+        preview_id = self.create_preview({
+            "rows": parsed_rows
+        })
+        summary["preview_id"] = preview_id
 
         return APIResponse.ok(data=summary)
     

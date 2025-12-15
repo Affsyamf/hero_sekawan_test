@@ -35,18 +35,14 @@ class OpeningBalanceImportService(BaseImportService):
             self.db.commit()
         return supplier
 
-    def _run(self, file: UploadFile):
-        contents: bytes = file.file.read()
+    def _run(self, preview_id: str):
+        payload = self.consume_preview(preview_id)
+        rows = payload["rows"]
 
         system_supplier = self.get_or_create_system_supplier()
-    
-        # Load Excel
-        xls = pd.ExcelFile(BytesIO(contents))
-        start_date = datetime(2025,7,31)
-        
-        df = pd.read_excel(xls, sheet_name="GUDANG BESAR", header=4)
-        df = df[df["NO"].notna()]
-        
+
+        start_date = datetime(2025, 7, 31)
+
         purchasing = Purchasing(
             date=start_date,
             code="OPENBAL-" + start_date.strftime("%Y%m%d"),
@@ -55,43 +51,38 @@ class OpeningBalanceImportService(BaseImportService):
         )
         self.db.add(purchasing)
         self.db.flush()
-        
+
         skipped = 0
         skipped_products = []
         added = 0
         affected_products = set()
-        
-        for _, row in df.iterrows():
-            prod_name = safe_str(normalise_product_name(row.get("NAMA BARANG")))
-            if prod_name is None:
-                continue
+
+        for row in rows:
+            prod_name = row["product"]
 
             product = self.db.query(Product).filter_by(name=prod_name).first()
             if not product:
-                print(f"⚠️ Product not found: {prod_name}, skipping")
                 skipped += 1
-                skipped_products.append({"name": prod_name, "reason": "Product not found"})
+                skipped_products.append({
+                    "name": prod_name,
+                    "reason": "Product not found"
+                })
                 continue
 
-            init_qty = safe_number(row.get("SALDO AWAL"))
+            init_qty = row["quantity"]
+            unit_price = row["unit_price"]
 
-            price = safe_number(row.get("JUMLAH SALDO AWAL + PPN"))
-            if price is None or price == 0:
-                tmp_price = safe_number(row.get("JUMLAH FISIK"))
-                end_qty = safe_number(row.get("FISIK"))
-                unit_price = tmp_price / end_qty if end_qty != 0 else 0
-            else:
-                price = price / init_qty
-                unit_price = price / 1.11  # remove PPN
-
-            if init_qty is None or init_qty == 0:
+            if not init_qty or init_qty == 0:
                 skipped += 1
-                skipped_products.append({ "name": prod_name, "reason": "Saldo awal kosong"})
+                skipped_products.append({
+                    "name": prod_name,
+                    "reason": "Saldo awal kosong"
+                })
                 continue
 
             dpp = unit_price * init_qty
             ppn = unit_price * 0.11
-            
+
             detail = PurchasingDetail(
                 product=product,
                 purchasing=purchasing,
@@ -105,6 +96,7 @@ class OpeningBalanceImportService(BaseImportService):
                 exchange_rate=0.0,
             )
             self.db.add(detail)
+
             affected_products.add(product.id)
             added += 1
 
@@ -113,17 +105,14 @@ class OpeningBalanceImportService(BaseImportService):
         if affected_products:
             update_avg_cost_for_products(self.db.connection(), list(affected_products))
 
-        # refresh_product_avg_cost(self.db)
-        
-
-        return APIResponse.ok(
+        return APIResponse.created(
             data={
+                "added": added,
                 "skipped": skipped,
                 "skipped_products": skipped_products,
-                "added": added
             }
         )
-    
+
     def preview(self, file: UploadFile):
         contents: bytes = file.file.read()
         xls = pd.ExcelFile(BytesIO(contents))
@@ -135,6 +124,8 @@ class OpeningBalanceImportService(BaseImportService):
         preview_rows = []
         skipped_products = []
         added = 0
+
+        preview_rows_flat = []
 
         for _, row in df.iterrows():
             prod_name = safe_str(normalise_product_name(row.get("NAMA BARANG")))
@@ -176,8 +167,19 @@ class OpeningBalanceImportService(BaseImportService):
                 "total": round(dpp + ppn, 2),
             })
 
+            preview_rows_flat.append({
+                "product": prod_name,
+                "quantity": init_qty,
+                "unit_price": unit_price,
+            })
+            
+        preview_id = self.create_preview({
+            "rows": preview_rows_flat
+        })
+
         return APIResponse.ok(
             data={
+                "preview_id": preview_id,
                 "summary": {
                     "total_rows": len(df),
                     "valid_products": added,

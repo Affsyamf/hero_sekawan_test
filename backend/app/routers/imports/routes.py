@@ -12,6 +12,7 @@ from app.services.imports import (
     MasterDataLapCkImportService,
     MasterDataLapChemicalImportService, 
     MasterDataLapPembelianImportService,
+    SalesImportService,
 )
 from app.dependencies.rbac import require_user
 
@@ -22,18 +23,15 @@ def make_import_routes(path: str, service_cls: Type[Any]):
     # --- Actual import route ---
     @excel_import_router.post(path)
     async def import_file(
-        file: UploadFile = File(...),
+        preview_id: str,
         service: Any = Depends(service_cls),
     ):
-        name = (file.filename or "").lower()
-        if not name.endswith(".xlsx"):
-            raise HTTPException(status_code=400, detail="Please upload an .xlsx file")
-
         try:
             if inspect.iscoroutinefunction(service._run):
-                return await service._run(file)
+                return await service._run(preview_id)
             else:
-                return service._run(file)
+                return service._run(preview_id)
+
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
         except Exception as e:
@@ -72,6 +70,7 @@ routes_map = {
     "/lap-ck": ColorKitchenImportService,
     "/opening-balance": OpeningBalanceImportService,
     "/stock-opname-chemical": StockOpnameChemicalImportService,
+    "/sales": SalesImportService,
 
     # Master Data imports
     "/master-data/lap-chemical": MasterDataLapChemicalImportService,

@@ -167,9 +167,14 @@ class ColorKitchenImportService(BaseImportService):
                     continue
 
                 design = self.db.query(Design).filter_by(code=normalise_design_name(e["design"])).first()
+
                 if not design:
-                    # print(f"⚠️ Skipping entry with no matching design: {e['design']}")
-                    continue
+                    design = Design(
+                        code=normalise_design_name(e["design"]),
+                        name=e["design"]
+                    )
+                    self.db.add(design)
+                    self.db.flush()
 
                 entry = ColorKitchenEntry(
                     code=e["code"],
@@ -206,98 +211,11 @@ class ColorKitchenImportService(BaseImportService):
 
         return {"missing_products": parsed, "missing_designs": []}
 
-    async def _run(self, file: UploadFile):
-        contents: bytes = file.file.read()
-    
-        df, meta = self.read_excel(contents)
-        parent_cols = ["OPJ", "DESIGN", "JENIS KAIN", "ROLL", "TGL"]
+    async def _run(self, preview_id: str):
+        payload = self.consume_preview(preview_id)
+        rows = payload["rows"]
 
-        batches = []
-        current_batch = None
-        batch_agg = {}
-        skipped_rows = []
-        
-        # Group metadata by product_name → merge duplicates
-        grouped_meta = defaultdict(list)
-        for m in meta:
-            grouped_meta[m["product_name"]].append(m)
-
-        def finalize_batch():
-            nonlocal current_batch, batch_agg
-            if current_batch:
-                current_batch["details"] = [
-                    {"product_name": p, "quantity": qty}
-                    for p, qty in batch_agg.items() if qty and qty != 0
-                ]
-                batches.append(current_batch)
-            current_batch = None
-            batch_agg = {}
-
-        for r_idx, row in df.iterrows():
-            opj         = safe_str(row.get("OPJ"))
-            design_name = safe_str(row.get("DESIGN"))
-            jenis_kain  = safe_str(row.get("JENIS KAIN"))
-            rolls       = safe_number(row.get("ROLL"))
-            tgl         = safe_date(row.get("TGL"))
-
-            if not any([opj, design_name]):
-                finalize_batch()
-                skipped_rows.append({"row": r_idx + 1, "reason": "empty separator"})
-                continue
-
-            if current_batch is None:
-                current_batch = {
-                    "code": f"BATCH-{opj}-{tgl}",
-                    "date": tgl.isoformat() if tgl else None,
-                    "entries": [],
-                    "details": [],
-                }
-
-            entry = {
-                "code": opj,
-                "date": tgl.isoformat() if tgl else None,
-                "design": design_name,
-                "jenis_kain": jenis_kain,
-                "rolls": rolls,
-                "paste_quantity": 0.0,
-                "details": [],
-            }
-            current_batch["entries"].append(entry)
-
-            aux_accum = {}
-            
-            # process by grouped product_name
-            for pname, metas in grouped_meta.items():
-                if pname in SKIP_NAMES or not pname:
-                    continue
-                total_val = 0.0
-                for m in metas:
-                    if m["flat"] in parent_cols:
-                        continue
-                    val = safe_number(row[m["idx"]])
-                    
-                    if val is not None and val != 0:
-                        total_val += val
-
-                if total_val == 0:
-                    continue
-                
-                sample_meta = metas[0]  # use first for role / flags
-                if sample_meta["role"] == "aux":
-
-                    if sample_meta["is_paste_col"]:
-                        entry["paste_quantity"] += total_val
-                    else:
-                        aux_accum[pname] = aux_accum.get(pname, 0.0) + total_val
-                else:
-                    # dyestuff values are in grams → convert to kilograms
-                    total_val_kg = total_val / 1000.0
-                    batch_agg[pname] = batch_agg.get(pname, 0.0) + total_val_kg
-            for pname, qty in aux_accum.items():
-                entry["details"].append({"product_name": pname, "quantity": qty})
-        
-        finalize_batch()
-        ret = self.save_to_db({"batches": batches})
+        ret = self.save_to_db({"batches": rows})
 
         return APIResponse.created()
     
@@ -413,8 +331,13 @@ class ColorKitchenImportService(BaseImportService):
                 return {k: safe_json(v) for k, v in obj.items()}
             return obj
 
+        preview_id = self.create_preview({
+            "rows": batches
+        })
+
         return APIResponse.ok(
             data=safe_json({
+                "preview_id": preview_id,
                 "batches": batches[:30],
                 "missing_products": sorted(list(missing_products))[:30],
                 "missing_designs": sorted(list(missing_designs))[:30],
