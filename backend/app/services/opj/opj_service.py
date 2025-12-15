@@ -20,6 +20,9 @@ DEFAULT_OPJ_PROCESSES = [
 
 VALID_PRINTING_MACHINES = {'ROTARY', 'FLAT'}
 VALID_PROCESSES_TYPES = {'DISPERSE', 'REACTIVE', 'PIGMENT'}
+VALID_FOLDING = {'YARD', 'GULUNG'}
+VALID_FACE_DIRECTION = {'MUKA_KE_DALAM', 'MUKA_KE_KELUAR'}
+VALI_PE_TYPE = {'PE_I_KRG_PE', 'PE_II_KRG_PE'}
 
 def make_opj_code(ck_code: str) -> str:
     """
@@ -134,6 +137,45 @@ class OpjService:
             else:
                  # jika semua input tidak valid (typo), kembalikan kosong (anti-crash)
                 filter_conditions.append(False)
+                
+                
+        if filters.folding:
+            validated_folding = [
+                p for p in filters.folding
+                if p in VALID_FOLDING
+            ]
+            
+            if validated_folding:
+                # Gunakan nilai UPPERCASE langsung
+                filter_conditions.append(Opj.folding.in_(validated_folding)) 
+            else:
+                 # jika semua input tidak valid (typo), kembalikan kosong (anti-crash)
+                filter_conditions.append(False)
+                
+                
+        if filters.face_direction:
+            validate_face = [
+                p for p in filters.face_direction
+                if p in VALID_FACE_DIRECTION
+            ]
+            
+            if validate_face:
+                filter_conditions.append(Opj.face_direction.in_(validate_face))
+            else:
+                filter_conditions.append(False)
+                
+        
+        if filters.pe_type:
+            validate_pe_type = [
+                p for p in filters.pe_type
+                if p in VALI_PE_TYPE
+            ]
+        
+            if validate_pe_type:
+                filter_conditions.append(Opj.pe_type.in_(validate_pe_type))
+            else:
+                filter_conditions.append(False)
+            
         
         if filter_conditions:
             query = query.filter(and_(*filter_conditions))
@@ -148,6 +190,9 @@ class OpjService:
                 "design_id": opj.design_id,
                 "printing_machine": opj.printing_machine,
                 "process_type": opj.process_type,
+                "folding": opj.folding,
+                "face_direction": opj.face_direction,
+                "pe_type": opj.pe_type
             }
         )
 

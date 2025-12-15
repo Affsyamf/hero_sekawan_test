@@ -154,8 +154,11 @@ class OpjFilter(ListRequest):
     design_ids: Optional[List[int]] = None
     printing_machine: Optional[List[str]] = None
     processes_type: Optional[List[str]] = None
+    folding: Optional[List[str]] = None
+    face_direction: Optional[List[str]] = None
+    pe_type: Optional[List[str]] = None
     
-    @validator("printing_machine", "processes_type", pre=True, each_item=True)
+    @validator("printing_machine", "processes_type", "folding", "face_direction", "pe_type", pre=True, each_item=True)
     def upper_case_enum(cls, v):
         if isinstance(v, str):
             return v.upper()
