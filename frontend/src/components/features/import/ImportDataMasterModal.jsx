@@ -205,17 +205,16 @@ export default function ImportDataMasterModal({
   // Perform actual import
   const doImport = async () => {
     const config = getCurrentStepConfig();
-    if (!config.file) return;
+    if (!config.preview.preview_id) return;
 
     setIsProcessing(true);
     config.setError(null);
 
     try {
-      const res = await config.importApi(config.file);
+      const res = await config.importApi(config.preview.preview_id);
       const data = res.data;
 
       config.setResult(data);
-
       if (onImportSuccess) {
         onImportSuccess(data);
       }
