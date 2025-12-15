@@ -18,3 +18,7 @@ export { default as DashboardColorKitchen } from "./dashboard/DashboardColorKitc
 
 export { default as ColorKitchenDetailPage } from "./color-kitchen/ColorKitchenDetailPage";
 export { default as PurchasingDetailPage } from "./purchasing/PurchasingDetailPage";
+
+
+export { default as SalePage } from "./sale/SalePage";
+export { default as ReturnPage } from "./return/ReturnPage";

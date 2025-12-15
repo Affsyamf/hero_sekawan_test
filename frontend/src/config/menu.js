@@ -92,7 +92,7 @@ export const menuItems = [
     perm: "delivery.read",
   },
   {
-    label: "Perbaikan",
+    label: "Return",
     icon: Shell,
     path: "/return",
     perm: "return.read",
