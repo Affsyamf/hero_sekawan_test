@@ -1,7 +1,6 @@
 from typing import Optional, List, Union
 from pydantic import BaseModel, Field, constr, conint
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from app.utils.datatable.request import ListRequest
 class PaymentCreate(BaseModel):
@@ -34,8 +33,8 @@ class SalesCreate(BaseModel):
     opj_id: int = Field(..., description="Order Penjualan (OPJ) ID")
     ppn: float = Field(0.0, ge=0, description="Pajak Pertambahan Nilai (PPN) percentage")
     client_id: int
-    # color_kitchen_id: int
-    
+    discount: float = Field(0.0, ge=0, description="Discount percentage")
+  
 class SalesUpdate(BaseModel):
     date: Optional[date]
     code: Optional[constr(strip_whitespace=True, min_length=3)]
@@ -44,7 +43,7 @@ class SalesUpdate(BaseModel):
     opj_id: Optional[int]
     ppn: Optional[float] = Field(None, ge=0)
     client_id: Optional[int]
-    # color_kitchen_id: Optional[int]
+    discount: Optional[float] = Field(None, ge=0)
     
 
 class SalesResponse(BaseModel):
@@ -56,6 +55,7 @@ class SalesResponse(BaseModel):
     client_id: int
     opj_id: int
     ppn: float
+    discount: float
     
 
 class SalesFilter(ListRequest):

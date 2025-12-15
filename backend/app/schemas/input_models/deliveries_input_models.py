@@ -8,6 +8,7 @@ class DeliveryCreate(BaseModel):
     quantity: int = Field(..., ge=1)
     sale_id: int
     return_id: Optional[int]
+    roll: float = Field(0.0, ge=0, description="Roll")
     
 class DeliveryUpdate(BaseModel):
     date: Optional[date]
@@ -15,6 +16,7 @@ class DeliveryUpdate(BaseModel):
     quantity: Optional[int] = Field(..., ge=1)
     sale_id: Optional[int]
     return_id: Optional[int]    
+    roll: Optional[float]
     
 class DeliveryResponse(BaseModel):
     id: int
@@ -23,7 +25,7 @@ class DeliveryResponse(BaseModel):
     quantity: Optional[int] = None
     sale_id: Optional[int] = None
     return_id: Optional[int] = None
-    
+    roll: Optional[float] = None
 
 class DeliveryFilter(ListRequest):
     # start_date: Optional[date] = None
