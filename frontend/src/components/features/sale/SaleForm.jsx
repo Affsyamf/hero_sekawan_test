@@ -28,7 +28,6 @@ export default function SaleForm({
     date: new Date().toISOString().split("T")[0],
     quantity_start: "",
     quantity_end: "",
-    color_kitchen_id: "",
     client_id: "",
     opj_id: "",
   });
@@ -45,7 +44,6 @@ export default function SaleForm({
           date: entry.date?.split("T")[0] || new Date().toISOString().split("T")[0],
           quantity_start: entry.quantity_start || "",
           quantity_end: entry.quantity_end || "",
-          color_kitchen_id: entry.color_kitchen_id || "",
           client_id: entry.client_id || "",
           opj_id: entry.opj_id || "",
         });
@@ -55,7 +53,6 @@ export default function SaleForm({
           date: new Date().toISOString().split("T")[0],
           quantity_start: "",
           quantity_end: "",
-          color_kitchen_id: "",
           client_id: "",
           opj_id: "",
         });
@@ -241,7 +238,7 @@ export default function SaleForm({
         </Form.Group>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Form.Group>
+          {/* <Form.Group>
             <Form.Label htmlFor="color_kitchen_id">
               <div className="flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-primary" />
@@ -258,18 +255,18 @@ export default function SaleForm({
               displayKey="name"
               contentItem="name"
             />
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Group>
             <Form.Label htmlFor="opj_id">
               <div className="flex items-center gap-2">
                 <FileText className="w-3.5 h-3.5 text-primary" />
-                OPJ (Optional)
+                OPJ
               </div>
             </Form.Label>
             <DropdownServer
               apiService={searchOpj}
-              placeholder="Select OPJ"
+              placeholder="Select OPJ (Optional)"
               value={formData.opj_id}
               onChange={(opjId) => handleInputChange("opj_id", opjId)}
               name="opj_id"

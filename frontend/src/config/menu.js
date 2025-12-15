@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TestTubeDiagonal,
   Truck,
+  Wallet2,
 } from "lucide-react";
 
 export const menuItems = [
@@ -46,6 +47,7 @@ export const menuItems = [
     children: [
       { label: "Products", path: "/products", perm: "product.read" },
       { label: "Suppliers", path: "/suppliers", perm: "supplier.read" },
+      { label: "Clients", path: "/clients", perm: "client.read" },
       { label: "Accounts", path: "/accounts", perm: "account.read" },
       { label: "Design", path: "/designs", perm: "design.read" },
     ],
@@ -96,6 +98,13 @@ export const menuItems = [
     icon: Shell,
     path: "/return",
     perm: "return.read",
+  },
+  
+  {
+    label: "Payment",
+    icon: Wallet2,
+    path: "/payment",
+    perm: "payment.read",
   },
   {
     label: "Test",

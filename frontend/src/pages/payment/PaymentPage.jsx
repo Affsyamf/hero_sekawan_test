@@ -1,20 +1,20 @@
 import { Edit2, Eye, Package } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
-import DeliveryForm from "../../components/features/delivery/DeliveryForm";
+import PaymentForm from "../../components/features/payment/PaymentForm";
 import Table from "../../components/ui/table/Table";
 import ClientFilter from "../../components/ui/filter/ClientFilter";
 import ColorKitchenFilter from "../../components/ui/filter/ColorKitchenFilter";
 import ProductFilter from "../../components/ui/filter/ProductFilter";
 import {
-  createDelivery,
-  searchDelivery,
-  updateDelivery,
-} from "../../services/delivery_service";
+  createPayment,
+  searchPayment,
+  updatePayment,
+} from "../../services/payment_service";
 import { formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
 
-export default function DeliveryPage() {
+export default function PaymentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refresh, setRefresh] = useState(0);
@@ -22,7 +22,7 @@ export default function DeliveryPage() {
   const dateRange = useDateFilterStore((state) => state.dateRange);
   const { filters, setFilter, registerFilters } = useFilterService();
 
-  // Register filters untuk Delivery page
+  // Register filters untuk Payment page
   useEffect(() => {
     registerFilters([
       <ClientFilter
@@ -77,7 +77,7 @@ export default function DeliveryPage() {
           queryParams.filters = filtersPayload;
         }
 
-        const response = await searchDelivery(queryParams);
+        const response = await searchPayment(queryParams);
         return response;
       } catch (error) {
         console.error("Failed to fetch deliveries:", error);
@@ -89,27 +89,16 @@ export default function DeliveryPage() {
 
   const columns = [
     {
-      key: "code",
-      label: "Delivery Code",
-      sortable: true,
-      render: (v) => (
-        <div className="flex items-center gap-2">
-          <Package className="w-4 h-4 text-blue-500" />
-          <span className="font-medium text-primary-text">{v}</span>
-        </div>
-      ),
-    },
-    {
       key: "date",
-      label: "Delivery Date",
+      label: "Payment Date",
       sortable: true,
       render: (v) => (
         <span className="text-secondary-text">{formatDate(v)}</span>
       ),
     },
     {
-      key: "quantity",
-      label: "Quantity",
+      key: "amount",
+      label: "Amount",
       sortable: true,
       render: (v) => (
         <span className="font-medium text-secondary-text">
@@ -133,36 +122,7 @@ export default function DeliveryPage() {
           )}
         </div>
       ),
-    },
-    {
-      key: "color_kitchen",
-      label: "Color Kitchen",
-      sortable: false,
-      render: (v, row) => (
-        <span className="text-secondary-text">
-          {row.sale?.color_kitchen?.name || "-"}
-        </span>
-      ),
-    },
-    {
-      key: "return_status",
-      label: "Return Status",
-      sortable: false,
-      render: (v, row) => {
-        const hasReturn = row.return_id !== null && row.return_id !== undefined;
-        return (
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-              hasReturn
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-green-100 text-green-800"
-            }`}
-          >
-            {hasReturn ? "Has Return" : "No Return"}
-          </span>
-        );
-      },
-    },
+    }
   ];
 
   const renderActions = (row) => (
@@ -183,7 +143,7 @@ export default function DeliveryPage() {
           setIsModalOpen(true);
         }}
         className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
-        title="Edit Delivery"
+        title="Edit Payment"
       >
         <Edit2 className="w-4 h-4" />
       </button>
@@ -195,23 +155,23 @@ export default function DeliveryPage() {
     setSelected(null);
   };
 
-  const handleSave = async (deliveryData) => {
+  const handleSave = async (paymentData) => {
     try {
       const payload = Object.fromEntries(
-        Object.entries(deliveryData).filter(
+        Object.entries(paymentData).filter(
           ([_, value]) => value != null && value !== ""
         )
       );
 
       if (payload.id) {
-        await updateDelivery(payload.id, payload);
+        await updatePayment(payload.id, payload);
       } else {
-        await createDelivery(payload);
+        await createPayment(payload);
       }
       setRefresh((prev) => prev + 1);
       handleCloseModal();
     } catch (error) {
-      alert("Failed to save delivery: " + error.message);
+      alert("Failed to save payment: " + error.message);
     }
   };
 
@@ -231,10 +191,10 @@ export default function DeliveryPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
           <h1 className="mb-1 text-2xl font-bold text-primary-text">
-            Delivery Management
+            Payment Management
           </h1>
           <p className="text-secondary-text">
-            Track and manage delivery orders, quantities, and returns.
+            Track and manage payment orders.
           </p>
         </div>
 
@@ -312,7 +272,7 @@ export default function DeliveryPage() {
           showDateRangeFilter={false}
         />
 
-        <DeliveryForm
+        <PaymentForm
           entry={selected}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
