@@ -76,19 +76,42 @@ export default function Table({
     setError(null);
 
     try {
-      const params = Object.fromEntries(
-        Object.entries({
-          page,
-          page_size: pageSize,
-          ...(search ? { q: search } : {}),
-          filters,
-          sort_by: sortConfig.key,
-          sort_dir: sortConfig.direction,
-          ...(showDateRangeFilter && { dateRange }), // Only include dateRange if filter is enabled
-        }).filter(([, v]) => v !== null && v !== undefined && v !== "")
-      );
+      // Build filters object with date range and other filters
+      const filtersPayload = { ...filters };
+      
+      // Add date range to filters if showDateRangeFilter is enabled
+      if (showDateRangeFilter) {
+        if (dateRange.start) {
+          filtersPayload.start_date = [dateRange.start];
+        }
+        if (dateRange.end) {
+          filtersPayload.end_date = [dateRange.end];
+        }
+      }
 
-      const response = await fetchRef.current(params); // 👈 use ref here
+      // Build params object
+      const params = {
+        page,
+        page_size: pageSize,
+      };
+
+      // Add search query if exists
+      if (search) {
+        params.q = search;
+      }
+
+      // Add filters if exists
+      if (Object.keys(filtersPayload).length > 0) {
+        params.filters = filtersPayload;
+      }
+
+      // Add sorting if exists
+      if (sortConfig.key) {
+        params.sort_by = sortConfig.key;
+        params.sort_dir = sortConfig.direction;
+      }
+
+      const response = await fetchRef.current(params);
 
       if (response.status === 200) {
         const result = response.data;
@@ -117,7 +140,6 @@ export default function Table({
       setLoading(false);
     }
   }, [
-    // ❗️no fetchData here
     page,
     pageSize,
     search,
@@ -154,7 +176,7 @@ export default function Table({
 
   const handlePageSizeChange = (newSize) => {
     setPageSize(newSize);
-    setPage(1); // Reset ke halaman pertama
+    setPage(1);
     setShowPageSizeMenu(false);
   };
 
@@ -259,32 +281,6 @@ export default function Table({
                             setDateRange((prev) => ({
                               ...prev,
                               start: e.target.value,
-                            }));
-                            setPage(1);
-                          }}
-                          className="w-full px-2.5 py-1.5 text-xs transition-all rounded-lg"
-                          style={{
-                            background: colors.background.primary,
-                            border: `1px solid ${colors.border.primary}`,
-                            color: colors.text.primary,
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className="block mb-1 text-xs"
-                          style={{ color: colors.text.secondary }}
-                        >
-                          End Date
-                        </label>
-                        <input
-                          type="date"
-                          value={dateRange.end}
-                          onChange={(e) => {
-                            setDateRange((prev) => ({
-                              ...prev,
-                              end: e.target.value,
                             }));
                             setPage(1);
                           }}

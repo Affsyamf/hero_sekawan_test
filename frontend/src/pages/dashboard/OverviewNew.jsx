@@ -1,32 +1,30 @@
-import { useTheme } from "../../contexts/ThemeContext";
-import Card from "../../components/ui/card/Card";
-import Button from "../../components/ui/button/Button";
-import Chart from "../../components/ui/chart/Chart";
-import { Highchart } from "../../components/ui/highchart";
 import {
   DollarSign,
   Download,
   Palette,
-  ShoppingCart,
-  TrendingDown,
+  ShoppingCart
 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
-import { formatCompactCurrency } from "../../utils/helpers";
+import { useCallback, useEffect, useState } from "react";
+import Button from "../../components/ui/button/Button";
+import Card from "../../components/ui/card/Card";
+import Chart from "../../components/ui/chart/Chart";
+import { MetricGrid } from "../../components/ui/chart/MetricCard";
+import CategoryFilter from "../../components/ui/filter/CategoryFilter";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
+import { Highchart } from "../../components/ui/highchart";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getDashboardData } from "../../services/overview_service";
+import { reportsColorKitchenTrend } from "../../services/report_color_kitchen_service";
+import { reportsPurchasingTrend } from "../../services/report_purchasing_service";
 import useDateFilterStore from "../../stores/useDateFilterStore";
-import Loading from "../../components/ui/loading/Loading";
 import {
   buildDatasetsFromData,
   hydrateDataForChart,
 } from "../../utils/chartHelper";
-import { reportsPurchasingTrend } from "../../services/report_purchasing_service";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
-import { reportsColorKitchenTrend } from "../../services/report_color_kitchen_service";
-import { MetricGrid } from "../../components/ui/chart/MetricCard";
-import { getDashboardData } from "../../services/overview_service";
-import { useFilterService } from "../../contexts/FilterServiceContext";
-import CategoryFilter from "../../components/ui/filter/CategoryFilter";
-import ProductFilter from "../../components/ui/filter/ProductFilter";
-import SupplierFilter from "../../components/ui/filter/SupplierFilter";
+import { formatCompactCurrency } from "../../utils/helpers";
 
 export default function OverviewNew() {
   const [dashboardData, setDashboardData] = useState(null);

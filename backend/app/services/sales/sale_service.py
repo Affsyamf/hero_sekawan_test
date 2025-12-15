@@ -76,35 +76,40 @@ class SalesService:
             return APIResponse.internal_error(message=str(e))
         
         
-    def list_sale(self, request: ListRequest, filters: SalesFilter):
-        sale_query = self.db.query(Sale)
+    def list_sale(self, request: ListRequest):
+        sale_query = (
+            self.db.query(Sale)
+            .join(Client, Sale.client_id == Client.id)
+            .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)
+            .join(Design, ColorKitchenEntry.design_id == Design.id)
+        )
         
-        sale_query = sale_query.join(Client, Sale.client_id == Client.id)\
-                               .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
-                               .join(Design, ColorKitchenEntry.design_id == Design.id)
-        
-        sale_query = apply_common_report_filters(sale_query, filters)
-        
-        filter_conditions = []
-        
+        # Universal filters (client, opj, ck,)
+        if request.filters.client_ids:
+            sale_query = sale_query.filter(Sale.client_id.in_(request.filters.client_ids))
+
+        if request.filters.ck_ids:
+            sale_query = sale_query.filter(Sale.color_kitchen_id.in_(request.filters.ck_ids))
+
+        if request.filters.design_ids:
+            sale_query = sale_query.filter(Design.id.in_(request.filters.design_ids))
+
+        if request.filters.start_date:
+            sale_query = sale_query.filter(Sale.date >= request.filters.start_date[0])
+
+        if request.filters.end_date:
+            sale_query = sale_query.filter(Sale.date <= request.filters.end_date[0])
+
+        # search q
         if request.q:
-            like = f"%{request.q}%"
-            filter_conditions.append(
+            like = f"%{request.search_str}%"
+            sale_query = sale_query.filter(
                 or_(
                     Sale.code.ilike(like),
                     Client.name.ilike(like),
                     Design.name.ilike(like),
                 )
             )
-            
-        if filters.start_date:
-            filter_conditions.append(Sale.date >= filters.start_date[0])
-            
-        if filters.end_date:
-            filter_conditions.append(Sale.date <= filters.end_date[0])
-                
-        if filter_conditions:
-            sale_query = sale_query.filter(and_(*filter_conditions))
             
         sale_query = sale_query.order_by(Sale.id.desc())
         
@@ -139,8 +144,7 @@ class SalesService:
             "color_kitchen_id": sale.color_kitchen_id,
         })
         
-        
-        
+           
     def update_sale(self, sale_id: int, request: SalesUpdate):
         
         sale = self.db.query(Sale).filter(Sale.id == sale_id).first()
@@ -203,7 +207,6 @@ class SalesService:
         self.db.refresh(sale)
         
         return APIResponse.ok(message=f"Sale ID '{sale_id}' updated.")
-    
     
     
     def delete_sale(self, sale_id: int):

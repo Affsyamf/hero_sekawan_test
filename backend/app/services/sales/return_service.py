@@ -7,6 +7,7 @@ from app.schemas.input_models.sales_input_models import ReturnCreate, ReturnUpda
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
 from app.utils.filters import apply_common_report_filters
+from app.models.master import Design
 
 class ReturnService:
     def __init__(self, db=Depends(get_db)):
@@ -38,47 +39,68 @@ class ReturnService:
             raise e   
         
         
-    def list_return(self, request: ListRequest, filters: ReturnFilter):
-        return_query = self.db.query(Return)
-        
-        return_query = return_query.join(Sale, Return.sale_id == Sale.id)\
-                                   .join(Client, Sale.client_id == Client.id)\
-                                   .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)\
-                                   .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                                   .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
-        
-        return_query = apply_common_report_filters(return_query, filters)
-        
-        filter_conditions = []
-        
+    def list_return(self, request: ListRequest):
+        return_query = (
+            self.db.query(Return)
+            .join(Sale, Return.sale_id == Sale.id)
+            .join(Client, Sale.client_id == Client.id)
+            .join(ColorKitchenEntry, Sale.color_kitchen_id == ColorKitchenEntry.id)
+            .join(Design, ColorKitchenEntry.design_id == Design.id)
+            .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)
+            .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+        )
+
+        # filter alias
+        f = request.filters 
+
+        if f.client_ids:
+            return_query = return_query.filter(Sale.client_id.in_(f.client_ids))
+
+        if f.ck_ids:
+            return_query = return_query.filter(Sale.color_kitchen_id.in_(f.ck_ids))
+
+        if f.product_ids:
+            return_query = return_query.filter(Product.id.in_(f.product_ids))
+            
+        if f.design_ids:
+            return_query = return_query.filter(Design.id.in_(f.design_ids))
+
+        if f.start_date:
+            return_query = return_query.filter(Return.date >= f.start_date[0])
+
+        if f.end_date:
+            return_query = return_query.filter(Return.date <= f.end_date[0])
+
+        # ============= SEARCH (q) =============
         if request.q:
-            like = f"%{request.q}%"
-            filter_conditions.append(
+            like = f"%{request.search_str}%"
+            return_query = return_query.filter(
                 or_(
-                    Return.quantity.ilike(like),
                     Client.name.ilike(like),
-                    Product.name.ilike(like)
+                    Product.name.ilike(like),
+                    Sale.code.ilike(like)
                 )
             )
-            
-        if filters.start_date:
-            filter_conditions.append(Return.date >= filters.start_date[0])
-            
-        if filters.end_date:
-            filter_conditions.append(Return.date <= filters.end_date[0])
-            
-        if filter_conditions:
-            return_query = return_query.filter(and_(*filter_conditions))
-        
+
+        # Default sorting
+        return_query = return_query.order_by(Return.id.desc())
+
+        # ============= PAGINATION RESPONSE =============
         return APIResponse.paginated(
-            return_query, request,
+            return_query,
+            request,
             lambda r: {
                 "id": r.id,
                 "date": r.date.isoformat() if r.date else None,
                 "quantity": float(r.quantity) if r.quantity is not None else None,
                 "sale_id": r.sale_id,
+                "client_name": r.sale.client.name if r.sale else None,
+                "product_name": r.sale.color_kitchen.detail.product.name
+                if r.sale and r.sale.color_kitchen and r.sale.color_kitchen.detail
+                else None,
             }
         )
+ 
         
     
     def get_return(self, return_id: int):
