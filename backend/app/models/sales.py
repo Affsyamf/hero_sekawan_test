@@ -15,6 +15,7 @@ class Sale(Base, AuditMixin):
     quantity_start = Column(Numeric(18, 2), nullable=False) # Quantity asal
     quantity_end = Column(Numeric(18, 2), nullable=False) # Quantity jadi
     ppn = Column(Numeric(18, 2), nullable=False, default=0)
+    discount = Column(Numeric(18, 2), nullable=False, default=0)
 
     client_id = Column(Integer, ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False)
     client = relationship("Client", back_populates="sales", lazy='joined')
