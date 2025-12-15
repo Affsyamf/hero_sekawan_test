@@ -22,6 +22,12 @@ class SalesTrendService(BaseReportService):
     
     def run(self, filters: SalesReportFilter):
         filters_dict = self.normalize_filters(filters.model_dump(exclude_none=False))
+        
+        # normalize grannlarity | untuk menyamakan format, karna .lower hanya bisa dipakai di str
+        granularity = filters_dict.get("granularity", "month")
+        if isinstance(granularity, list):
+            filters_dict["granularity"] = granularity[0] if granularity else "month"
+        
         # convert int ke list pada sale_ids
         sale_ids_input = filters_dict.get("sale_ids")
         if isinstance(sale_ids_input, int):
