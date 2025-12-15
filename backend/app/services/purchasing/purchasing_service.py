@@ -17,7 +17,7 @@ class PurchasingService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_purchasing(self, request: ListRequest, filters: PurchasingFilter):
+    def list_purchasing(self, filters: PurchasingFilter):
         purchasing_query = self.db.query(
             Purchasing,
             func.count(PurchasingDetail.id).label('item_count'),
@@ -53,8 +53,8 @@ class PurchasingService:
             
         filter_conditions = []
 
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     Purchasing.code.ilike(like),
@@ -79,9 +79,9 @@ class PurchasingService:
         if filter_conditions:
             purchasing_query = purchasing_query.filter(and_(*filter_conditions))
             
-        if request.sort_by and request.sort_dir:
-            sort_col = getattr(Purchasing, request.sort_by)
-            if request.sort_dir.lower() == "desc":
+        if filters.sort_by and filters.sort_dir:
+            sort_col = getattr(Purchasing, filters.sort_by)
+            if filters.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
             purchasing_query = purchasing_query.order_by(sort_col)
                                 
@@ -90,7 +90,7 @@ class PurchasingService:
             #     print(f"⚠️ Invalid date format: {e}")  # Ignore jika format salah
         
 
-        return APIResponse.paginated(purchasing_query, request, lambda row: {
+        return APIResponse.paginated(purchasing_query, filters, lambda row: {
             "id": row.Purchasing.id,
             "date": row.Purchasing.date.isoformat() if row.Purchasing.date else None,
             "code": row.Purchasing.code,

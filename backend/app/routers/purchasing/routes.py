@@ -9,8 +9,8 @@ from app.dependencies.rbac import require_user
 purchasing_router = APIRouter(prefix="/purchasing", tags=["purchasing"], dependencies=[require_user()])
 
 @purchasing_router.post("/search")
-def search_purchasings(filters: PurchasingFilter, request: ListRequest = Depends(),  service: PurchasingService = Depends()):
-    return service.list_purchasing(request=request, filters=filters)
+def search_purchasings(filters: PurchasingFilter, service: PurchasingService = Depends()):
+    return service.list_purchasing(filters=filters)
 
 @purchasing_router.get("/{purchasing_id}")
 def get_purchasing_by_id(purchasing_id: int, service: PurchasingService = Depends()):

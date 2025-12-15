@@ -29,7 +29,7 @@ class ColorKitchenEntryService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_color_kitchen_entry(self, request: ListRequest, filters: ColorKitchenEntryFilter):
+    def list_color_kitchen_entry(self, filters: ColorKitchenEntryFilter):
         entry_query = self.db.query(
             ColorKitchenEntry,
             func.count(ColorKitchenEntryDetail.id).label("item_count"),
@@ -61,8 +61,8 @@ class ColorKitchenEntryService:
                                      
         filter_conditions = []
 
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     ColorKitchenEntry.code.ilike(like),
@@ -95,7 +95,7 @@ class ColorKitchenEntryService:
             
         entry_query = entry_query.order_by(ColorKitchenEntry.id.desc())
 
-        return APIResponse.paginated(entry_query, request, lambda row: {
+        return APIResponse.paginated(entry_query, filters, lambda row: {
             "id": row.ColorKitchenEntry.id,
             "date": row.ColorKitchenEntry.date.isoformat() if row.ColorKitchenEntry.date else None,
             "code": row.ColorKitchenEntry.code,

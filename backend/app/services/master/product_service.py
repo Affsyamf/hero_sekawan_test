@@ -26,7 +26,7 @@ class ProductService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_product(self, request: ListRequest, filters: ProductFilter):
+    def list_product(self, filters: ProductFilter):
         # === Base product query ===
         product_query = (
             self.db.query(Product)
@@ -44,8 +44,8 @@ class ProductService:
         product_query = apply_common_report_filters(product_query, filters)
 
         # === Filter (search) ===
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             product_query = product_query.filter(
                 or_(
                     Product.code.ilike(like),
@@ -57,9 +57,9 @@ class ProductService:
             )
 
         # === Sorting ===
-        if request.sort_by and request.sort_dir:
-            sort_col = getattr(Product, request.sort_by)
-            if request.sort_dir.lower() == "desc":
+        if filters.sort_by and filters.sort_dir:
+            sort_col = getattr(Product, filters.sort_by)
+            if filters.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
             product_query = product_query.order_by(sort_col)
         else:
@@ -87,7 +87,7 @@ class ProductService:
         # === Paginate using your existing helper ===
         return APIResponse.paginated(
             product_query,
-            request,
+            filters,
             lambda row: {
                 "id": row.Product.id,
                 "code": row.Product.code,

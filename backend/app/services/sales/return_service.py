@@ -39,7 +39,7 @@ class ReturnService:
             raise e   
         
         
-    def list_return(self, request: ListRequest, filters: ReturnFilter):
+    def list_return(self, filters: ReturnFilter):
         return_query = self.db.query(Return)
         
         return_query = return_query.join(Sale, Return.sale_id == Sale.id)\
@@ -53,8 +53,8 @@ class ReturnService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     Return.quantity.ilike(like),
@@ -76,7 +76,7 @@ class ReturnService:
 
         return APIResponse.paginated(
             return_query,
-            request,
+            filters,
             lambda r: {
                 "id": r.id,
                 "code": r.code,

@@ -2,6 +2,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
+from app.utils.datatable.request import ListRequest
 
 # ===============================
 #  PurchasingDetail
@@ -50,9 +51,9 @@ class PurchasingUpdate(BaseModel):
     details: Optional[List[PurchasingDetailUpdate]] = None
 
 
-class PurchasingFilter(BaseModel):
-    start_date: Optional [date] = None
-    end_date: Optional [date] = None
+class PurchasingFilter(ListRequest):
+    # start_date: Optional [date] = None
+    # end_date: Optional [date] = None
     supplier_ids: Optional[List[int]] = None
     product_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None

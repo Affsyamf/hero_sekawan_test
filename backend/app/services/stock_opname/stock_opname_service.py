@@ -18,7 +18,7 @@ class StockOpnameService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_stock_opname(self, request: ListRequest, filters: StockOpnameFilter):
+    def list_stock_opname(self, filters: StockOpnameFilter):
         stock_opname_query = self.db.query(
             StockOpname,
             func.count(StockOpnameDetail.id).label('item_count'),
@@ -38,8 +38,8 @@ class StockOpnameService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     StockOpname.code.ilike(like),
@@ -57,15 +57,15 @@ class StockOpnameService:
             stock_opname_query = stock_opname_query.filter(and_(*filter_conditions))
             
             
-        if request.sort_by and request.sort_dir:
-            sort_col = getattr(StockOpname, request.sort_by)
-            if request.sort_dir.lower() == "desc":
+        if filters.sort_by and filters.sort_dir:
+            sort_col = getattr(StockOpname, filters.sort_by)
+            if filters.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
             stock_opname_query = stock_opname_query.order_by(sort_col)
             
         stock_opname_query = stock_opname_query.order_by(StockOpname.id.desc())
 
-        return APIResponse.paginated(stock_opname_query, request, lambda row: {
+        return APIResponse.paginated(stock_opname_query, filters, lambda row: {
             "id": row.StockOpname.id,
             "date": row.StockOpname.date.isoformat() if row.StockOpname.date else None,
             "code": row.StockOpname.code,

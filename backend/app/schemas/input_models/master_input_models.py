@@ -1,5 +1,6 @@
 from typing import Optional, List
 from pydantic import BaseModel
+from app.utils.datatable.request import ListRequest
 
 
 # ===============================
@@ -33,7 +34,7 @@ class ProductUpdate(BaseModel):
     unit: Optional[str] = None
     account_id: Optional[int] = None
 
-class ProductFilter(BaseModel):
+class ProductFilter(ListRequest):
     supplier_ids: Optional[List[int]] = None
     account_parent_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None

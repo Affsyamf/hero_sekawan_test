@@ -9,8 +9,8 @@ from app.dependencies.rbac import require_user
 stock_movement_router = APIRouter(prefix="/stock-movement", tags=["stock-movement"], dependencies=[require_user()])
 
 @stock_movement_router.post("/search")
-def search_stock_movements(filters: StockMovementFilter, request: ListRequest = Depends(), service: StockMovementService = Depends()):
-    return service.list_stock_movement(request=request, filters=filters)
+def search_stock_movements(filters: StockMovementFilter, service: StockMovementService = Depends()):
+    return service.list_stock_movement(filters=filters)
 
 @stock_movement_router.get("/{stock_movement_id}")
 def get_stock_movement_by_id(stock_movement_id: int, service: StockMovementService = Depends()):

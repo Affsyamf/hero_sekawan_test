@@ -77,7 +77,7 @@ class SalesService:
             return APIResponse.internal_error(message=str(e))
         
         
-    def list_sale(self, request: ListRequest, filters: SalesFilter):
+    def list_sale(self, filters: SalesFilter):
         sale_query = self.db.query(Sale)
         
         sale_query = sale_query.join(Opj, Sale.opj_id == Opj.id)\
@@ -89,8 +89,8 @@ class SalesService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     Sale.code.ilike(like),
@@ -111,7 +111,7 @@ class SalesService:
         sale_query = sale_query.order_by(Sale.id.desc())
         
         return APIResponse.paginated(
-            sale_query, request, lambda sale: {
+            sale_query, filters, lambda sale: {
                 "id": sale.id,
                 "code": sale.code,
                 "date": sale.date.isoformat() if sale.date else None,

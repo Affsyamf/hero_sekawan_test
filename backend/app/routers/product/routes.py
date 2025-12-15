@@ -10,8 +10,8 @@ from app.dependencies.rbac import require_user
 product_router = APIRouter(prefix="/product", tags=["product"], dependencies=[require_user()])
 
 @product_router.post("/search")
-def search_products(filters: ProductFilter, request: ListRequest = Depends(), service: ProductService = Depends()):
-    return service.list_product(request=request, filters=filters)
+def search_products(filters: ProductFilter, service: ProductService = Depends()):
+    return service.list_product(filters=filters)
 
 @product_router.get("/color-kitchen")
 def search_products_ck(request: ListRequest = Depends(), service: ProductService = Depends()):

@@ -15,8 +15,8 @@ opj_router = APIRouter(
 )
 
 @opj_router.post("/search", response_model=OpjResponse)
-def search_opj(filters: OpjFilter, request: ListRequest = Depends(), service: OpjService = Depends()):
-    return service.list_opj(request=request, filters=filters)
+def search_opj(filters: OpjFilter, service: OpjService = Depends()):
+    return service.list_opj(filters=filters)
 
 # @opj_router.get("/search")
 # def search_opj(request: ListRequest = Depends(), service: OpjService = Depends()):

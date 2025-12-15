@@ -9,8 +9,8 @@ from app.dependencies.rbac import require_user
 stock_opname_router = APIRouter(prefix="/stock-opname", tags=["stock-opname"], dependencies=[require_user()])
 
 @stock_opname_router.post("/search")
-def search_stock_opnames(filters: StockOpnameFilter, request: ListRequest = Depends(), service: StockOpnameService = Depends()):
-    return service.list_stock_opname(request=request, filters=filters)
+def search_stock_opnames(filters: StockOpnameFilter, service: StockOpnameService = Depends()):
+    return service.list_stock_opname(filters=filters)
 
 @stock_opname_router.get("/{stock_opname_id}")
 def get_stock_opname_by_id(stock_opname_id: int, service: StockOpnameService = Depends()):

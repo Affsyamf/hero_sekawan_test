@@ -45,7 +45,7 @@ class DeliveryService:
         })
 
 
-    def list_delivery(self, request: ListRequest, filters: DeliveryFilter):
+    def list_delivery(self, filters: DeliveryFilter):
         delivery_query = self.db.query(Delivery)
         
         delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
@@ -59,8 +59,8 @@ class DeliveryService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     Delivery.code.ilike(like),
@@ -81,7 +81,7 @@ class DeliveryService:
             
 
         return APIResponse.paginated(
-            delivery_query, request,
+            delivery_query, filters,
             lambda d: {
                 "id": d.id,
                 "code": d.code,

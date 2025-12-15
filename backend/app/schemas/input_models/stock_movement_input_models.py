@@ -2,7 +2,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
-
+from app.utils.datatable.request import ListRequest
 # ===============================
 # 2️⃣ StockMovementDetail
 # ===============================
@@ -30,9 +30,9 @@ class StockMovementUpdate(BaseModel):
     code: Optional[str] = None
     details: Optional[List[StockMovementDetailUpdate]] = None
 
-class StockMovementFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+class StockMovementFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
     product_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None
     account_parent_ids: Optional[List[int]] = None

@@ -11,8 +11,8 @@ from app.dependencies.auth_dependency import AuthDependency
 account_router = APIRouter(prefix="/account", tags=["account"], dependencies=[require_user()])
 
 @account_router.post("/search")
-def search_accounts(filters: AccountFilter, request: ListRequest = Depends(), service: AccountService = Depends()):
-    return service.list_account(request=request, filters=filters)
+def search_accounts(filters: AccountFilter, service: AccountService = Depends()):
+    return service.list_account(filters=filters)
 
 @account_router.get("/{account_id}")
 def get_account_by_id(account_id: int, service: AccountService = Depends()):

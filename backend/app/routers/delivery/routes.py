@@ -11,8 +11,8 @@ delivery_router = APIRouter(prefix="/delivery", tags=["delivery"], dependencies=
 
 
 @delivery_router.post("/search")
-def search_deliveries(filters: DeliveryFilter, request: ListRequest = Depends(), service: DeliveryService = Depends()):
-    return service.list_delivery(request=request, filters=filters)
+def search_deliveries(filters: DeliveryFilter,  service: DeliveryService = Depends()):
+    return service.list_delivery(filters=filters)
 
 
 @delivery_router.get("/{delivery_id}", response_model=DeliveryResponse)

@@ -84,7 +84,7 @@ class OpjService:
             return APIResponse.error(message=str(e))
 
     # LIST
-    def list_opj(self, request: ListRequest, filters: OpjFilter):
+    def list_opj(self, filters: OpjFilter):
         query = self.db.query(Opj)
 
         query = query.join(Design, Opj.design_id == Design.id) 
@@ -92,8 +92,8 @@ class OpjService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             query = query.filter(
                 or_(
                     Opj.code.ilike(like),
@@ -140,7 +140,7 @@ class OpjService:
                 
    
         return APIResponse.paginated(
-            query, request, lambda opj: {
+            query, filters, lambda opj: {
                 "id": opj.id,
                 "code": opj.code,
                 "date": opj.date.isoformat(),

@@ -13,8 +13,8 @@ returns_router = APIRouter(
 )
 
 @returns_router.post("/search", response_model=ReturnResponse )
-def search_returns(filters: ReturnFilter, request: ListRequest = Depends(), service: ReturnService = Depends()):
-    return service.list_return(request=request, filters=filters)
+def search_returns(filters: ReturnFilter, service: ReturnService = Depends()):
+    return service.list_return(filters=filters)
 
 @returns_router.get("/{return_id}", response_model=ReturnResponse)
 def get_return_by_id(return_id: int, service: ReturnService = Depends()):

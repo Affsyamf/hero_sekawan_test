@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, constr, conint
 from datetime import date
 from datetime import datetime
 from decimal import Decimal
+from app.utils.datatable.request import ListRequest
 class PaymentCreate(BaseModel):
     date: date
     amount: float = Field(..., gt=0, description="Payment amount must be greater then zeri")
@@ -57,9 +58,9 @@ class SalesResponse(BaseModel):
     ppn: float
     
 
-class SalesFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+class SalesFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
     opj_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
     design_ids: Optional[List[int]] = None
@@ -95,9 +96,9 @@ class ReturnResponse(BaseModel):
             Decimal: lambda v: float(v),
         }
         
-class ReturnFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+class ReturnFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
     product_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
     ck_ids: Optional[List[int]] = None

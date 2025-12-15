@@ -3,6 +3,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from pydantic.types import constr
 from decimal import Decimal
+from app.utils.datatable.request import ListRequest
 
 
 # ===============================
@@ -20,7 +21,7 @@ class AccountUpdate(BaseModel):
     parent_id: Optional[int] = None
 
 
-class AccountFilter(BaseModel):
+class AccountFilter(ListRequest):
     supplier_ids: Optional[List[int]] = None
     product_ids: Optional[List[int]] = None
     

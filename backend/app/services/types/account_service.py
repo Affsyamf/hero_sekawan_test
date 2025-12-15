@@ -20,7 +20,7 @@ class AccountService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_account(self, request: ListRequest, filters: AccountFilter):
+    def list_account(self, filters: AccountFilter):
         account_query = self.db.query(Account).join(Account.parent)
         
         account_query = account_query.join(Product, Product.account_id == Account.id)\
@@ -32,8 +32,8 @@ class AccountService:
         
         filter_conditions = []
         
-        if request.q:
-            like = f"%{request.q}%"
+        if filters.q:
+            like = f"%{filters.q}%"
             filter_conditions.append(
                 or_(
                     Account.name.ilike(like),
@@ -49,7 +49,7 @@ class AccountService:
         
         account_query = account_query.order_by(Account.id)
 
-        return APIResponse.paginated(account_query, request, lambda account: {
+        return APIResponse.paginated(account_query, filters, lambda account: {
                 "id": account.id,
                 "name": account.name,
                 "account_no": str(account.parent.account_no) if account.parent.account_no else None,

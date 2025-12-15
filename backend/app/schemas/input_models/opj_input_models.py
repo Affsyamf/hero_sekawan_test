@@ -2,6 +2,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, date
 from decimal import Decimal
+from app.utils.datatable.request import ListRequest
 
 from app.models.enum.opj_enum import (
     OpjProcessEnum, ProcessConditionEnum, PeTypeEnum,
@@ -147,9 +148,9 @@ class OpjResponse(BaseModel):
             datetime: lambda v: v.isoformat()
         }
 
-class OpjFilter(BaseModel):
-    start_date: Optional [date] = None
-    end_date: Optional [date] = None
+class OpjFilter(ListRequest):
+    # start_date: Optional [date] = None
+    # end_date: Optional [date] = None
     design_ids: Optional[List[int]] = None
     printing_machine: Optional[List[str]] = None
     processes_type: Optional[List[str]] = None

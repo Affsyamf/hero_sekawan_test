@@ -13,8 +13,8 @@ sales_router = APIRouter(
 )
 
 @sales_router.post("/search")
-def search_sales(filters: SalesFilter, request: ListRequest = Depends(), service: SalesService = Depends()):
-    return service.list_sale(request=request, filters=filters)
+def search_sales(filters: SalesFilter, service: SalesService = Depends()):
+    return service.list_sale(filters=filters)
 
 @sales_router.get("/{sale_id}", response_model=SalesResponse)
 def get_sale_by_id(sale_id: int, service: SalesService = Depends()):

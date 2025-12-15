@@ -1,7 +1,7 @@
 from typing import Optional, List, Union
 from pydantic import BaseModel, Field, constr, conint
 from datetime import date
-
+from app.utils.datatable.request import ListRequest
 class DeliveryCreate(BaseModel):
     date: date
     code: constr(strip_whitespace=True, min_length=3)
@@ -25,9 +25,9 @@ class DeliveryResponse(BaseModel):
     return_id: Optional[int] = None
     
 
-class DeliveryFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+class DeliveryFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
     client_ids: Optional [List[int]] = None
     ck_ids: Optional[List[int]] = None
     product_ids: Optional[List[int]] = None

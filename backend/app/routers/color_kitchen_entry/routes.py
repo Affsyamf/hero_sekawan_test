@@ -12,8 +12,8 @@ from app.utils.deps import get_db
 color_kitchen_entry_router = APIRouter(prefix="/color-kitchen-entry", tags=["color-kitchen-entry"], dependencies=[require_user()])
 
 @color_kitchen_entry_router.post("/search")
-def search_color_kitchen_entries(filters: ColorKitchenEntryFilter, request: ListRequest = Depends(), service: ColorKitchenEntryService = Depends()):
-    return service.list_color_kitchen_entry(request=request, filters=filters)
+def search_color_kitchen_entries(filters: ColorKitchenEntryFilter, service: ColorKitchenEntryService = Depends()):
+    return service.list_color_kitchen_entry(filters=filters)
 
 @color_kitchen_entry_router.get("/{entry_id}")
 def get_color_kitchen_entry_by_id(entry_id: int, service: ColorKitchenEntryService = Depends()):
