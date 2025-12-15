@@ -23,7 +23,7 @@ class PaymentReceivableService(BaseReportService):
     def run(self, filters: SalesReportFilter):
         filters_dict = self.normalize_filters(filters.model_dump(exclude_none=False))
         
-        # normalize grannlarity
+        # normalize grannlarity | untuk menyamakan format, karna .lower hanya bisa dipakai di str
         granularity = filters_dict.get("granularity", "month")
         if isinstance(granularity, list):
             filters_dict["granularity"] = granularity[0] if granularity else "month"

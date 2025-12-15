@@ -43,8 +43,8 @@ class ColorKitchenEntryDetailUpdate(BaseModel):
     product_id: Optional[int] = None
     
 class ColorKitchenEntryFilter(BaseModel):
-    start_date: Optional[List[date]] = None
-    end_date: Optional[List[date]] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     account_ids: Optional[List[int]] = None
     account_parent_ids: Optional[List[int]] = None
     supplier_ids: Optional[List[int]] = None

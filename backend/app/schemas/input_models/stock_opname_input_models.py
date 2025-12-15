@@ -34,8 +34,8 @@ class StockOpnameUpdate(BaseModel):
 
 
 class StockOpnameFilter(BaseModel):
-    start_date: Optional[List[date]] = None
-    end_date: Optional[List[date]] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     product_ids: Optional[List[int]] = None
     account_ids: Optional[List[int]] = None
     account_parent_ids: Optional[List[int]] = None

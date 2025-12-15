@@ -64,13 +64,10 @@ class ReturnService:
             )
             
         if filters.start_date:
-            filter_conditions.append(Return.date >= filters.start_date[0])
+            filter_conditions.append(Return.date >= filters.start_date)
             
         if filters.end_date:
-            filter_conditions.append(Return.date <= filters.end_date[0])
-            
-        # if filters.ck_ids:
-        #     filter_conditions.append(ColorKitchenEntry.id.in_(filters.ck_ids))
+            filter_conditions.append(Return.date <= filters.end_date)
             
         if filter_conditions:
             return_query = return_query.filter(and_(*filter_conditions))

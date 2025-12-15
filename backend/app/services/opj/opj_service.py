@@ -102,10 +102,10 @@ class OpjService:
             )
 
         if filters.start_date:
-            filter_conditions.append(Opj.date >= filters.start_date[0])
+            filter_conditions.append(Opj.date >= filters.start_date)
             
         if filters.end_date:
-            filter_conditions.append(Opj.date <= filters.end_date[0])
+            filter_conditions.append(Opj.date <= filters.end_date)
 
         if filters.printing_machine:
             #  filter TYPO

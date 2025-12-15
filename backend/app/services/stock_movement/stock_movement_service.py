@@ -59,10 +59,10 @@ class StockMovementService:
             )
             
         if filters.start_date:
-            filter_conditions.append(StockMovement.date >= filters.start_date[0])
+            filter_conditions.append(StockMovement.date >= filters.start_date)
             
         if filters.end_date:
-            filter_conditions.append(StockMovement.date <= filters.end_date[0])
+            filter_conditions.append(StockMovement.date <= filters.end_date)
         # if request.start_date and request.end_date:
         #     # try:
         #     start = datetime.strptime(request.start_date, '%Y-%m-%d').date()

@@ -64,10 +64,10 @@ class PurchasingService:
             )
         
         if filters.start_date:
-            filter_conditions.append(Purchasing.date >= filters.start_date[0])
+            filter_conditions.append(Purchasing.date >= filters.start_date)
             
         if filters.end_date:
-            filter_conditions.append(Purchasing.date <= filters.end_date[0])
+            filter_conditions.append(Purchasing.date <= filters.end_date)
                 # purchasing = purchasing.filter(
                 #     and_(
                 #         Purchasing.date >= start,

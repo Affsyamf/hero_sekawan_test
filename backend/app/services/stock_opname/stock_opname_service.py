@@ -48,10 +48,10 @@ class StockOpnameService:
             )
             
         if filters.start_date:
-            filter_conditions.append(StockOpname.date >= filters.start_date[0])
+            filter_conditions.append(StockOpname.date >= filters.start_date)
             
         if filters.end_date:
-            filter_conditions.append(StockOpname.date <= filters.end_date[0])
+            filter_conditions.append(StockOpname.date <= filters.end_date)
             
         if filter_conditions:
             stock_opname_query = stock_opname_query.filter(and_(*filter_conditions))

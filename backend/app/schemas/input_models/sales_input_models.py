@@ -58,8 +58,8 @@ class SalesResponse(BaseModel):
     
 
 class SalesFilter(BaseModel):
-    start_date: Optional[List[date]] = None
-    end_date: Optional[List[date]] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     opj_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
     design_ids: Optional[List[int]] = None
@@ -96,8 +96,8 @@ class ReturnResponse(BaseModel):
         }
         
 class ReturnFilter(BaseModel):
-    start_date: Optional[List[date]] = None
-    end_date: Optional[List[date]] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     product_ids: Optional[List[int]] = None
     client_ids: Optional[List[int]] = None
     ck_ids: Optional[List[int]] = None

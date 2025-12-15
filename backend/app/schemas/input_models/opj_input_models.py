@@ -148,8 +148,8 @@ class OpjResponse(BaseModel):
         }
 
 class OpjFilter(BaseModel):
-    start_date: Optional [List[date]] = None
-    end_date: Optional [List[date]] = None
+    start_date: Optional [date] = None
+    end_date: Optional [date] = None
     design_ids: Optional[List[int]] = None
     printing_machine: Optional[List[str]] = None
     processes_type: Optional[List[str]] = None
