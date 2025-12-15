@@ -42,6 +42,7 @@ class DeliveryService:
             "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
             "sale_id": delivery.sale_id,
             "return_id": delivery.return_id,
+            "roll": float(delivery.roll)
         })
 
 
@@ -90,6 +91,7 @@ class DeliveryService:
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
                 "sale_client_id": d.sale.client_id if d.sale else None,
+                "roll": float(d.roll)
                 # "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )
@@ -108,6 +110,7 @@ class DeliveryService:
             "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
             "sale_id": delivery.sale_id,
             "return_id": delivery.return_id,
+            "roll": delivery.roll
         })
 
 
