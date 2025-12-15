@@ -22,7 +22,7 @@ class DeliveryResponse(BaseModel):
     id: int
     code: str
     date: Optional[str] = None
-    quantity: Optional[int] = None
+    quantity: Optional[float] = None
     sale_id: Optional[int] = None
     return_id: Optional[int] = None
     roll: Optional[float] = None

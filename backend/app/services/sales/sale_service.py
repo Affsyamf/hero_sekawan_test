@@ -121,9 +121,9 @@ class SalesService:
                 "client_id": sale.client_id,
                 "opj_id": sale.opj_id,
                 "ppn": float(sale.ppn),
+                "discount": float(sale.discount),
                 "client_name": sale.client.name if sale.client else None,
                 "opj_code": sale.opj.code if sale.opj else None,
-                "color_kitchen_id":filters.ck_ids[0] if filters.ck_ids else None,
                 "design_code": sale.opj.design.code if sale.opj and sale.opj.design else None
             }
         )
@@ -145,6 +145,7 @@ class SalesService:
             "client_id": sale.client_id,
             "opj_id": sale.opj_id,
             "ppn":float (sale.ppn),
+            "discount": float(sale.discount)
         })
         
         

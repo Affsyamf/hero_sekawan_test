@@ -110,7 +110,7 @@ class DeliveryService:
             "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
             "sale_id": delivery.sale_id,
             "return_id": delivery.return_id,
-            "roll": delivery.roll
+            "roll": float(delivery.roll)
         })
 
 
