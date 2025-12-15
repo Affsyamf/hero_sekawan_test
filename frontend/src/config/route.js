@@ -3,6 +3,7 @@
 
 import {
   AccountsPage,
+  ClientsPage,
   ColorKitchenDetailPage,
   ColorKitchensPage,
   DashboardColorKitchen,
@@ -14,11 +15,15 @@ import {
   PurchasingDetailPage,
   PurchasingReportsPage,
   PurchasingsPage,
+  ReturnPage,
+  SalePage,
   StockMovementsPage,
   StockOpnamePage,
   SuppliersPage,
 } from "../pages";
 import AccountCategoryBoard from "../pages/account/AccountCategoryBoard";
+import DeliveryPage from "../pages/delivery/DeliveryPage";
+import PaymentPage from "../pages/payment/PaymentPage";
 
 // -----------------------------
 export const protectedRoutes = [
@@ -40,6 +45,7 @@ export const protectedRoutes = [
 
   { path: "products", element: ProductsPage, permission: "product.read" },
   { path: "suppliers", element: SuppliersPage, permission: "supplier.read" },
+  { path: "clients", element: ClientsPage, permission: "client.read" },
 
   { path: "accounts", element: AccountsPage, permission: "account.read" },
   {
@@ -89,18 +95,23 @@ export const protectedRoutes = [
 
   {
     path: "sales",
-    element: StockOpnamePage,
+    element: SalePage,
     permission: "sales.read",
   },
   {
     path: "delivery",
-    element: StockOpnamePage,
+    element: DeliveryPage,
     permission: "delivery.read",
   },
   {
     path: "return",
-    element: StockOpnamePage,
+    element: ReturnPage,
     permission: "return.read",
+  },
+  {
+    path: "payment",
+    element: PaymentPage,
+    permission: "payment.read",
   },
   {
     path: "sampling",
