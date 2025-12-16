@@ -39,16 +39,8 @@ class PurchasingService:
          
         purchasing_query = purchasing_query.group_by(Purchasing.id)
         
-        # custom_filters = {
-        #     "supplier_ids": [filters.supplier_id] if filters.supplier_id else None,
-        #     "product_ids": [filters.product_id] if filters.product_id else None,
-        #     "account_ids": [filters.account_id] if filters.account_id else None,
-        #     "account_parent_ids": [filters.account_parent_id] if filters.account_parent_id else None,
-        # }
-        
         # whereu
         # if any(custom_filters.values()):
-        print(filters)
         purchasing_query = apply_common_report_filters(purchasing_query, filters)
             
         filter_conditions = []
@@ -68,13 +60,6 @@ class PurchasingService:
             
         if filters.end_date:
             filter_conditions.append(Purchasing.date <= filters.end_date)
-                # purchasing = purchasing.filter(
-                #     and_(
-                #         Purchasing.date >= start,
-                #         Purchasing.date <= end
-                #     )
-                # )
-            
             
         if filter_conditions:
             purchasing_query = purchasing_query.filter(and_(*filter_conditions))

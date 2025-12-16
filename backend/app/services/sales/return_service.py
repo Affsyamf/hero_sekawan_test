@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, status
 from sqlalchemy import or_, and_
 
 from app.core.database import get_db
@@ -16,27 +16,84 @@ class ReturnService:
     
     def create_return(self, request: ReturnCreate):
         try:
+            # kode duplikat
+            existing_code = self.db.query(Return).filter(
+                Return.code == request.code
+            ).first()
+            
+            if existing_code:
+                return APIResponse.conflict(
+                    message=f"Return with code '{request.code}' alredy exsist"
+                )
+                
+            # validasi opj
+            active_opj = self.db.query(Opj).filter(
+                Opj.id == request.opj_id,
+                Opj.deleted_at.is_(None)
+            ).first()
+            
+            if not active_opj:
+                deleted_opj = self.db.query(Opj).filter(Opj.id == request.opj_id).first()
+                
+                if deleted_opj and deleted_opj.deleted_at is not None:
+                    return APIResponse.conflict(
+                        message = f"OPJ ID  '{request.opj_id}' has been deleted"
+                    )
+                else:
+                    return APIResponse.not_found(message=f"Opj '{request.opj_id}' not found ")
+
+             
+            # validasi sale   
             sale = self.db.query(Sale).filter(Sale.id == request.sale_id).first()
             if not sale:
                 return APIResponse.not_found(message=f"Sale ID '{request.sale_id}' not found.")
 
+            # sale.opj_id gaboleh null
+            if sale.opj_id is None:
+                return APIResponse.conflict(
+                    message = f"Sale ID '{request.sale_id}' is not associated with any OPJ"
+
+                )
+            
+            # sale.opj_id HARUS SAMA DENGAN request.opj_id
+            if sale.opj_id != request.opj_id:
+                return APIResponse.conflict(
+                    message = (
+                        f"Sale ID '{request.sale_id}' is associated with OPJ ID "
+                        f"'{sale.opj_id}', not '{request.opj_id}'."
+                    )
+                )     
+            
+            # validasi opj dari sale
+            sale_opj_active = self.db.query(Opj).filter(
+                Opj.id == request.opj_id,
+                Opj.deleted_at.is_(None)
+            ).first()
+            
+            if not sale_opj_active:
+                return APIResponse.conflict(
+                    message = f"Opj associated with sale id '{sale.id}' has been deleted "
+                )
+                
+            
+            # create rturn
             ret = Return(**request.model_dump())
 
             self.db.add(ret)
             self.db.commit()
             self.db.refresh(ret)
-            return ret
-
-            # return APIResponse.created(data={
-            #     "id": ret.id,
-            #     "date": ret.date.isoformat() if ret.date else None,
-            #     "quantity": float(ret.quantity) if ret.quantity is not None else None,
-            #     "sale_id": ret.sale_id,
-            # })
+            # return ret
+          
+            return APIResponse.created(data={
+            "id": ret.id,
+            "code": ret.code,
+            "sale_id": ret.sale_id,
+            "opj_id": ret.opj_id
+        })
 
         except Exception as e:
-            print("❌ ERROR:", e)
-            raise e   
+            self.db.rollback()
+            return APIResponse.internal_error(message=str(e))
         
         
     def list_return(self, filters: ReturnFilter):
@@ -84,8 +141,6 @@ class ReturnService:
                 "opj_id": r.opj_id,
                 "quantity": float(r.quantity) if r.quantity else None,
                 "sale_id": r.sale_id,
-                # "color_kitchen_id": r.sale.opj.color_kitchen_entry[0].id 
-                #     if r.sale.opj.color_kitchen_entries else None,
             }
         )
         
@@ -104,26 +159,108 @@ class ReturnService:
         
         
     def update_return(self, return_id: int, request: ReturnUpdate):
-        update_data = request.model_dump(exclude_unset= True)
-        
-        ret = self.db.query(Return).filter(Return.id == return_id).first()
-        if not ret:
-            return APIResponse.not_found(message=f"Return ID '{return_id}' not found.")
-        
-        if "sale_id" in update_data:
-            sale = self.db.query(Sale).filter(Sale.id == update_data["sale_id"]).first()
-            if not sale:
-                return APIResponse.not_found(message=f"Sale ID '{update_data['sale_id']}' not found")
+        try:
+            update_data = request.model_dump(exclude_unset= True)
             
-        for key, value, in update_data.items():
-            setattr(ret, key, value)
-            
-        self.db.add(ret)
-        self.db.commit()
-        self.db.refresh(ret)
+            # cek return   
+            ret = self.db.query(Return).filter(Return.id == return_id).first()
+            if not ret:
+                return APIResponse.not_found(message=f"Return ID '{return_id}' not found.")
         
-        return APIResponse.ok(f"Return ID '{return_id}' updated.")
-    
+            # duplikasi code
+            if "code" in update_data:
+                existing_code = self.db.query(Return).filter(
+                    Return.code == update_data["code"],
+                    Return.id != return_id
+                ).first()
+                
+                if existing_code:
+                    return APIResponse.conflict(
+                        message=f"Return Code Cant Update '{request.code}' alredy exsist "
+                    )
+                    
+            # validasi opj
+            new_opj_id = update_data.get("opj_id", ret.opj_id)
+            
+            if "opj_id" in update_data:
+                active_opj = self.db.query(Opj).filter(
+                    Opj.id == new_opj_id,
+                    Opj.deleted_at.is_(None)
+                ).first()
+                
+                if not active_opj:
+                    deleted_opj = self.db.query(Opj).filter(Opj.id == new_opj_id).first()
+                    
+                    if deleted_opj and deleted_opj.deleted_at is not None:
+                        return APIResponse.conflict(
+                            message = f"OPJ ID '{new_opj_id}' has been deleted"
+                        )
+                        
+                    else:
+                        return APIResponse.not_found(
+                            message=f"Opj ID '{new_opj_id}' not found"
+                        )
+                    
+                new_opj_id = update_data.get("opj_id", ret.opj_id)
+
+            # validasi sale
+            new_sale_id = update_data.get("sale_id", ret.sale_id)
+
+            if "sale_id" in update_data:
+                sale = self.db.query(Sale).filter(
+                    Sale.id == new_sale_id
+                ).first()
+
+                if not sale:
+                    return APIResponse.not_found(
+                        message=f"Sale ID '{new_sale_id}' not found."
+                    )
+
+                if sale.opj_id is None:
+                    return APIResponse.conflict(
+                        message=f"Sale ID '{new_sale_id}' is not associated with any OPJ."
+                    )
+
+            else:
+                sale = self.db.query(Sale).filter(
+                    Sale.id == new_sale_id
+                ).first()
+            
+            
+            # validasi relasi opj ke sale
+            if sale and sale.opj_id != new_opj_id:
+                return APIResponse.conflict(
+                    message=(
+                        f"Sale ID '{new_sale_id}' is associated with OPJ ID "
+                        f"'{sale.opj_id}', not '{new_opj_id}'."
+                    )
+                )
+                
+            # validasi opj dari sale
+            if sale:
+                sale_opj_active = self.db.query(Opj).filter(
+                    Opj.id == sale.opj_id,
+                    Opj.deleted_at.is_(None)
+                ).first()
+
+                if not sale_opj_active:
+                    return APIResponse.conflict(
+                        message=f"OPJ associated with Sale ID '{sale.id}' has been deleted."
+                    )
+            
+            # update
+            for key, value, in update_data.items():
+                setattr(ret, key, value)
+                
+            self.db.add(ret)
+            self.db.commit()
+            self.db.refresh(ret)
+            
+            return APIResponse.ok(f"Return ID '{return_id}' updated.")
+        
+        except Exception as e:
+            self.db.rollback()
+            return APIResponse.internal_error(message=str(e))
     
     def delete_return(self, return_id: int):
         ret = self.db.query(Return).filter(Return.id == return_id).first()
