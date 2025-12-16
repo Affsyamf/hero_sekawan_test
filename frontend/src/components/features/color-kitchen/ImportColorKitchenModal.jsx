@@ -84,10 +84,10 @@ export default function ImportColorKitchenModal({
     // Check for missing products/designs before allowing to proceed
     if (step === 2) {
       const hasMissingProducts = preview?.missing_products?.length > 0;
-      const hasMissingDesigns = preview?.missing_designs?.length > 0;
-      if (hasMissingProducts || hasMissingDesigns) {
+      // const hasMissingDesigns = preview?.missing_designs?.length > 0;
+      if (hasMissingProducts) {
         setError(
-          "Cannot proceed: Missing products or designs. Please fix these issues first."
+          "Cannot proceed: Missing products. Please fix these issues first."
         );
         return;
       }
@@ -103,11 +103,10 @@ export default function ImportColorKitchenModal({
 
   // 🔹 Perform actual import
   const doImport = async () => {
-    if (!file) return;
     setProcessing(true);
     setError(null);
     try {
-      const res = await importApi.importLapCk(file);
+      const res = await importApi.importLapCk(preview.preview_id);
       const data = res.data?.data || res.data;
       setResult(data);
       if (onImportSuccess) onImportSuccess(data);
@@ -296,7 +295,8 @@ export default function ImportColorKitchenModal({
     );
 
     const totalEntries = allEntries.length;
-    const hasErrors = missing_products.length > 0 || missing_designs.length > 0;
+    const hasErrors = missing_products.length > 0;
+    // const hasErrors = missing_products.length > 0 || missing_designs.length > 0;
 
     return (
       <div>
@@ -413,7 +413,7 @@ export default function ImportColorKitchenModal({
         )}
 
         {/* Missing Designs Error */}
-        {missing_designs.length > 0 && (
+        {/* {missing_designs.length > 0 && (
           <div
             className="flex items-start gap-3 p-4 mb-4 rounded-lg"
             style={{
@@ -453,7 +453,7 @@ export default function ImportColorKitchenModal({
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Skipped Rows Warning */}
         {skipped_rows.length > 0 && (
@@ -698,9 +698,9 @@ export default function ImportColorKitchenModal({
   };
 
   // --- Actions
-  const hasValidationErrors =
-    preview?.missing_products?.length > 0 ||
-    preview?.missing_designs?.length > 0;
+  const hasValidationErrors = preview?.missing_products?.length > 0;
+  // preview?.missing_products?.length > 0 ||
+  // preview?.missing_designs?.length > 0;
 
   const actions = (
     <>

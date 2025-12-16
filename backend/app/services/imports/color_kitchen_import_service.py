@@ -15,9 +15,10 @@ from app.models import (
     ColorKitchenEntryDetail,
     Product,
     Design,
+    DesignType,
 )
 
-from app.utils.normalise import normalise_design_name, normalise_product_name
+from app.utils.normalise import normalise_design_name, normalise_product_name, normalise_design_type
 from app.utils.safe_parse import safe_str, safe_date, safe_number
 from app.utils.cost_helper import get_avg_cost_for_product
 from app.utils.response import APIResponse
@@ -100,6 +101,8 @@ class ColorKitchenImportService(BaseImportService):
         missing_products = set()
         missing_designs = set()
 
+        print(parsed)
+
         # ----------- validation pass -----------
         for b in parsed["batches"]:
             # batch-level products
@@ -126,10 +129,10 @@ class ColorKitchenImportService(BaseImportService):
                 safe_products = sorted([p for p in missing_products if p])
                 if safe_products:
                     msg.append(f"Missing products: {', '.join(safe_products)}")
-            if missing_designs:
-                safe_designs = sorted([d for d in missing_designs if d])
-                if safe_designs:
-                    msg.append(f"Missing designs: {', '.join(safe_designs)}")
+            # if missing_designs:
+            #     safe_designs = sorted([d for d in missing_designs if d])
+            #     if safe_designs:
+            #         msg.append(f"Missing designs: {', '.join(safe_designs)}")
 
             if msg:  # ✅ only raise if something meaningful exists
                 raise ValueError(" | ".join(msg))
@@ -166,15 +169,23 @@ class ColorKitchenImportService(BaseImportService):
                     # print(f"⚠️ Skipping entry with no code in batch {b['code']}")
                     continue
 
-                design = self.db.query(Design).filter_by(code=normalise_design_name(e["design"])).first()
 
+                dtype = self.db.query(DesignType).filter_by(name=e["design_type"]).first()
+                if not dtype:
+                    dtype = DesignType(name=e["design_type"])
+                    self.db.add(dtype)
+                    self.db.flush()
+
+                design = self.db.query(Design).filter_by(code=normalise_design_name(e["design"])).first()
                 if not design:
                     design = Design(
                         code=normalise_design_name(e["design"]),
-                        name=e["design"]
+                        type=dtype
                     )
                     self.db.add(design)
                     self.db.flush()
+
+                print(design)
 
                 entry = ColorKitchenEntry(
                     code=e["code"],
@@ -250,6 +261,7 @@ class ColorKitchenImportService(BaseImportService):
             jenis_kain  = safe_str(row.get("JENIS KAIN"))
             rolls       = safe_number(row.get("ROLL"))
             tgl         = safe_date(row.get("TGL"))
+            type_raw = str(row.get("JENIS KAIN") or "")
 
             if not any([opj, design_name]):
                 finalize_batch()
@@ -268,6 +280,7 @@ class ColorKitchenImportService(BaseImportService):
                 "code": opj,
                 "date": tgl.isoformat() if tgl else None,
                 "design": design_name,
+                "design_type": normalise_design_type(type_raw),
                 "jenis_kain": jenis_kain,
                 "rolls": rolls,
                 "paste_quantity": 0.0,
