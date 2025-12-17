@@ -32,22 +32,10 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
         db: Session = self.db
         start_date = filters.get("start_date")
         end_date = filters.get("end_date")
-        granularity = (filters.get("granularity") or "monthly").lower()
         chem_type = self.normalise_chemical_type_filter(filters)
-
-        # Determine SQL trunc unit & label format
-        if granularity == "yearly":
-            trunc_unit = "year"
-            fmt = "%Y"
-        elif granularity == "weekly":
-            trunc_unit = "week"
-            fmt = "%Y-W%W"
-        elif granularity == "daily":
-            trunc_unit = "day"
-            fmt = "%Y-%m-%d"
-        else:
-            trunc_unit = "month"
-            fmt = "%Y-%m"
+        granularity = filters["granularity"]
+        trunc_unit = filters["trunc_unit"]
+        fmt = filters["date_format"]
 
         period_expr = func.date_trunc(trunc_unit, CKBatch.date).label("period")
 
