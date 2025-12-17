@@ -46,38 +46,28 @@ export default function DeliveryPage() {
   const fetchDataWithDateFilter = useCallback(
     async (params) => {
       try {
-        const queryParams = { ...params };
+        const payload = { ...params };
 
-        const filtersPayload = {};
-
-        // Date range (ALWAYS array per backend requirement)
-        if (dateRange?.dateFrom && dateRange?.dateTo) {
-          filtersPayload.start_date = [dateRange.dateFrom];
-          filtersPayload.end_date = [dateRange.dateTo];
+        // Date filter (single value, not array)
+        if (dateRange?.dateFrom) {
+          payload.start_date = dateRange.dateFrom;
+        }
+        if (dateRange?.dateTo) {
+          payload.end_date = dateRange.dateTo;
         }
 
-        // Map FE → backend filter keys
-        const filterMapping = {
-          client_ids: filters.client_ids,
-          ck_ids: filters.ck_ids,
-          design_ids: filters.design_ids,
-          opj_ids: filters.opj_ids,
-          product_ids: filters.product_ids,
-        };
-
-        // Apply only non-empty filters
-        Object.entries(filterMapping).forEach(([key, value]) => {
-          if (value?.length) {
-            filtersPayload[key] = value;
-          }
-        });
-
-        // Attach filters
-        if (Object.keys(filtersPayload).length > 0) {
-          queryParams.filters = filtersPayload;
+        // Dynamic multi-select filters (as arrays, flat structure)
+        if (filters.client_ids?.length) {
+          payload.client_ids = filters.client_ids;
+        }
+        if (filters.ck_ids?.length) {
+          payload.ck_ids = filters.ck_ids;
+        }
+        if (filters.product_ids?.length) {
+          payload.product_ids = filters.product_ids;
         }
 
-        const response = await searchDelivery(queryParams);
+        const response = await searchDelivery(payload);
         return response;
       } catch (error) {
         console.error("Failed to fetch deliveries:", error);

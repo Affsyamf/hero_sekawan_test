@@ -71,7 +71,7 @@ export const menuItems = [
     label: "Color Kitchen",
     icon: FlaskConical,
     path: "/color-kitchens",
-    perm: "color_kitchen.read",
+    perm: "color_kitchen_batch.read",
   },
   {
     label: "Stock Opname",
@@ -81,6 +81,12 @@ export const menuItems = [
   },
 
   { isHeader: true, text: "Sales" },
+  {
+    label: "Opj",
+    icon: CircleDollarSign,
+    path: "/opj",
+    perm: "opj.read",
+  },
   {
     label: "Sales",
     icon: CircleDollarSign,

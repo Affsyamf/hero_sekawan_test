@@ -72,7 +72,7 @@ export default function DesignFilter({ value = [], onChange }) {
             <label
               key={d.id}
               className="flex items-center gap-2 p-2 text-xs cursor-pointer hover:bg-gray-100"
-              title={d.name}
+              title={d.code}
             >
               <input
                 type="checkbox"
@@ -80,7 +80,7 @@ export default function DesignFilter({ value = [], onChange }) {
                 onChange={() => toggle(d.id)}
                 className="flex-shrink-0 accent-blue-600"
               />
-              <span className="text-gray-700 truncate">{d.name}</span>
+              <span className="text-gray-700 truncate">{d.code}</span>
             </label>
           ))
         )}

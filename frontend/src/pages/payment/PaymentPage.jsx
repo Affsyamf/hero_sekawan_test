@@ -1,10 +1,7 @@
-import { Edit2, Eye, Package } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { Edit2, Eye } from "lucide-react";
+import { useState, useCallback } from "react";
 import PaymentForm from "../../components/features/payment/PaymentForm";
 import Table from "../../components/ui/table/Table";
-import ClientFilter from "../../components/ui/filter/ClientFilter";
-import ColorKitchenFilter from "../../components/ui/filter/ColorKitchenFilter";
-import ProductFilter from "../../components/ui/filter/ProductFilter";
 import {
   createPayment,
   searchPayment,
@@ -12,7 +9,6 @@ import {
 } from "../../services/payment_service";
 import { formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
-import { useFilterService } from "../../contexts/FilterServiceContext";
 
 export default function PaymentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,71 +16,28 @@ export default function PaymentPage() {
   const [refresh, setRefresh] = useState(0);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
-  const { filters, setFilter, registerFilters } = useFilterService();
-
-  // Register filters untuk Payment page
-  useEffect(() => {
-    registerFilters([
-      <ClientFilter
-        key="client-filter"
-        value={filters.client_ids || []}
-        onChange={(v) => setFilter("client_ids", v)}
-      />,
-      <ColorKitchenFilter
-        key="ck-filter"
-        value={filters.ck_ids || []}
-        onChange={(v) => setFilter("ck_ids", v)}
-      />,
-      <ProductFilter
-        key="product-filter"
-        value={filters.product_ids || []}
-        onChange={(v) => setFilter("product_ids", v)}
-      />,
-    ]);
-  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
   const fetchDataWithDateFilter = useCallback(
     async (params) => {
       try {
         const queryParams = { ...params };
 
-        const filtersPayload = {};
-
-        // Date range (ALWAYS array per backend requirement)
-        if (dateRange?.dateFrom && dateRange?.dateTo) {
-          filtersPayload.start_date = [dateRange.dateFrom];
-          filtersPayload.end_date = [dateRange.dateTo];
+        // Date filter
+        if (dateRange?.dateFrom) {
+          queryParams.start_date = dateRange.dateFrom;
         }
-
-        // Map FE → backend filter keys
-        const filterMapping = {
-          client_ids: filters.client_ids,
-          ck_ids: filters.ck_ids,
-          design_ids: filters.design_ids,
-          opj_ids: filters.opj_ids,
-          product_ids: filters.product_ids,
-        };
-
-        // Apply only non-empty filters
-        Object.entries(filterMapping).forEach(([key, value]) => {
-          if (value?.length) {
-            filtersPayload[key] = value;
-          }
-        });
-
-        // Attach filters
-        if (Object.keys(filtersPayload).length > 0) {
-          queryParams.filters = filtersPayload;
+        if (dateRange?.dateTo) {
+          queryParams.end_date = dateRange.dateTo;
         }
 
         const response = await searchPayment(queryParams);
         return response;
       } catch (error) {
-        console.error("Failed to fetch deliveries:", error);
+        console.error("Failed to fetch payments:", error);
         throw error;
       }
     },
-    [dateRange, filters]
+    [dateRange]
   );
 
   const columns = [
@@ -175,17 +128,6 @@ export default function PaymentPage() {
     }
   };
 
-  // Calculate active filters count
-  const getActiveFiltersCount = () => {
-    let count = 0;
-    if (filters.client_ids?.length) count += filters.client_ids.length;
-    if (filters.ck_ids?.length) count += filters.ck_ids.length;
-    if (filters.product_ids?.length) count += filters.product_ids.length;
-    return count;
-  };
-
-  const activeFiltersCount = getActiveFiltersCount();
-
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl">
@@ -235,32 +177,8 @@ export default function PaymentPage() {
           </div>
         )}
 
-        {/* Active Filters Info */}
-        {activeFiltersCount > 0 && (
-          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
-            <p className="text-sm text-purple-800">
-              <span className="font-semibold">🔍 Active Filters:</span>{" "}
-              {filters.client_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.client_ids.length} Client(s)
-                </span>
-              )}
-              {filters.ck_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.ck_ids.length} Color Kitchen(s)
-                </span>
-              )}
-              {filters.product_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.product_ids.length} Product(s)
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
         <Table
-          key={`${refresh}-${JSON.stringify(filters)}`}
+          key={refresh}
           columns={columns}
           fetchData={fetchDataWithDateFilter}
           actions={renderActions}

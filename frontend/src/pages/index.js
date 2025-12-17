@@ -23,5 +23,8 @@ export { default as ColorKitchenDetailPage } from "./color-kitchen/ColorKitchenD
 export { default as PurchasingDetailPage } from "./purchasing/PurchasingDetailPage";
 
 
+export { default as OpjPage } from "./opj/OpjPage";
 export { default as SalePage } from "./sale/SalePage";
+export { default as DeliveryPage } from "./delivery/DeliveryPage";
 export { default as ReturnPage } from "./return/ReturnPage";
+export { default as PaymentPage } from "./payment/PaymentPage";

@@ -9,10 +9,13 @@ import {
   searchColorKitchen,
   updateColorKitchen,
 } from "../../services/color_kitchen_service";
-import { searchDesign } from "../../services/design_service";
 import Button from "../../components/ui/button/Button";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import GuideImportColorKitchenModal from "../../components/features/color-kitchen/GuideImportColorKitchenModal";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
 
 export default function ColorKitchensPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,27 +25,61 @@ export default function ColorKitchensPage() {
   const [refresh, setRefresh] = useState(0);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
+  const { filters, setFilter, registerFilters } = useFilterService();
 
-  // useEffect(() => {
-  //   setRefresh((prev) => prev + 1);
-  // }, [dateRange]);
+  // Register filters untuk Color Kitchen page
+  useEffect(() => {
+    registerFilters([
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids || []}
+        onChange={(v) => setFilter("account_ids", v)}
+      />,
+      <SupplierFilter
+        key="supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+      <ProductFilter
+        key="product-filter"
+        value={filters.product_ids || []}
+        onChange={(v) => setFilter("product_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
   const fetchDataWithDateFilter = useCallback(
     async (params) => {
       try {
-        const queryParams = { ...params };
-        if (dateRange?.dateFrom && dateRange?.dateTo) {
-          queryParams.start_date = dateRange.dateFrom;
-          queryParams.end_date = dateRange.dateTo;
+        const payload = { ...params };
+        
+        // Date filter
+        if (dateRange?.dateFrom) {
+          payload.start_date = dateRange.dateFrom;
         }
-        const response = await searchColorKitchen(queryParams);
+        if (dateRange?.dateTo) {
+          payload.end_date = dateRange.dateTo;
+        }
+
+        // Dynamic multi-select filters (as arrays)
+        if (filters.account_ids?.length) {
+          payload.account_ids = filters.account_ids;
+        }
+        if (filters.supplier_ids?.length) {
+          payload.supplier_ids = filters.supplier_ids;
+        }
+        if (filters.product_ids?.length) {
+          payload.product_ids = filters.product_ids;
+        }
+
+        const response = await searchColorKitchen(payload);
         return response;
       } catch (error) {
-        console.error("Failed to fetch stock movements:", error);
+        console.error("Failed to fetch color kitchen:", error);
         throw error;
       }
     },
-    [dateRange]
+    [dateRange, filters]
   );
 
   const columns = [
@@ -110,10 +147,6 @@ export default function ColorKitchensPage() {
         <Edit2 className="w-4 h-4" />
       </button>
       <button
-        // onClick={() => {
-        //   if (confirm(`Delete ${row.code}?`))
-        //     setEntries((p) => p.filter((e) => e.id !== row.id));
-        // }}
         className="p-1.5 text-red-600 hover:bg-red-50 rounded"
         title="Delete"
       >
@@ -147,8 +180,19 @@ export default function ColorKitchensPage() {
     }
   };
 
+  // Calculate active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.account_ids?.length) count += filters.account_ids.length;
+    if (filters.supplier_ids?.length) count += filters.supplier_ids.length;
+    if (filters.product_ids?.length) count += filters.product_ids.length;
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
   return (
-    <div className=" bg-background">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-1 text-2xl font-bold text-primary-text">
           Color Kitchen Management
@@ -156,6 +200,8 @@ export default function ColorKitchensPage() {
         <p className="mb-2 text-secondary-text">
           Manage color kitchen entries with design and product details.
         </p>
+        
+        {/* Active Date Filter Info */}
         {dateRange && (
           <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
             <p className="text-sm text-blue-800">
@@ -192,6 +238,30 @@ export default function ColorKitchensPage() {
           </div>
         )}
 
+        {/* Active Filters Info */}
+        {activeFiltersCount > 0 && (
+          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">🔍 Active Filters:</span>{" "}
+              {filters.account_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_ids.length} Account(s)
+                </span>
+              )}
+              {filters.supplier_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.supplier_ids.length} Supplier(s)
+                </span>
+              )}
+              {filters.product_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.product_ids.length} Product(s)
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Button
@@ -208,11 +278,11 @@ export default function ColorKitchensPage() {
             label="Import Guide"
             onClick={() => setIsGuideOpen(true)}
             variant="neutral"
-          ></Button>
+          />
         </div>
 
         <Table
-          key={refresh}
+          key={`${refresh}-${JSON.stringify(filters)}`}
           columns={columns}
           fetchData={fetchDataWithDateFilter}
           actions={renderActions}
@@ -233,6 +303,7 @@ export default function ColorKitchensPage() {
           }}
           onSave={handleSave}
         />
+        
         <ImportColorKitchenModal
           isOpen={isImportOpen}
           onClose={() => setIsImportOpen(false)}

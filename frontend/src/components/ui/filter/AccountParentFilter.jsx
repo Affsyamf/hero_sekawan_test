@@ -41,7 +41,7 @@ export default function AccountParentFilter({ value = [], onChange }) {
 
   return (
     <div>
-      <h3 className="font-semibold text-gray-800 mb-3">Account</h3>
+      <h3 className="mb-3 font-semibold text-gray-800">Account</h3>
 
       {/* Search bar */}
       <div className="relative mb-3">
@@ -66,7 +66,7 @@ export default function AccountParentFilter({ value = [], onChange }) {
         }}
       >
         {accountParents.length === 0 && !loading ? (
-          <div className="p-3 text-xs text-gray-500 italic">
+          <div className="p-3 text-xs italic text-gray-500">
             No Account found
           </div>
         ) : (
@@ -84,8 +84,10 @@ export default function AccountParentFilter({ value = [], onChange }) {
               />
               <span className="text-gray-700 truncate">
                 {p.account_no} -{" "}
-                {p.account_type.charAt(0).toUpperCase() +
-                  p.account_type.slice(1)}
+                {p.account_type
+                  ? p.account_type.charAt(0).toUpperCase() +
+                    p.account_type.slice(1)
+                  : " "}
               </span>
             </label>
           ))
@@ -94,7 +96,7 @@ export default function AccountParentFilter({ value = [], onChange }) {
 
       {/* Selected count */}
       {value.length > 0 && (
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="mt-2 text-xs text-gray-500">
           {value.length} account{value.length > 1 ? "s" : ""} selected
         </p>
       )}

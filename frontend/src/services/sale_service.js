@@ -7,6 +7,11 @@ export const searchSales = async (filter) => {
   return response;
 };
 
+// export const searchSales = async (filter) => {
+//   const response = await api.post("/sales/search", filter);
+//   return response;
+// };
+
 export const getSalesById = async (id) => {
   const response = await api.get(`/sales/${id}`);
   return response;

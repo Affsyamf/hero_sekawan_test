@@ -1,21 +1,91 @@
 import { Edit2, Eye } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
-import SaleForm from "../../components/features/sale/SaleForm";
+import OpjForm from "../../components/features/opj/OpjForm";
 import Table from "../../components/ui/table/Table";
-import ClientFilter from "../../components/ui/filter/ClientFilter";
-import ColorKitchenFilter from "../../components/ui/filter/ColorKitchenFilter";
 import DesignFilter from "../../components/ui/filter/DesignFilter";
-import OpjFilter from "../../components/ui/filter/OpjFilter";
-import {
-  createSales,
-  searchSales,
-  updateSales,
-} from "../../services/sale_service";
+import { createOpj, searchOpj, updateOpj } from "../../services/opj_service";
 import { formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
 
-export default function SalePage() {
+// Enum untuk filter
+const PRINTING_MACHINE_OPTIONS = [
+  { value: "rotary", label: "Rotary" },
+  { value: "flat", label: "Flat" },
+];
+
+const PROCESS_TYPE_OPTIONS = [
+  { value: "disperse", label: "DISPERSE" },
+  { value: "reactive", label: "REACTIVE" },
+  { value: "pigment", label: "PIGMENT" },
+];
+
+// Custom Filter Components
+function PrintingMachineFilter({ value = [], onChange }) {
+  const handleToggle = (machineValue) => {
+    const newValue = value.includes(machineValue)
+      ? value.filter((v) => v !== machineValue)
+      : [...value, machineValue];
+    onChange(newValue);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-secondary-text">
+        Printing Machine
+      </label>
+      <div className="flex flex-wrap gap-2">
+        {PRINTING_MACHINE_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => handleToggle(option.value)}
+            className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
+              value.includes(option.value)
+                ? "bg-primary text-white"
+                : "bg-surface text-secondary-text border border-default hover:bg-background"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProcessTypeFilter({ value = [], onChange }) {
+  const handleToggle = (typeValue) => {
+    const newValue = value.includes(typeValue)
+      ? value.filter((v) => v !== typeValue)
+      : [...value, typeValue];
+    onChange(newValue);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-secondary-text">
+        Process Type
+      </label>
+      <div className="flex flex-wrap gap-2">
+        {PROCESS_TYPE_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => handleToggle(option.value)}
+            className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
+              value.includes(option.value)
+                ? "bg-primary text-white"
+                : "bg-surface text-secondary-text border border-default hover:bg-background"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function OpjPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refresh, setRefresh] = useState(0);
@@ -23,28 +93,23 @@ export default function SalePage() {
   const dateRange = useDateFilterStore((state) => state.dateRange);
   const { filters, setFilter, registerFilters } = useFilterService();
 
-  // Register filters untuk Sale page
+  // Register filters untuk OPJ page
   useEffect(() => {
     registerFilters([
-      <ClientFilter
-        key="client-filter"
-        value={filters.client_ids || []}
-        onChange={(v) => setFilter("client_ids", v)}
-      />,
-      <ColorKitchenFilter
-        key="ck-filter"
-        value={filters.ck_ids || []}
-        onChange={(v) => setFilter("ck_ids", v)}
-      />,
       <DesignFilter
         key="design-filter"
         value={filters.design_ids || []}
         onChange={(v) => setFilter("design_ids", v)}
       />,
-      <OpjFilter
-        key="opj-filter"
-        value={filters.opj_ids || []}
-        onChange={(v) => setFilter("opj_ids", v)}
+      <PrintingMachineFilter
+        key="printing-machine-filter"
+        value={filters.printing_machine || []}
+        onChange={(v) => setFilter("printing_machine", v)}
+      />,
+      <ProcessTypeFilter
+        key="process-type-filter"
+        value={filters.processes_type || []}
+        onChange={(v) => setFilter("processes_type", v)}
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
@@ -62,24 +127,21 @@ export default function SalePage() {
           payload.end_date = dateRange.dateTo;
         }
 
-        // Dynamic multi-select filters (as arrays, flat structure)
-        if (filters.client_ids?.length) {
-          payload.client_ids = filters.client_ids;
-        }
-        if (filters.ck_ids?.length) {
-          payload.ck_ids = filters.ck_ids;
-        }
+        // Dynamic multi-select filters (as arrays)
         if (filters.design_ids?.length) {
           payload.design_ids = filters.design_ids;
         }
-        if (filters.opj_ids?.length) {
-          payload.opj_ids = filters.opj_ids;
+        if (filters.printing_machine?.length) {
+          payload.printing_machine = filters.printing_machine;
+        }
+        if (filters.processes_type?.length) {
+          payload.processes_type = filters.processes_type;
         }
 
-        const response = await searchSales(payload);
+        const response = await searchOpj(payload);
         return response;
       } catch (error) {
-        console.error("Failed to fetch sales:", error);
+        console.error("Failed to fetch OPJ:", error);
         throw error;
       }
     },
@@ -110,63 +172,66 @@ export default function SalePage() {
       ),
     },
     {
-      key: "quantity_start",
-      label: "Qty Start",
-      sortable: true,
-      render: (v) => (
-        <span className="text-secondary-text">
-          {parseFloat(v || 0).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "quantity_end",
-      label: "Qty End",
-      sortable: true,
-      render: (v) => (
-        <span className="text-secondary-text">
-          {parseFloat(v || 0).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "difference",
-      label: "Difference",
+      key: "design",
+      label: "Design",
       sortable: false,
-      render: (_, row) => {
-        const diff =
-          (parseFloat(row.quantity_end) || 0) -
-          (parseFloat(row.quantity_start) || 0);
+      render: (v) => (
+        <span className="text-secondary-text">{v?.name || "-"}</span>
+      ),
+    },
+    {
+      key: "process_type",
+      label: "Process Type",
+      sortable: true,
+      render: (v) => (
+        <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+          {v || "-"}
+        </span>
+      ),
+    },
+    {
+      key: "printing_machine",
+      label: "Machine",
+      sortable: true,
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
+    },
+    {
+      key: "jenis_kain",
+      label: "Jenis Kain",
+      sortable: false,
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
+    },
+    {
+      key: "details",
+      label: "Total Rolls",
+      sortable: false,
+      render: (v) => {
+        const totalRolls = (v || []).reduce(
+          (sum, detail) => sum + (parseFloat(detail.roll) || 0),
+          0
+        );
         return (
-          <span
-            className={`font-medium ${
-              diff > 0
-                ? "text-green-600"
-                : diff < 0
-                ? "text-red-600"
-                : "text-secondary-text"
-            }`}
-          >
-            {diff.toFixed(2)}
+          <span className="font-medium text-secondary-text">
+            {totalRolls.toFixed(2)}
           </span>
         );
       },
     },
     {
-      key: "opj",
-      label: "OPJ",
+      key: "details",
+      label: "Total Qty (KG)",
       sortable: false,
-      render: (v) => (
-        <span className="text-secondary-text">{v?.code || "-"}</span>
-      ),
-    },
-    {
-      key: "color_kitchen",
-      label: "Color Kitchen",
-      sortable: false,
-      render: (v) => (
-        <span className="text-secondary-text">{v?.name || "-"}</span>
-      ),
+      render: (v) => {
+        const totalQty = (v || []).reduce(
+          (sum, detail) => sum + (parseFloat(detail.quantity) || 0),
+          0
+        );
+        return (
+          <span className="font-medium text-secondary-text">
+            {totalQty.toFixed(2)}
+          </span>
+        );
+      },
     },
   ];
 
@@ -200,33 +265,33 @@ export default function SalePage() {
     setSelected(null);
   };
 
-  const handleSave = async (saleData) => {
+  const handleSave = async (opjData) => {
     try {
       const payload = Object.fromEntries(
-        Object.entries(saleData).filter(
+        Object.entries(opjData).filter(
           ([_, value]) => value != null && value !== ""
         )
       );
 
       if (payload.id) {
-        await updateSales(payload.id, payload);
+        await updateOpj(payload.id, payload);
       } else {
-        await createSales(payload);
+        await createOpj(payload);
       }
       setRefresh((prev) => prev + 1);
       handleCloseModal();
     } catch (error) {
-      alert("Failed to save sale: " + error.message);
+      alert("Failed to save OPJ: " + error.message);
     }
   };
 
   // Calculate active filters count
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (filters.client_ids?.length) count += filters.client_ids.length;
-    if (filters.ck_ids?.length) count += filters.ck_ids.length;
     if (filters.design_ids?.length) count += filters.design_ids.length;
-    if (filters.opj_ids?.length) count += filters.opj_ids.length;
+    if (filters.printing_machine?.length)
+      count += filters.printing_machine.length;
+    if (filters.processes_type?.length) count += filters.processes_type.length;
     return count;
   };
 
@@ -236,10 +301,10 @@ export default function SalePage() {
     <div className="bg-background">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-1 text-2xl font-bold text-primary-text">
-          Sales Management
+          OPJ Management
         </h1>
         <p className="mb-2 text-secondary-text">
-          Manage sales transactions and track quantity conversions.
+          Manage Order Produksi Jadi (OPJ) for production orders.
         </p>
 
         {/* Active Date Filter Info */}
@@ -284,23 +349,20 @@ export default function SalePage() {
           <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
             <p className="text-sm text-purple-800">
               <span className="font-semibold">🔍 Active Filters:</span>{" "}
-              {filters.client_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.client_ids.length} Client(s)
-                </span>
-              )}
-              {filters.ck_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.ck_ids.length} Color Kitchen(s)
-                </span>
-              )}
               {filters.design_ids?.length > 0 && (
                 <span className="mr-2">
                   {filters.design_ids.length} Design(s)
                 </span>
               )}
-              {filters.opj_ids?.length > 0 && (
-                <span className="mr-2">{filters.opj_ids.length} OPJ(s)</span>
+              {filters.printing_machine?.length > 0 && (
+                <span className="mr-2">
+                  {filters.printing_machine.length} Machine(s)
+                </span>
+              )}
+              {filters.processes_type?.length > 0 && (
+                <span className="mr-2">
+                  {filters.processes_type.length} Process Type(s)
+                </span>
               )}
             </p>
           </div>
@@ -319,8 +381,8 @@ export default function SalePage() {
           showDateRangeFilter={false}
         />
 
-        <SaleForm
-          entry={selected}
+        <OpjForm
+          opj={selected}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSave}
