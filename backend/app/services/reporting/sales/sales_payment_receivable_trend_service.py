@@ -4,12 +4,14 @@ from sqlalchemy import func
 from datetime import timedelta
 from typing import Optional
 from app.core.database import get_db
-from app.models import Sale, Payment
 from app.utils.response import APIResponse
+from app.services.reporting.base_reporting_service import BaseReportService
+
+from app.models import Sale, Payment, Opj
+from app.schemas.filter_models.report_filters import SalesReportFilter
+
 from app.utils.filters import apply_common_report_filters
 from app.utils.report import sale_joins, to_float
-from app.services.reporting.base_reporting_service import BaseReportService
-from app.schemas.filter_models.report_filters import SalesReportFilter
 
 
 class PaymentReceivableService(BaseReportService):
@@ -33,7 +35,7 @@ class PaymentReceivableService(BaseReportService):
         fmt = filters["date_format"]
 
         sales_period = func.date_trunc(trunc_unit, Sale.date).label("period")
-        sales_sum = func.sum(Sale.quantity_end).label("total_sales")
+        sales_sum = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_sales")
 
         q_sales = (
             db.query(sales_period, sales_sum)

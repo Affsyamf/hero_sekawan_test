@@ -7,7 +7,7 @@ from app.services.reporting.base_reporting_service import BaseReportService
 from typing import Optional
 from datetime import timedelta
 
-from app.models import Sale, Client
+from app.models import Sale, Client, Opj
 from app.schemas.filter_models.report_filters import SalesReportFilter
 from app.schemas.report_response.reporting_schemas import SalesTrendResponse, SalesTrendData
 
@@ -34,7 +34,7 @@ class SalesTrendService(BaseReportService):
         fmt = filters["date_format"]
 
         period_expr = func.date_trunc(trunc_unit, Sale.date).label("period")
-        total_qty_expr = func.sum(Sale.quantity_end).label("total_quantity")
+        total_qty_expr = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_quantity")
 
         query = (
             db.query(period_expr, Client.name, total_qty_expr)

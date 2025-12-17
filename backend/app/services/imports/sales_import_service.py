@@ -101,7 +101,8 @@ class SalesImportService(BaseImportService):
                 process_type=OpjProcessEnum.DISPERSE,  # TODO map from row
                 printing_machine=PrintingMachineEnum.ROTARY,
                 client_id=client.id,
-                design_id=design.id
+                design_id=design.id,
+                unit_price=row["unit_price"]
             )
             self.db.add(opj)
             self.db.flush()

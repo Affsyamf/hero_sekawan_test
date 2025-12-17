@@ -2,16 +2,17 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from app.core.database import get_db
-from app.models import Sale, Client, ColorKitchenEntry, Design
-from app.schemas.filter_models.report_filters import SalesReportFilter
-from app.schemas.report_response.reporting_schemas import SalesClientTopResponse, ClientSalesData
 from app.utils.response import APIResponse
-from app.utils.filters import apply_common_report_filters
-from app.utils.report import normalize_report_filters, sale_joins, date_filter, to_float
 from app.services.reporting.base_reporting_service import BaseReportService
 from datetime import date, datetime
 from typing import List, Optional
 
+from app.models import Sale, Client, Opj, Design
+from app.schemas.filter_models.report_filters import SalesReportFilter
+from app.schemas.report_response.reporting_schemas import SalesClientTopResponse, ClientSalesData
+
+from app.utils.filters import apply_common_report_filters
+from app.utils.report import normalize_report_filters, sale_joins, date_filter, to_float
 
 class SalesClientTopService(BaseReportService):
     def __init__(self, db: Session = Depends(get_db)):
@@ -29,7 +30,7 @@ class SalesClientTopService(BaseReportService):
         start_date: Optional[date] = filters.get("start_date")
         end_date: Optional[date] = filters.get("end_date")
         
-        total_quantity_alias = func.sum(Sale.quantity_end).label("total_quantity")
+        total_quantity_alias = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_quantity")
         
         client = db.query(
             Client.id.label("client_id"),
