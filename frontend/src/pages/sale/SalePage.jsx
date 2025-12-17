@@ -31,11 +31,11 @@ export default function SalePage() {
         value={filters.client_ids || []}
         onChange={(v) => setFilter("client_ids", v)}
       />,
-      <ColorKitchenFilter
-        key="ck-filter"
-        value={filters.ck_ids || []}
-        onChange={(v) => setFilter("ck_ids", v)}
-      />,
+      // <ColorKitchenFilter
+      //   key="ck-filter"
+      //   value={filters.ck_ids || []}
+      //   onChange={(v) => setFilter("ck_ids", v)}
+      // />,
       <DesignFilter
         key="design-filter"
         value={filters.design_ids || []}
@@ -102,11 +102,27 @@ export default function SalePage() {
       ),
     },
     {
-      key: "client",
+      key: "client_name",
       label: "Client",
       sortable: false,
       render: (v) => (
-        <span className="text-secondary-text">{v?.name || "-"}</span>
+        <span className="text-secondary-text">{v || "-"}</span>
+      ),
+    },
+    {
+      key: "opj_code",
+      label: "OPJ",
+      sortable: false,
+      render: (v) => (
+        <span className="text-secondary-text">{v || "-"}</span>
+      ),
+    },
+    {
+      key: "design_code",
+      label: "Design",
+      sortable: false,
+      render: (v) => (
+        <span className="text-secondary-text">{v || "-"}</span>
       ),
     },
     {
@@ -153,19 +169,23 @@ export default function SalePage() {
       },
     },
     {
-      key: "opj",
-      label: "OPJ",
+      key: "ppn",
+      label: "PPN",
       sortable: false,
       render: (v) => (
-        <span className="text-secondary-text">{v?.code || "-"}</span>
+        <span className="text-secondary-text">
+          {parseFloat(v || 0).toFixed(2)}
+        </span>
       ),
     },
     {
-      key: "color_kitchen",
-      label: "Color Kitchen",
+      key: "discount",
+      label: "Discount",
       sortable: false,
       render: (v) => (
-        <span className="text-secondary-text">{v?.name || "-"}</span>
+        <span className="text-secondary-text">
+          {parseFloat(v || 0).toFixed(2)}
+        </span>
       ),
     },
   ];
@@ -300,7 +320,9 @@ export default function SalePage() {
                 </span>
               )}
               {filters.opj_ids?.length > 0 && (
-                <span className="mr-2">{filters.opj_ids.length} OPJ(s)</span>
+                <span className="mr-2">
+                  {filters.opj_ids.length} OPJ(s)
+                </span>
               )}
             </p>
           </div>

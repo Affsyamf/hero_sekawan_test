@@ -1,16 +1,16 @@
 import api from "./api";
 
-export const searchSales = async (filter) => {
-  const response = await api.post("/sales/search", {
-    params: filter,
-  });
-  return response;
-};
-
 // export const searchSales = async (filter) => {
-//   const response = await api.post("/sales/search", filter);
+//   const response = await api.post("/sales/search", {
+//     params: filter,
+//   });
 //   return response;
 // };
+
+export const searchSales = async (filter) => {
+  const response = await api.post("/sales/search", filter);
+  return response;
+};
 
 export const getSalesById = async (id) => {
   const response = await api.get(`/sales/${id}`);

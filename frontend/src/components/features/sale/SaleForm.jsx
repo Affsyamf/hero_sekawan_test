@@ -5,11 +5,11 @@ import {
   Package,
   ShoppingCart,
   Users,
-  Layers,
+  Percent,
+  DollarSign,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { searchClient } from "../../../services/client_service";
-import { searchColorKitchen } from "../../../services/color_kitchen_service";
 import { searchOpj } from "../../../services/opj_service";
 import Button from "../../ui/button/Button";
 import DropdownServer from "../../ui/dropdown-server/DropdownServer";
@@ -28,6 +28,8 @@ export default function SaleForm({
     date: new Date().toISOString().split("T")[0],
     quantity_start: "",
     quantity_end: "",
+    ppn: "0",
+    discount: "0",
     client_id: "",
     opj_id: "",
   });
@@ -44,6 +46,8 @@ export default function SaleForm({
           date: entry.date?.split("T")[0] || new Date().toISOString().split("T")[0],
           quantity_start: entry.quantity_start || "",
           quantity_end: entry.quantity_end || "",
+          ppn: entry.ppn || "0",
+          discount: entry.discount || "0",
           client_id: entry.client_id || "",
           opj_id: entry.opj_id || "",
         });
@@ -53,6 +57,8 @@ export default function SaleForm({
           date: new Date().toISOString().split("T")[0],
           quantity_start: "",
           quantity_end: "",
+          ppn: "0",
+          discount: "0",
           client_id: "",
           opj_id: "",
         });
@@ -86,6 +92,14 @@ export default function SaleForm({
       newErrors.quantity_end = "Valid quantity end is required";
     }
 
+    if (parseFloat(formData.ppn) < 0) {
+      newErrors.ppn = "PPN cannot be negative";
+    }
+
+    if (parseFloat(formData.discount) < 0) {
+      newErrors.discount = "Discount cannot be negative";
+    }
+
     if (!formData.client_id) {
       newErrors.client_id = "Client is required";
     }
@@ -104,6 +118,8 @@ export default function SaleForm({
         id: entry?.id,
         quantity_start: parseFloat(formData.quantity_start),
         quantity_end: parseFloat(formData.quantity_end),
+        ppn: parseFloat(formData.ppn),
+        discount: parseFloat(formData.discount),
       });
     } catch (error) {
       console.error("Error saving sale entry:", error);
@@ -175,6 +191,45 @@ export default function SaleForm({
           </Form.Group>
         </div>
 
+        <Form.Group>
+          <Form.Label htmlFor="client_id" required>
+            <div className="flex items-center gap-2">
+              <Users className="w-3.5 h-3.5 text-primary" />
+              Client
+            </div>
+          </Form.Label>
+          <DropdownServer
+            apiService={searchClient}
+            placeholder="Select Client"
+            value={formData.client_id}
+            onChange={(clientId) => handleInputChange("client_id", clientId)}
+            name="client_id"
+            valueKey="id"
+            displayKey="name"
+            contentItem="name"
+          />
+          <Form.Error>{errors.client_id}</Form.Error>
+        </Form.Group>
+
+        <Form.Group>
+          <Form.Label htmlFor="opj_id">
+            <div className="flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              OPJ
+            </div>
+          </Form.Label>
+          <DropdownServer
+            apiService={searchOpj}
+            placeholder="Select OPJ (Optional)"
+            value={formData.opj_id}
+            onChange={(opjId) => handleInputChange("opj_id", opjId)}
+            name="opj_id"
+            valueKey="id"
+            displayKey="code"
+            contentItem="code"
+          />
+        </Form.Group>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Form.Group>
             <Form.Label htmlFor="quantity_start" required>
@@ -217,63 +272,45 @@ export default function SaleForm({
           </Form.Group>
         </div>
 
-        <Form.Group>
-          <Form.Label htmlFor="client_id" required>
-            <div className="flex items-center gap-2">
-              <Users className="w-3.5 h-3.5 text-primary" />
-              Client
-            </div>
-          </Form.Label>
-          <DropdownServer
-            apiService={searchClient}
-            placeholder="Select Client"
-            value={formData.client_id}
-            onChange={(clientId) => handleInputChange("client_id", clientId)}
-            name="client_id"
-            valueKey="id"
-            displayKey="name"
-            contentItem="name"
-          />
-          <Form.Error>{errors.client_id}</Form.Error>
-        </Form.Group>
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* <Form.Group>
-            <Form.Label htmlFor="color_kitchen_id">
+          <Form.Group>
+            <Form.Label htmlFor="ppn">
               <div className="flex items-center gap-2">
-                <Layers className="w-3.5 h-3.5 text-primary" />
-                Color Kitchen (Optional)
+                <Percent className="w-3.5 h-3.5 text-primary" />
+                PPN (Tax)
               </div>
             </Form.Label>
-            <DropdownServer
-              apiService={searchColorKitchen}
-              placeholder="Select Color Kitchen"
-              value={formData.color_kitchen_id}
-              onChange={(colorKitchenId) => handleInputChange("color_kitchen_id", colorKitchenId)}
-              name="color_kitchen_id"
-              valueKey="id"
-              displayKey="name"
-              contentItem="name"
+            <Input
+              id="ppn"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.ppn}
+              onChange={(e) => handleInputChange("ppn", e.target.value)}
+              placeholder="Enter PPN amount"
+              error={!!errors.ppn}
             />
-          </Form.Group> */}
+            <Form.Error>{errors.ppn}</Form.Error>
+          </Form.Group>
 
           <Form.Group>
-            <Form.Label htmlFor="opj_id">
+            <Form.Label htmlFor="discount">
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-primary" />
-                OPJ
+                <DollarSign className="w-3.5 h-3.5 text-primary" />
+                Discount
               </div>
             </Form.Label>
-            <DropdownServer
-              apiService={searchOpj}
-              placeholder="Select OPJ (Optional)"
-              value={formData.opj_id}
-              onChange={(opjId) => handleInputChange("opj_id", opjId)}
-              name="opj_id"
-              valueKey="id"
-              displayKey="code"
-              contentItem="code"
+            <Input
+              id="discount"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.discount}
+              onChange={(e) => handleInputChange("discount", e.target.value)}
+              placeholder="Enter discount amount"
+              error={!!errors.discount}
             />
+            <Form.Error>{errors.discount}</Form.Error>
           </Form.Group>
         </div>
 
@@ -281,24 +318,24 @@ export default function SaleForm({
           <div className="p-3 border rounded-lg bg-primary/10 border-primary/20">
             <h4 className="flex items-center gap-2 mb-2 text-sm font-medium text-primary">
               <AlertCircle className="w-3.5 h-3.5" />
-              Quantity Summary
+              Summary
             </h4>
-            <div className="grid grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-5">
               <div>
-                <span className="text-secondary-text">Quantity Start:</span>
-                <span className="ml-2 font-medium text-primary-text">
+                <span className="text-secondary-text">Qty Start:</span>
+                <span className="block font-medium text-primary-text">
                   {parseFloat(formData.quantity_start).toFixed(2)}
                 </span>
               </div>
               <div>
-                <span className="text-secondary-text">Quantity End:</span>
-                <span className="ml-2 font-medium text-primary-text">
+                <span className="text-secondary-text">Qty End:</span>
+                <span className="block font-medium text-primary-text">
                   {parseFloat(formData.quantity_end).toFixed(2)}
                 </span>
               </div>
               <div>
                 <span className="text-secondary-text">Difference:</span>
-                <span className={`ml-2 font-medium ${
+                <span className={`block font-medium ${
                   parseFloat(formData.quantity_start) > parseFloat(formData.quantity_end)
                     ? "text-red-600"
                     : parseFloat(formData.quantity_start) < parseFloat(formData.quantity_end)
@@ -306,6 +343,18 @@ export default function SaleForm({
                     : "text-primary-text"
                 }`}>
                   {(parseFloat(formData.quantity_end) - parseFloat(formData.quantity_start)).toFixed(2)}
+                </span>
+              </div>
+              <div>
+                <span className="text-secondary-text">PPN:</span>
+                <span className="block font-medium text-primary-text">
+                  {parseFloat(formData.ppn || 0).toFixed(2)}
+                </span>
+              </div>
+              <div>
+                <span className="text-secondary-text">Discount:</span>
+                <span className="block font-medium text-primary-text">
+                  {parseFloat(formData.discount || 0).toFixed(2)}
                 </span>
               </div>
             </div>
