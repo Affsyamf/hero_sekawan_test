@@ -1,11 +1,21 @@
 import api from "./api";
 
+// ==================== Account Parent ===================
+
+// export const searchAccountParent = async (filter) => {
+//   const response = await api.get("/account_parent/search", {
+//     params: filter,
+//   });
+//   return response;
+// };
+
 export const searchAccountParent = async (filter) => {
   const response = await api.get("/account_parent/search", {
     params: filter,
   });
   return response;
 };
+
 
 export const getAccountParentById = async (id) => {
   const response = await api.get(`/account_parent/${id}`);
@@ -27,12 +37,19 @@ export const deleteAccountParent = async (id) => {
   return response;
 };
 
+// ==================== Account ===================
+
 export const searchAccount = async (filter) => {
-  const response = await api.get("/account/search", {
+  const response = await api.post("/account/search", {
     params: filter,
   });
   return response;
 };
+
+// export const searchAccount = async (filter) => {
+//   const response = await api.post("/account/search", filter);
+//   return response;
+// };
 
 export const getAccountById = async (id) => {
   const response = await api.get(`/account/${id}`);

@@ -2,7 +2,7 @@ import Table from "../../components/ui/table/Table";
 import Button from "../../components/ui/button/Button";
 import ProductForm from "../../components/features/product/ProductForm";
 import ImportProductModal from "../../components/features/product/ImportProductModal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Edit2, Trash2, Eye, Upload, BookOpen } from "lucide-react";
 import {
   createProduct,
@@ -10,11 +10,12 @@ import {
   searchProduct,
   updateProduct,
 } from "../../services/product_service";
-import { searchAccount } from "../../services/account_service";
 import ImportDataMasterModal from "../../components/features/import/ImportDataMasterModal";
 import GuideImportMasterDataModal from "../../components/features/product/GuideImportMasterDataModal";
-
-// const SAMPLE_PRODUCTS = [];
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 
 export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +23,54 @@ export default function ProductsPage() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const { filters, setFilter, registerFilters } = useFilterService();
+
+  // Register filters untuk Product page
+  useEffect(() => {
+    registerFilters([
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids || []}
+        onChange={(v) => setFilter("account_ids", v)}
+      />,
+      <AccountParentFilter
+        key="account-parent-filter"
+        value={filters.account_parent_ids || []}
+        onChange={(v) => setFilter("account_parent_ids", v)}
+      />,
+      <SupplierFilter
+        key="supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
+
+  const fetchDataWithFilters = useCallback(
+    async (params) => {
+      try {
+        const payload = { ...params };
+
+        if (filters.account_ids?.length) {
+          payload.account_ids = filters.account_ids;
+        }
+        if (filters.account_parent_ids?.length) {
+          payload.account_parent_ids = filters.account_parent_ids;
+        }
+        if (filters.supplier_ids?.length) {
+          payload.supplier_ids = filters.supplier_ids;
+        }
+
+        const response = await searchProduct(payload);
+        return response;
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        throw error;
+      }
+    },
+    [filters]
+  );
 
   const columns = [
     {
@@ -63,13 +112,11 @@ export default function ProductsPage() {
     },
   ];
 
-  // CRUD Handlers
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedProduct(null);
   };
 
-  // Save handler
   const handleSave = async (productData) => {
     try {
       const payload = Object.fromEntries(
@@ -108,7 +155,6 @@ export default function ProductsPage() {
   };
 
   const handleImportSuccess = (result) => {
-    // Refresh table data after successful import
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -144,17 +190,51 @@ export default function ProductsPage() {
     </div>
   );
 
+  // Calculate active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.account_ids?.length) count += filters.account_ids.length;
+    if (filters.account_parent_ids?.length) count += filters.account_parent_ids.length;
+    if (filters.supplier_ids?.length) count += filters.supplier_ids.length;
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-1 text-2xl font-bold text-primary-text">
           Product Management
         </h1>
-        <p className="mb-6 text-secondary-text">
+        <p className="mb-2 text-secondary-text">
           Manage your products with codes, units, and account associations.
         </p>
 
-        {/* Import Button */}
+        {/* Active Filters Info */}
+        {activeFiltersCount > 0 && (
+          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">🔍 Active Filters:</span>{" "}
+              {filters.account_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_ids.length} Account(s)
+                </span>
+              )}
+              {filters.account_parent_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_parent_ids.length} Account Parent(s)
+                </span>
+              )}
+              {filters.supplier_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.supplier_ids.length} Supplier(s)
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Button
@@ -165,7 +245,6 @@ export default function ProductsPage() {
             />
           </div>
 
-          {/* Import Guide Button */}
           <button
             onClick={() => setIsGuideOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all border rounded-lg hover:shadow-md group"
@@ -182,9 +261,9 @@ export default function ProductsPage() {
         </div>
 
         <Table
-          key={refreshKey}
+          key={`${refreshKey}-${JSON.stringify(filters)}`}
           columns={columns}
-          fetchData={searchProduct}
+          fetchData={fetchDataWithFilters}
           actions={renderActions}
           onCreate={() => {
             setSelectedProduct(null);
@@ -200,12 +279,6 @@ export default function ProductsPage() {
           onClose={handleCloseModal}
           onSave={handleSave}
         />
-
-        {/* <ImportProductModal
-            isOpen={isImportModalOpen}
-            onClose={() => setIsImportModalOpen(false)}
-            onImportSuccess={handleImportSuccess}
-          /> */}
 
         <ImportDataMasterModal
           isOpen={isImportModalOpen}

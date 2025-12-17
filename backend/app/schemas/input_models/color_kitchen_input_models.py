@@ -1,8 +1,8 @@
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
-
+from app.utils.datatable.request import ListRequest
 # ===============================
 # 1️⃣ ColorKitchenBatchDetail
 # ===============================
@@ -41,7 +41,14 @@ class ColorKitchenEntryDetailCreate(BaseModel):
 class ColorKitchenEntryDetailUpdate(BaseModel):
     quantity: Optional[Decimal] = None
     product_id: Optional[int] = None
-    # color_kitchen_entry_id: Optional[int] = None
+    
+class ColorKitchenEntryFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
+    account_ids: Optional[List[int]] = None
+    account_parent_ids: Optional[List[int]] = None
+    supplier_ids: Optional[List[int]] = None
+    product_ids: Optional[List[int]] = None
 
 
 # ===============================

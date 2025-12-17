@@ -1,7 +1,8 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime, date
 from decimal import Decimal
+from app.utils.datatable.request import ListRequest
 
 from app.models.enum.opj_enum import (
     OpjProcessEnum, ProcessConditionEnum, PeTypeEnum,
@@ -146,3 +147,20 @@ class OpjResponse(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+
+class OpjFilter(ListRequest):
+    # start_date: Optional [date] = None
+    # end_date: Optional [date] = None
+    design_ids: Optional[List[int]] = None
+    printing_machine: Optional[List[str]] = None
+    processes_type: Optional[List[str]] = None
+    folding: Optional[List[str]] = None
+    face_direction: Optional[List[str]] = None
+    pe_type: Optional[List[str]] = None
+    
+    @validator("printing_machine", "processes_type", "folding", "face_direction", "pe_type", pre=True, each_item=True)
+    def upper_case_enum(cls, v):
+        if isinstance(v, str):
+            return v.upper()
+        return v
+            

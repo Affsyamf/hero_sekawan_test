@@ -1,11 +1,17 @@
 import api from "./api";
 
+// export const searchPurchasing = async (filter) => {
+//   const response = await api.get("/purchasing/search", {
+//     params: filter,
+//   });
+//   return response;
+// };
+
 export const searchPurchasing = async (filter) => {
-  const response = await api.get("/purchasing/search", {
-    params: filter,
-  });
+  const response = await api.post("/purchasing/search", filter);
   return response;
 };
+
 
 export const getPurchasingById = async (id) => {
   const response = await api.get(`/purchasing/${id}`);

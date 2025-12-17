@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import {
   searchAccountParent,
   updateAccountParent,
-} from "../../services/account_service";
+} from "../../services/account_parent_service";
 import KanbanBoard from "../../components/ui/kanban-board/KanbanBoard";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -77,23 +77,23 @@ export default function AccountCategoryBoard() {
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface transition-all cursor-pointer"
+          className="flex items-center justify-center transition-all rounded-lg cursor-pointer w-9 h-9 hover:bg-surface"
           title="Back"
         >
           <ChevronLeft size={22} className="text-secondary-text" />
         </button>
-        <h1 className="text-lg font-bold mb-2 text-gray-900">
+        <h1 className="mb-2 text-lg font-bold text-gray-900">
           Account Category Mapping
         </h1>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="mb-4 text-sm text-gray-500">
         Drag accounts into the correct bucket below.
       </p>
 
       {/* Scroll container for Kanban only */}
       <div
         ref={scrollRef}
-        className="overflow-x-auto p-2 overflow-y-visible kanban-scroll-container"
+        className="p-2 overflow-x-auto overflow-y-visible kanban-scroll-container"
       >
         <div className="min-w-max">
           <KanbanBoard

@@ -1,12 +1,14 @@
 from fastapi import Depends
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from app.core.database import get_db
-from app.models.delivery import Delivery
-from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate
+from app.models import Delivery, Product, Client, ColorKitchenEntry, ColorKitchenEntryDetail, Opj
+from app.schemas.input_models.deliveries_input_models import DeliveryCreate, DeliveryUpdate, DeliveryFilter
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
 from app.models.sales import Sale
+from app.utils.filters import apply_common_report_filters
+
 
 
 class DeliveryService:
@@ -40,22 +42,47 @@ class DeliveryService:
             "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
             "sale_id": delivery.sale_id,
             "return_id": delivery.return_id,
+            "roll": float(delivery.roll)
         })
 
 
-    def list_delivery(self, request: ListRequest):
+    def list_delivery(self, filters: DeliveryFilter):
         delivery_query = self.db.query(Delivery)
-
-        if request.q:
-            like = f"%{request.q}%"
-            delivery_query = delivery_query.filter(
+        
+        delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
+                                       .join(Client, Sale.client_id == Client.id)\
+                                       .join(Opj, Sale.opj_id == Opj.id)\
+                                       .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
+                                       .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
+                                       .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                       
+        delivery_query = apply_common_report_filters(delivery_query, filters)
+        
+        filter_conditions = []
+        
+        if filters.q:
+            like = f"%{filters.q}%"
+            filter_conditions.append(
                 or_(
                     Delivery.code.ilike(like),
+                    Client.name.ilike(like),
+                    Product.name.ilike(like)
                 )
             )
+            
+        
+        if filters.start_date:
+            filter_conditions.append(Delivery.date >= filters.start_date)
+            
+        if filters.end_date:
+            filter_conditions.append(Delivery.date <= filters.end_date)
+        
+        if filter_conditions:
+            delivery_query = delivery_query.filter(and_(*filter_conditions))
+            
 
         return APIResponse.paginated(
-            delivery_query, request,
+            delivery_query, filters,
             lambda d: {
                 "id": d.id,
                 "code": d.code,
@@ -63,6 +90,9 @@ class DeliveryService:
                 "quantity": float(d.quantity) if d.quantity is not None else None,
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
+                "sale_client_id": d.sale.client_id if d.sale else None,
+                "roll": float(d.roll)
+                # "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )
 
@@ -80,6 +110,7 @@ class DeliveryService:
             "quantity": float(delivery.quantity) if delivery.quantity is not None else None,
             "sale_id": delivery.sale_id,
             "return_id": delivery.return_id,
+            "roll": float(delivery.roll)
         })
 
 

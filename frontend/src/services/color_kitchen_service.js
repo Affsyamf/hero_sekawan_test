@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const searchColorKitchen = async (filter) => {
-  const response = await api.get("/color-kitchen-entry/search", {
+  const response = await api.post("/color-kitchen-entry/search", {
     params: filter,
   });
   return response;

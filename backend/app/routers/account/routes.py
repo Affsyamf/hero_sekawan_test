@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 
-from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate
+from app.schemas.input_models.types_input_models import AccountCreate, AccountUpdate, AccountFilter
 from app.utils.datatable.request import ListRequest
 from app.services.types.account_service import AccountService
 from app.utils.response import APIResponse
@@ -10,9 +10,9 @@ from app.dependencies.auth_dependency import AuthDependency
 
 account_router = APIRouter(prefix="/account", tags=["account"], dependencies=[require_user()])
 
-@account_router.get("/search")
-def search_accounts(request: ListRequest = Depends(), service: AccountService = Depends()):
-    return service.list_account(request=request)
+@account_router.post("/search")
+def search_accounts(filters: AccountFilter, service: AccountService = Depends()):
+    return service.list_account(filters=filters)
 
 @account_router.get("/{account_id}")
 def get_account_by_id(account_id: int, service: AccountService = Depends()):

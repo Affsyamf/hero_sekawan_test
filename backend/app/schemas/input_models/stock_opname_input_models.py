@@ -1,8 +1,8 @@
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel
-
+from app.utils.datatable.request import ListRequest
 
 # ===============================
 # 2️⃣ StockOpnameDetail
@@ -32,4 +32,11 @@ class StockOpnameUpdate(BaseModel):
     code: Optional[str] = None
     details: Optional[list[StockOpnameDetailUpdate]] = None
 
+
+class StockOpnameFilter(ListRequest):
+    # start_date: Optional[date] = None
+    # end_date: Optional[date] = None
+    product_ids: Optional[List[int]] = None
+    account_ids: Optional[List[int]] = None
+    account_parent_ids: Optional[List[int]] = None
 

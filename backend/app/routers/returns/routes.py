@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.schemas.input_models.sales_input_models import ReturnCreate, ReturnUpdate, ReturnResponse
+from app.schemas.input_models.sales_input_models import ReturnCreate, ReturnUpdate, ReturnResponse, ReturnFilter
 from app.utils.datatable.request import ListRequest
 from app.services.sales.return_service import ReturnService
 from app.utils.response import APIResponse
@@ -12,9 +12,9 @@ returns_router = APIRouter(
     dependencies=[require_user()]
 )
 
-@returns_router.get("/search", response_model=ReturnResponse )
-def search_returns(request: ListRequest = Depends(), service: ReturnService = Depends()):
-    return service.list_return(request=request)
+@returns_router.post("/search", response_model=ReturnResponse )
+def search_returns(filters: ReturnFilter, service: ReturnService = Depends()):
+    return service.list_return(filters=filters)
 
 @returns_router.get("/{return_id}", response_model=ReturnResponse)
 def get_return_by_id(return_id: int, service: ReturnService = Depends()):

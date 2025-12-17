@@ -3,17 +3,23 @@
 
 import {
   AccountsPage,
+  ClientsPage,
   ColorKitchenDetailPage,
   ColorKitchensPage,
   DashboardColorKitchen,
   DashboardPurchasing,
+  DeliveryPage,
   DesignsPage,
   DesignTypesPage,
+  OpjPage,
   OverviewNew,
+  PaymentPage,
   ProductsPage,
   PurchasingDetailPage,
   PurchasingReportsPage,
   PurchasingsPage,
+  ReturnPage,
+  SalePage,
   StockMovementsPage,
   StockOpnamePage,
   SuppliersPage,
@@ -40,6 +46,7 @@ export const protectedRoutes = [
 
   { path: "products", element: ProductsPage, permission: "product.read" },
   { path: "suppliers", element: SuppliersPage, permission: "supplier.read" },
+  { path: "clients", element: ClientsPage, permission: "client.read" },
 
   { path: "accounts", element: AccountsPage, permission: "account.read" },
   {
@@ -88,19 +95,29 @@ export const protectedRoutes = [
   },
 
   {
+    path: "opj",
+    element: OpjPage,
+    permission: "opj.read",
+  },
+  {
     path: "sales",
-    element: StockOpnamePage,
+    element: SalePage,
     permission: "sales.read",
   },
   {
     path: "delivery",
-    element: StockOpnamePage,
+    element: DeliveryPage,
     permission: "delivery.read",
   },
   {
     path: "return",
-    element: StockOpnamePage,
+    element: ReturnPage,
     permission: "return.read",
+  },
+  {
+    path: "payment",
+    element: PaymentPage,
+    permission: "payment.read",
   },
   {
     path: "sampling",

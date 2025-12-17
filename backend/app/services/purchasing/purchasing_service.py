@@ -1,22 +1,24 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from fastapi import HTTPException
 from fastapi.params import Depends
 from sqlalchemy import or_, func, and_, cast, Numeric
 from sqlalchemy.orm import joinedload
+from typing import Optional
 
-from app.schemas.input_models.purchasing_input_models import PurchasingCreate, PurchasingUpdate
+from app.schemas.input_models.purchasing_input_models import PurchasingCreate, PurchasingUpdate, PurchasingFilter
 from app.core.database import Session, get_db
-from app.models import Purchasing, PurchasingDetail
+from app.models import Purchasing, PurchasingDetail, Account, Supplier, Product, AccountParent
 from app.utils.datatable.request import ListRequest
 from app.utils.response import APIResponse
+from app.utils.filters import apply_common_report_filters, get_field
 
 class PurchasingService:
     def __init__(self, db = Depends(get_db)):
         self.db = db
 
-    def list_purchasing(self, request: ListRequest):
-        purchasing = self.db.query(
+    def list_purchasing(self, filters: PurchasingFilter):
+        purchasing_query = self.db.query(
             Purchasing,
             func.count(PurchasingDetail.id).label('item_count'),
             func.sum(
@@ -27,43 +29,68 @@ class PurchasingService:
                     Numeric(18, 2)
                 )
             ).label("total_amount")
-        ).outerjoin(Purchasing.details)\
-         .outerjoin(Purchasing.supplier)\
-         .group_by(Purchasing.id)
+        )
+        
+        purchasing_query= purchasing_query.join(Purchasing.details)\
+                                          .join(Purchasing.supplier)\
+                                          .join(Product, PurchasingDetail.product_id == Product.id)\
+                                          .join(Account, Product.account_id == Account.id)\
+                                          .join(AccountParent, Account.parent_id == AccountParent.id)
+         
+        purchasing_query = purchasing_query.group_by(Purchasing.id)
+        
+        # custom_filters = {
+        #     "supplier_ids": [filters.supplier_id] if filters.supplier_id else None,
+        #     "product_ids": [filters.product_id] if filters.product_id else None,
+        #     "account_ids": [filters.account_id] if filters.account_id else None,
+        #     "account_parent_ids": [filters.account_parent_id] if filters.account_parent_id else None,
+        # }
+        
+        # whereu
+        # if any(custom_filters.values()):
+        print(filters)
+        purchasing_query = apply_common_report_filters(purchasing_query, filters)
+            
+        filter_conditions = []
 
-        if request.q:
-            like = f"%{request.q}%"
-            purchasing = purchasing.filter(
+        if filters.q:
+            like = f"%{filters.q}%"
+            filter_conditions.append(
                 or_(
                     Purchasing.code.ilike(like),
                     Purchasing.purchase_order.ilike(like),
+                    Supplier.name.ilike(like),
                 )
             )
+        
+        if filters.start_date:
+            filter_conditions.append(Purchasing.date >= filters.start_date)
             
-        if request.start_date and request.end_date:
-            # try:
-            start = datetime.strptime(request.start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        if filters.end_date:
+            filter_conditions.append(Purchasing.date <= filters.end_date)
+                # purchasing = purchasing.filter(
+                #     and_(
+                #         Purchasing.date >= start,
+                #         Purchasing.date <= end
+                #     )
+                # )
             
-            purchasing = purchasing.filter(
-                and_(
-                    Purchasing.date >= start,
-                    Purchasing.date <= end
-                )
-            )
             
-        if request.sort_by and request.sort_dir:
-            sort_col = getattr(Purchasing, request.sort_by)
-            if request.sort_dir.lower() == "desc":
+        if filter_conditions:
+            purchasing_query = purchasing_query.filter(and_(*filter_conditions))
+            
+        if filters.sort_by and filters.sort_dir:
+            sort_col = getattr(Purchasing, filters.sort_by)
+            if filters.sort_dir.lower() == "desc":
                 sort_col = sort_col.desc()
-            purchasing = purchasing.order_by(sort_col)
+            purchasing_query = purchasing_query.order_by(sort_col)
                                 
+        purchasing_query = purchasing_query.order_by(Purchasing.id.desc())
             # except ValueError as e:
             #     print(f"⚠️ Invalid date format: {e}")  # Ignore jika format salah
         
-        purchasing = purchasing.order_by(Purchasing.id.desc())
 
-        return APIResponse.paginated(purchasing, request, lambda row: {
+        return APIResponse.paginated(purchasing_query, filters, lambda row: {
             "id": row.Purchasing.id,
             "date": row.Purchasing.date.isoformat() if row.Purchasing.date else None,
             "code": row.Purchasing.code,
@@ -74,6 +101,7 @@ class PurchasingService:
             "item_count": row.item_count or 0,
             "total_amount": float(row.total_amount) if row.total_amount else 0,
         })
+
 
     def get_purchasing(self, purchasing_id: int):
         purchasing = self.db.query(Purchasing).options(

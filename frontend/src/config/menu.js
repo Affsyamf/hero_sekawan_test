@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TestTubeDiagonal,
   Truck,
+  Wallet2,
 } from "lucide-react";
 
 export const menuItems = [
@@ -46,6 +47,7 @@ export const menuItems = [
     children: [
       { label: "Products", path: "/products", perm: "product.read" },
       { label: "Suppliers", path: "/suppliers", perm: "supplier.read" },
+      { label: "Clients", path: "/clients", perm: "client.read" },
       { label: "Accounts", path: "/accounts", perm: "account.read" },
       { label: "Design", path: "/designs", perm: "design.read" },
     ],
@@ -69,7 +71,7 @@ export const menuItems = [
     label: "Color Kitchen",
     icon: FlaskConical,
     path: "/color-kitchens",
-    perm: "color_kitchen.read",
+    perm: "color_kitchen_batch.read",
   },
   {
     label: "Stock Opname",
@@ -79,6 +81,12 @@ export const menuItems = [
   },
 
   { isHeader: true, text: "Sales" },
+  {
+    label: "Opj",
+    icon: CircleDollarSign,
+    path: "/opj",
+    perm: "opj.read",
+  },
   {
     label: "Sales",
     icon: CircleDollarSign,
@@ -92,10 +100,17 @@ export const menuItems = [
     perm: "delivery.read",
   },
   {
-    label: "Perbaikan",
+    label: "Return",
     icon: Shell,
     path: "/return",
     perm: "return.read",
+  },
+  
+  {
+    label: "Payment",
+    icon: Wallet2,
+    path: "/payment",
+    perm: "payment.read",
   },
   {
     label: "Test",

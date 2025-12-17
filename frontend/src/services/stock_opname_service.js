@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const searchStockOpname = async (filter) => {
-  const response = await api.get("/stock-opname/search", {
+  const response = await api.post("/stock-opname/search", {
     params: filter,
   });
   return response;

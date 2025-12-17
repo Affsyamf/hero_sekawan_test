@@ -18,6 +18,7 @@ from app.routers.auth.routes import auth_router
 from app.routers.reporting.overview_report import router as overview_report_router
 from app.routers.reporting.purchasing_report import router as purchasing_report_router
 from app.routers.reporting.color_kitchen_report import router as color_kitchen_report_router
+from app.routers.reporting.sales_report import router as sales_report_router
 from app.routers.client.routes import client_router
 
 from app.routers.users.routes import user_router
@@ -40,6 +41,7 @@ from app.routers.sales.routes import sales_router
 from app.routers.payment.routes import payment_router
 from app.routers.returns.routes import returns_router
 from app.routers.opj.routes import opj_router
+
 
 from app.routers.imports.routes import excel_import_router
 from app.routers.import_lap_pembelian.routes import import_lap_pembelian_router
@@ -126,6 +128,7 @@ app.include_router(import_lap_pembelian_router)
 app.include_router(overview_report_router)
 app.include_router(purchasing_report_router)
 app.include_router(color_kitchen_report_router)
+app.include_router(sales_report_router)
 
 app.include_router(user_router)
 app.include_router(permission_router)

@@ -1,57 +1,102 @@
-import { BookOpen, Edit2, Eye, Trash2, Upload } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import ImportStockMovementModal from "../../components/features/stock-movement/ImportStockMovementModal";
+import { Edit2, Eye, TrendingUp } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
 import StockMovementForm from "../../components/features/stock-movement/StockMovementForm";
-import Button from "../../components/ui/button/Button";
 import Table from "../../components/ui/table/Table";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 import {
   createStockMovement,
   searchStockMovement,
   updateStockMovement,
 } from "../../services/stock_movement_service";
-import useDateFilterStore from "../../stores/useDateFilterStore";
 import { formatDate } from "../../utils/helpers";
-import GuideImportStockMovementModal from "../../components/features/stock-movement/GuideImportStockMovementModal";
+import useDateFilterStore from "../../stores/useDateFilterStore";
+import { useFilterService } from "../../contexts/FilterServiceContext";
 
-export default function StockMovementsPage() {
+export default function StockMovementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [refresh, setRefresh] = useState(0);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
+  const { filters, setFilter, registerFilters } = useFilterService();
 
-  // useEffect(() => {
-  //   setRefresh((prev) => prev + 1);
-  // }, [dateRange]);
+  // Register filters untuk Stock Movement page
+  useEffect(() => {
+    registerFilters([
+      <ProductFilter
+        key="product-filter"
+        value={filters.product_ids || []}
+        onChange={(v) => setFilter("product_ids", v)}
+      />,
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids || []}
+        onChange={(v) => setFilter("account_ids", v)}
+      />,
+      <AccountParentFilter
+        key="account-parent-filter"
+        value={filters.account_parent_ids || []}
+        onChange={(v) => setFilter("account_parent_ids", v)}
+      />,
+      <SupplierFilter
+        key="supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
   const fetchDataWithDateFilter = useCallback(
     async (params) => {
       try {
-        const queryParams = { ...params };
+        const payload = { ...params };
 
-        if (dateRange?.dateFrom && dateRange?.dateTo) {
-          queryParams.start_date = dateRange.dateFrom;
-          queryParams.end_date = dateRange.dateTo;
+        // Date filter (single value, not array)
+        if (dateRange?.dateFrom) {
+          payload.start_date = dateRange.dateFrom;
+        }
+        if (dateRange?.dateTo) {
+          payload.end_date = dateRange.dateTo;
         }
 
-        const response = await searchStockMovement(queryParams);
+        // Dynamic multi-select filters (as arrays, flat structure)
+        if (filters.product_ids?.length) {
+          payload.product_ids = filters.product_ids;
+        }
+        if (filters.account_ids?.length) {
+          payload.account_ids = filters.account_ids;
+        }
+        if (filters.account_parent_ids?.length) {
+          payload.account_parent_ids = filters.account_parent_ids;
+        }
+        if (filters.supplier_ids?.length) {
+          payload.supplier_ids = filters.supplier_ids;
+        }
+
+        const response = await searchStockMovement(payload);
         return response;
       } catch (error) {
         console.error("Failed to fetch stock movements:", error);
         throw error;
       }
     },
-    [dateRange]
+    [dateRange, filters]
   );
 
   const columns = [
     {
       key: "code",
-      label: "Movement Code",
+      label: "Code",
       sortable: true,
-      render: (v) => <span className="font-medium text-primary-text">{v}</span>,
+      render: (v) => (
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-blue-500" />
+          <span className="font-medium text-primary-text">{v}</span>
+        </div>
+      ),
     },
     {
       key: "date",
@@ -62,22 +107,71 @@ export default function StockMovementsPage() {
       ),
     },
     {
-      key: "details",
-      label: "Items",
+      key: "product",
+      label: "Product",
       sortable: false,
       render: (v) => (
-        <span className="text-secondary-text">{v?.length || 0}</span>
+        <span className="text-secondary-text">{v?.name || "-"}</span>
       ),
     },
     {
-      key: "total",
-      label: "Total Qty",
+      key: "account",
+      label: "Account",
       sortable: false,
-      render: (v, row) => (
-        <span className="font-medium text-primary">
-          {row.details?.reduce((s, d) => s + (d.quantity || 0), 0) || 0}
+      render: (v) => (
+        <span className="text-secondary-text">{v?.name || "-"}</span>
+      ),
+    },
+    {
+      key: "supplier",
+      label: "Supplier",
+      sortable: false,
+      render: (v) => (
+        <span className="text-secondary-text">{v?.name || "-"}</span>
+      ),
+    },
+    {
+      key: "quantity_in",
+      label: "Qty In",
+      sortable: true,
+      render: (v) => (
+        <span className="font-medium text-green-600">
+          {v !== null && v !== undefined ? parseFloat(v).toFixed(2) : "-"}
         </span>
       ),
+    },
+    {
+      key: "quantity_out",
+      label: "Qty Out",
+      sortable: true,
+      render: (v) => (
+        <span className="font-medium text-red-600">
+          {v !== null && v !== undefined ? parseFloat(v).toFixed(2) : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "balance",
+      label: "Balance",
+      sortable: false,
+      render: (_, row) => {
+        const qtyIn = parseFloat(row.quantity_in) || 0;
+        const qtyOut = parseFloat(row.quantity_out) || 0;
+        const balance = qtyIn - qtyOut;
+        return (
+          <span
+            className={`font-medium ${
+              balance > 0
+                ? "text-green-600"
+                : balance < 0
+                ? "text-red-600"
+                : "text-secondary-text"
+            }`}
+          >
+            {balance.toFixed(2)}
+          </span>
+        );
+      },
     },
   ];
 
@@ -88,8 +182,8 @@ export default function StockMovementsPage() {
           setSelected(row);
           setIsModalOpen(true);
         }}
-        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-        title="View"
+        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        title="View Details"
       >
         <Eye className="w-4 h-4" />
       </button>
@@ -98,22 +192,10 @@ export default function StockMovementsPage() {
           setSelected(row);
           setIsModalOpen(true);
         }}
-        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
         title="Edit"
       >
         <Edit2 className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => {
-          if (confirm(`Delete ${row.code}?`)) {
-            // Implement delete functionality here
-            setRefresh((prev) => prev + 1);
-          }
-        }}
-        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-        title="Delete"
-      >
-        <Trash2 className="w-4 h-4" />
       </button>
     </div>
   );
@@ -143,21 +225,36 @@ export default function StockMovementsPage() {
     }
   };
 
+  // Calculate active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.product_ids?.length) count += filters.product_ids.length;
+    if (filters.account_ids?.length) count += filters.account_ids.length;
+    if (filters.account_parent_ids?.length)
+      count += filters.account_parent_ids.length;
+    if (filters.supplier_ids?.length) count += filters.supplier_ids.length;
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mb-1 text-2xl font-bold text-primary-text">
-          Stock Movement Management
-        </h1>
-        <p className="mb-2 text-secondary-text">
-          Track stock movements with detailed product quantities.
-        </p>
+        <div className="mb-6">
+          <h1 className="mb-1 text-2xl font-bold text-primary-text">
+            Stock Movement Management
+          </h1>
+          <p className="text-secondary-text">
+            Track and manage stock movements, inventory in/out transactions.
+          </p>
+        </div>
 
-        {/* Display active filter info */}
+        {/* Active Date Filter Info */}
         {dateRange && (
           <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
             <p className="text-sm text-blue-800">
-              <span className="font-semibold">📅 Active Filter:</span>{" "}
+              <span className="font-semibold">📅 Date Range:</span>{" "}
               {dateRange.mode === "ytd" && `YTD ${new Date().getFullYear()}`}
               {dateRange.mode === "year" && `Year ${dateRange.year}`}
               {dateRange.mode === "month-year" && (
@@ -165,7 +262,7 @@ export default function StockMovementsPage() {
                   {new Date(
                     dateRange.year,
                     dateRange.month - 1
-                  ).toLocaleDateString("en-US", {
+                  ).toLocaleDateString("id-ID", {
                     month: "long",
                     year: "numeric",
                   })}
@@ -190,27 +287,37 @@ export default function StockMovementsPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button
-              icon={Upload}
-              label="Import from Excel"
-              onClick={() => setIsImportOpen(true)}
-              className="bg-green-600 hover:bg-green-700"
-            />
+        {/* Active Filters Info */}
+        {activeFiltersCount > 0 && (
+          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">🔍 Active Filters:</span>{" "}
+              {filters.product_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.product_ids.length} Product(s)
+                </span>
+              )}
+              {filters.account_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_ids.length} Account(s)
+                </span>
+              )}
+              {filters.account_parent_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_parent_ids.length} Account Parent(s)
+                </span>
+              )}
+              {filters.supplier_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.supplier_ids.length} Supplier(s)
+                </span>
+              )}
+            </p>
           </div>
-
-          {/* Import Guide Button */}
-          <Button
-            icon={BookOpen}
-            label="Import Guide"
-            onClick={() => setIsGuideOpen(true)}
-            variant="neutral"
-          ></Button>
-        </div>
+        )}
 
         <Table
-          key={refresh}
+          key={`${refresh}-${JSON.stringify(filters)}`}
           columns={columns}
           fetchData={fetchDataWithDateFilter}
           actions={renderActions}
@@ -225,21 +332,8 @@ export default function StockMovementsPage() {
         <StockMovementForm
           stockMovement={selected}
           isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelected(null);
-          }}
+          onClose={handleCloseModal}
           onSave={handleSave}
-        />
-        <ImportStockMovementModal
-          isOpen={isImportOpen}
-          onClose={() => setIsImportOpen(false)}
-          onImportSuccess={() => setRefresh((p) => p + 1)}
-        />
-
-        <GuideImportStockMovementModal
-          isOpen={isGuideOpen}
-          onClose={() => setIsGuideOpen(false)}
         />
       </div>
     </div>
