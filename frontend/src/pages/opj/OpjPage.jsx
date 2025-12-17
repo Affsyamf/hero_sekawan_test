@@ -1,89 +1,14 @@
 import { Edit2, Eye } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import OpjForm from "../../components/features/opj/OpjForm";
-import Table from "../../components/ui/table/Table";
 import DesignFilter from "../../components/ui/filter/DesignFilter";
-import { createOpj, searchOpj, updateOpj } from "../../services/opj_service";
-import { formatDate } from "../../utils/helpers";
-import useDateFilterStore from "../../stores/useDateFilterStore";
+import PrintingMachineFilter from "../../components/ui/filter/PrintingMachineFilter";
+import ProcessTypeFilter from "../../components/ui/filter/ProcessTypeFilter";
+import Table from "../../components/ui/table/Table";
 import { useFilterService } from "../../contexts/FilterServiceContext";
-
-// Enum untuk filter
-const PRINTING_MACHINE_OPTIONS = [
-  { value: "rotary", label: "Rotary" },
-  { value: "flat", label: "Flat" },
-];
-
-const PROCESS_TYPE_OPTIONS = [
-  { value: "disperse", label: "DISPERSE" },
-  { value: "reactive", label: "REACTIVE" },
-  { value: "pigment", label: "PIGMENT" },
-];
-
-// Custom Filter Components
-function PrintingMachineFilter({ value = [], onChange }) {
-  const handleToggle = (machineValue) => {
-    const newValue = value.includes(machineValue)
-      ? value.filter((v) => v !== machineValue)
-      : [...value, machineValue];
-    onChange(newValue);
-  };
-
-  return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-secondary-text">
-        Printing Machine
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {PRINTING_MACHINE_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            onClick={() => handleToggle(option.value)}
-            className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
-              value.includes(option.value)
-                ? "bg-primary text-white"
-                : "bg-surface text-secondary-text border border-default hover:bg-background"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProcessTypeFilter({ value = [], onChange }) {
-  const handleToggle = (typeValue) => {
-    const newValue = value.includes(typeValue)
-      ? value.filter((v) => v !== typeValue)
-      : [...value, typeValue];
-    onChange(newValue);
-  };
-
-  return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-secondary-text">
-        Process Type
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {PROCESS_TYPE_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            onClick={() => handleToggle(option.value)}
-            className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
-              value.includes(option.value)
-                ? "bg-primary text-white"
-                : "bg-surface text-secondary-text border border-default hover:bg-background"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { createOpj, searchOpj, updateOpj } from "../../services/opj_service";
+import useDateFilterStore from "../../stores/useDateFilterStore";
+import { formatDate } from "../../utils/helpers";
 
 export default function OpjPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,13 +28,13 @@ export default function OpjPage() {
       />,
       <PrintingMachineFilter
         key="printing-machine-filter"
-        value={filters.printing_machine || []}
-        onChange={(v) => setFilter("printing_machine", v)}
+        value={filters.printing_machine ?? null}
+        onChange={(val) => setFilter("printing_machine", val)}
       />,
       <ProcessTypeFilter
         key="process-type-filter"
-        value={filters.processes_type || []}
-        onChange={(v) => setFilter("processes_type", v)}
+        value={filters.processes_type ?? null}
+        onChange={(val) => setFilter("processes_type", val)}
       />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
@@ -218,7 +143,7 @@ export default function OpjPage() {
       },
     },
     {
-      key: "details",
+      key: "qty",
       label: "Total Qty (KG)",
       sortable: false,
       render: (v) => {
