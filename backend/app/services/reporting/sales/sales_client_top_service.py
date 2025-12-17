@@ -31,44 +31,34 @@ class SalesClientTopService(BaseReportService):
         
         total_quantity_alias = func.sum(Sale.quantity_end).label("total_quantity")
         
-        top_query = db.query(
+        client = db.query(
             Client.id.label("client_id"),
             Client.name.label("client_name"),
             total_quantity_alias
         ).select_from(Sale)
          
         
-        top_query = top_query.filter(Sale.opj_id.isnot(None)) 
-        top_query = sale_joins(top_query)
+        client = sale_joins(client)
         
-        top_query = date_filter(top_query, start_date, end_date, Sale)
+        client = date_filter(client, start_date, end_date, Sale)
         
-        top_query = apply_common_report_filters(top_query, filters)
+        client = apply_common_report_filters(client, filters)
         
-        top_query = top_query.group_by(Client.id, Client.name)\
+        client = client.group_by(Client.id, Client.name)\
                              .order_by(desc(total_quantity_alias))
                              
-        top_5_results = top_query.limit(5).all()
+        res = client.all()
         
         results_list = [
             ClientSalesData(
-                client_id=r.client_id,
-                client_name=r.client_name,
-                total_quantity=to_float(r.total_quantity or 0)
+                id=r.client_id,
+                name=r.client_name,
+                value=to_float(r.total_quantity or 0)
             )
-            for r in top_5_results
+            for r in res
         ]
         
-        meta_response = {
-            k: (v.isoformat() if isinstance(v, date) and v is not None else v)
-            for k, v in filters.items() 
-        }
-        
-        serialized_data_json = SalesClientTopResponse(
-            results=results_list
-        ).model_dump()
-        
         return APIResponse.ok(
-            meta=meta_response,
-            data=serialized_data_json
+            meta="",
+            data=[r.model_dump() for r in results_list]
         )

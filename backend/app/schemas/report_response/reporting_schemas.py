@@ -21,9 +21,9 @@ class SalesSummaryResponse(BaseModel):
         
 
 class ClientSalesData(BaseModel):
-    client_id: int
-    client_name: str
-    total_quantity: float = Field(..., description="Total quantity (SUM of quantity_end) sold to this client.")
+    id: int
+    name: str
+    value: float = Field(..., description="Total quantity (SUM of quantity_end) sold to this client.")
     
 class SalesClientTopResponse(BaseModel):
     results: List[ClientSalesData] = Field(..., description="List of top clients by sales quantity.")

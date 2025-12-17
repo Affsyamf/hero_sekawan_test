@@ -71,32 +71,32 @@ class SalesSummaryService(BaseReportService):
         total_receivable_value = total_sales_quantity_float - total_payments_value
         
 
-        # serial response
-        meta_response = {}
+        # # serial response
+        # meta_response = {}
         
-        for k, v in filters.items():
-            if v is None:
-                meta_response[k] = None
-            elif isinstance(v, date):
-                meta_response[k] = v.isoformat()
-            else:
-                #pastikan selalu string tunggal dan disanitasi
-                if k == 'granularity':
-                    granularity_raw = str(v).lower()
-                    PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
-                    meta_response[k] = PG_UNITS.get(granularity_raw, "month") 
+        # for k, v in filters.items():
+        #     if v is None:
+        #         meta_response[k] = None
+        #     elif isinstance(v, date):
+        #         meta_response[k] = v.isoformat()
+        #     else:
+        #         #pastikan selalu string tunggal dan disanitasi
+        #         if k == 'granularity':
+        #             granularity_raw = str(v).lower()
+        #             PG_UNITS = {"day": "day", "days": "day", "week": "week", "month": "month", "year": "year"}
+        #             meta_response[k] = PG_UNITS.get(granularity_raw, "month") 
                 
-                #sale_ids: Pastikan dikembalikan sebagai list, jika perlu
-                elif k == 'sale_ids':
-                    if isinstance(v, int):
-                         meta_response[k] = [v]
-                    elif isinstance(v, str) and v.isdigit():
-                         meta_response[k] = [int(v)]
-                    else:
-                        # Jika sudah list dari pydantic, atau list of string/int
-                        meta_response[k] = v
-                else:
-                    meta_response[k] = v
+        #         #sale_ids: Pastikan dikembalikan sebagai list, jika perlu
+        #         elif k == 'sale_ids':
+        #             if isinstance(v, int):
+        #                  meta_response[k] = [v]
+        #             elif isinstance(v, str) and v.isdigit():
+        #                  meta_response[k] = [int(v)]
+        #             else:
+        #                 # Jika sudah list dari pydantic, atau list of string/int
+        #                 meta_response[k] = v
+        #         else:
+        #             meta_response[k] = v
                     
 
         serialized_data = SalesSummaryResponse(
@@ -106,4 +106,4 @@ class SalesSummaryService(BaseReportService):
             total_receivable=float(total_receivable_value)
         ).model_dump()
 
-        return APIResponse.ok(meta=meta_response, data=serialized_data)
+        return APIResponse.ok(meta="", data=serialized_data)

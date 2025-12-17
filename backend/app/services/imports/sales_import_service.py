@@ -228,6 +228,7 @@ class SalesImportService(BaseImportService):
                     "design": design_code,
                     "design_type": design_type_name,
                     "roll": safe_number(row.get("ROLL")) or 0,
+                    "unit_price": safe_number(row.get("HARGA")) or 0,
                     "delivery": {
                         "sj": sj,
                         "quantity": safe_number(row.get("QTY|JADI")) or 0,
