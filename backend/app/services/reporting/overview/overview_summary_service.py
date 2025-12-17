@@ -46,7 +46,7 @@ class OverviewSummaryService(BaseReportService):
         end_date = filters.get("end_date")
 
         q = (
-            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn))
+            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)))
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Product, Product.id == PurchasingDetail.product_id)
             .join(Account, Account.id == Product.account_id)
