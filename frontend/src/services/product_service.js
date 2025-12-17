@@ -1,9 +1,13 @@
 import api from "./api";
 
+// export const searchProduct = async (filter) => {
+//   const response = await api.get("/product/search", {
+//     params: filter,
+//   });
+//   return response;
+// };
 export const searchProduct = async (filter) => {
-  const response = await api.get("/product/search", {
-    params: filter,
-  });
+  const response = await api.post("/product/search", filter);
   return response;
 };
 

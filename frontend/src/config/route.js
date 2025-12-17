@@ -8,9 +8,12 @@ import {
   ColorKitchensPage,
   DashboardColorKitchen,
   DashboardPurchasing,
+  DeliveryPage,
   DesignsPage,
   DesignTypesPage,
+  OpjPage,
   OverviewNew,
+  PaymentPage,
   ProductsPage,
   PurchasingDetailPage,
   PurchasingReportsPage,
@@ -22,8 +25,6 @@ import {
   SuppliersPage,
 } from "../pages";
 import AccountCategoryBoard from "../pages/account/AccountCategoryBoard";
-import DeliveryPage from "../pages/delivery/DeliveryPage";
-import PaymentPage from "../pages/payment/PaymentPage";
 
 // -----------------------------
 export const protectedRoutes = [
@@ -93,6 +94,11 @@ export const protectedRoutes = [
     permission: "stock_opname.read",
   },
 
+  {
+    path: "opj",
+    element: OpjPage,
+    permission: "opj.read",
+  },
   {
     path: "sales",
     element: SalePage,

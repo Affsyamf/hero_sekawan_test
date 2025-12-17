@@ -1,5 +1,5 @@
 import { Edit2, Eye, Map, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AccountForm from "../../components/features/account/AccountForm";
 import Table from "../../components/ui/table/Table";
 import {
@@ -10,6 +10,9 @@ import {
 } from "../../services/account_service";
 import Button from "../../components/ui/button/Button";
 import { useNavigate } from "react-router-dom";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
+import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 
 export default function AccountsPage() {
   const navigate = useNavigate();
@@ -18,48 +21,45 @@ export default function AccountsPage() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // const fetchAccounts = async (params) => {
-  //   const { page, pageSize, search, sortBy, sortDir } = params;
+  const { filters, setFilter, registerFilters } = useFilterService();
 
-  //   let filtered = [...accounts];
+  // Register filters untuk Account page
+  useEffect(() => {
+    registerFilters([
+      <ProductFilter
+        key="product-filter"
+        value={filters.product_ids || []}
+        onChange={(v) => setFilter("product_ids", v)}
+      />,
+      <SupplierFilter
+        key="supplier-filter"
+        value={filters.supplier_ids || []}
+        onChange={(v) => setFilter("supplier_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
-  //   if (search) {
-  //     const searchLower = search.toLowerCase();
-  //     filtered = filtered.filter(
-  //       (a) =>
-  //         a.name?.toLowerCase().includes(searchLower) ||
-  //         a.account_no?.toString().includes(searchLower) ||
-  //         a.alias?.toLowerCase().includes(searchLower)
-  //     );
-  //   }
+  const fetchDataWithFilters = useCallback(
+    async (params) => {
+      try {
+        const payload = { ...params };
 
-  //   if (sortBy) {
-  //     filtered.sort((a, b) => {
-  //       let aVal = a[sortBy] || "";
-  //       let bVal = b[sortBy] || "";
+        if (filters.product_ids?.length) {
+          payload.product_ids = filters.product_ids;
+        }
+        if (filters.supplier_ids?.length) {
+          payload.supplier_ids = filters.supplier_ids;
+        }
 
-  //       if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
-  //       if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
-  //       return 0;
-  //     });
-  //   }
-
-  //   const total = filtered.length;
-  //   const start = (page - 1) * pageSize;
-  //   const rows = filtered.slice(start, start + pageSize);
-
-  //   return { rows, total };
-  // };
-
-  // const fetchAccounts = async (params) => {
-  //   try {
-  //     const data = await accountApi.search(params);
-  //     return { rows: data.rows || data, total: data.total || data.length };
-  //   } catch (error) {
-  //     console.error("Failed to fetch products:", error);
-  //     return { rows: [], total: 0 };
-  //   }
-  // };
+        const response = await searchAccount(payload);
+        return response;
+      } catch (error) {
+        console.error("Failed to fetch accounts:", error);
+        throw error;
+      }
+    },
+    [filters]
+  );
 
   const columns = [
     {
@@ -97,7 +97,7 @@ export default function AccountsPage() {
 
   const handleDelete = async (row) => {
     if (
-      window.confirm(`Are you sure you want to delete product ${row.name}?`)
+      window.confirm(`Are you sure you want to delete account ${row.name}?`)
     ) {
       try {
         await deleteAccount(row.id);
@@ -113,10 +113,10 @@ export default function AccountsPage() {
     setSelectedAccount(null);
   };
 
-  const handleSave = async (productData) => {
+  const handleSave = async (accountData) => {
     try {
       const payload = Object.fromEntries(
-        Object.entries(productData).filter(
+        Object.entries(accountData).filter(
           ([_, value]) => value != null && value !== ""
         )
       );
@@ -129,7 +129,7 @@ export default function AccountsPage() {
       setRefreshKey((prev) => prev + 1);
       handleCloseModal();
     } catch (error) {
-      alert("Failed to save product: " + error.message);
+      alert("Failed to save account: " + error.message);
     }
   };
 
@@ -159,15 +159,44 @@ export default function AccountsPage() {
     </div>
   );
 
+  // Calculate active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.product_ids?.length) count += filters.product_ids.length;
+    if (filters.supplier_ids?.length) count += filters.supplier_ids.length;
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-1 text-2xl font-bold text-primary-text">
           Account Management
         </h1>
-        <p className="mb-6 text-secondary-text">Manage accounts</p>
+        <p className="mb-2 text-secondary-text">Manage accounts</p>
 
-        <div className="flex items-center">
+        {/* Active Filters Info */}
+        {activeFiltersCount > 0 && (
+          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">🔍 Active Filters:</span>{" "}
+              {filters.product_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.product_ids.length} Product(s)
+                </span>
+              )}
+              {filters.supplier_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.supplier_ids.length} Supplier(s)
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center mb-4">
           <Button
             icon={Map}
             label="Account Mapping"
@@ -179,9 +208,9 @@ export default function AccountsPage() {
         </div>
 
         <Table
-          key={refreshKey}
+          key={`${refreshKey}-${JSON.stringify(filters)}`}
           columns={columns}
-          fetchData={searchAccount}
+          fetchData={fetchDataWithFilters}
           actions={renderActions}
           onCreate={handleAdd}
           pageSizeOptions={[10, 20, 50, 100]}
@@ -189,11 +218,11 @@ export default function AccountsPage() {
         />
 
         {/* <AccountForm
-            account={selectedAccount}
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-            onSave={handleSave}
-          /> */}
+          account={selectedAccount}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSave}
+        /> */}
       </div>
     </div>
   );

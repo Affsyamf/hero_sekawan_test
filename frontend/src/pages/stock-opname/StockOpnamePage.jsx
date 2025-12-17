@@ -11,6 +11,10 @@ import {
 import { formatDate } from "../../utils/helpers";
 import Button from "../../components/ui/button/Button";
 import useDateFilterStore from "../../stores/useDateFilterStore";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import AccountFilter from "../../components/ui/filter/AccountFilter";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import ProductFilter from "../../components/ui/filter/ProductFilter";
 
 export default function StockOpnamePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,29 +23,61 @@ export default function StockOpnamePage() {
   const [refresh, setRefresh] = useState(0);
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
+  const { filters, setFilter, registerFilters } = useFilterService();
 
-  // useEffect(() => {
-  //   setRefresh((prev) => prev + 1);
-  // }, [dateRange]);
+  // Register filters untuk Stock Opname page
+  useEffect(() => {
+    registerFilters([
+      <AccountFilter
+        key="account-filter"
+        value={filters.account_ids || []}
+        onChange={(v) => setFilter("account_ids", v)}
+      />,
+      <AccountParentFilter
+        key="account-parent-filter"
+        value={filters.account_parent_ids || []}
+        onChange={(v) => setFilter("account_parent_ids", v)}
+      />,
+      <ProductFilter
+        key="product-filter"
+        value={filters.product_ids || []}
+        onChange={(v) => setFilter("product_ids", v)}
+      />,
+    ]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
   const fetchDataWithDateFilter = useCallback(
     async (params) => {
       try {
-        const queryParams = { ...params };
+        const payload = { ...params };
 
-        if (dateRange?.dateFrom && dateRange?.dateTo) {
-          queryParams.start_date = dateRange.dateFrom;
-          queryParams.end_date = dateRange.dateTo;
+        // Date filter
+        if (dateRange?.dateFrom) {
+          payload.start_date = dateRange.dateFrom;
+        }
+        if (dateRange?.dateTo) {
+          payload.end_date = dateRange.dateTo;
         }
 
-        const response = await searchStockOpname(queryParams);
+        // Dynamic multi-select filters (as arrays)
+        if (filters.account_ids?.length) {
+          payload.account_ids = filters.account_ids;
+        }
+        if (filters.account_parent_ids?.length) {
+          payload.account_parent_ids = filters.account_parent_ids;
+        }
+        if (filters.product_ids?.length) {
+          payload.product_ids = filters.product_ids;
+        }
+
+        const response = await searchStockOpname(payload);
         return response;
       } catch (error) {
-        console.error("Failed to fetch stock movements:", error);
+        console.error("Failed to fetch stock opname:", error);
         throw error;
       }
     },
-    [dateRange]
+    [dateRange, filters]
   );
 
   const columns = [
@@ -152,16 +188,6 @@ export default function StockOpnamePage() {
       >
         <Edit2 className="w-4 h-4" />
       </button>
-      {/* <button
-        onClick={() => {
-          if (confirm(`Delete stock opname ${row.code}?`))
-            setEntries((p) => p.filter((e) => e.id !== row.id));
-        }}
-        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-        title="Delete"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button> */}
     </div>
   );
 
@@ -190,8 +216,19 @@ export default function StockOpnamePage() {
     }
   };
 
+  // Calculate active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.account_ids?.length) count += filters.account_ids.length;
+    if (filters.account_parent_ids?.length) count += filters.account_parent_ids.length;
+    if (filters.product_ids?.length) count += filters.product_ids.length;
+    return count;
+  };
+
+  const activeFiltersCount = getActiveFiltersCount();
+
   return (
-    <div className=" bg-background">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl">
         <h1 className="mb-1 text-2xl font-bold text-primary-text">
           Stock Opname Management
@@ -201,6 +238,7 @@ export default function StockOpnamePage() {
           comparison.
         </p>
 
+        {/* Active Date Filter Info */}
         {dateRange && (
           <div className="p-3 mb-4 border border-blue-200 rounded-lg bg-blue-50">
             <p className="text-sm text-blue-800">
@@ -237,6 +275,30 @@ export default function StockOpnamePage() {
           </div>
         )}
 
+        {/* Active Filters Info */}
+        {activeFiltersCount > 0 && (
+          <div className="p-3 mb-4 border border-purple-200 rounded-lg bg-purple-50">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">🔍 Active Filters:</span>{" "}
+              {filters.account_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_ids.length} Account(s)
+                </span>
+              )}
+              {filters.account_parent_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.account_parent_ids.length} Account Parent(s)
+                </span>
+              )}
+              {filters.product_ids?.length > 0 && (
+                <span className="mr-2">
+                  {filters.product_ids.length} Product(s)
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="mb-4">
           <Button
             icon={Upload}
@@ -247,7 +309,7 @@ export default function StockOpnamePage() {
         </div>
 
         <Table
-          key={refresh}
+          key={`${refresh}-${JSON.stringify(filters)}`}
           columns={columns}
           fetchData={fetchDataWithDateFilter}
           actions={renderActions}

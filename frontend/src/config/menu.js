@@ -5,6 +5,7 @@ import {
   FileBarChart2,
   FlaskConical,
   Package,
+  ScanLine,
   Shell,
   ShoppingBag,
   ShoppingCart,
@@ -53,6 +54,14 @@ export const menuItems = [
     ],
   },
 
+  { isHeader: true, text: "OPJ" },
+  {
+    label: "OPJ",
+    icon: ScanLine,
+    path: "/opj",
+    perm: "opj.read",
+  },
+
   { isHeader: true, text: "Process" },
 
   {
@@ -71,7 +80,7 @@ export const menuItems = [
     label: "Color Kitchen",
     icon: FlaskConical,
     path: "/color-kitchens",
-    perm: "color_kitchen.read",
+    perm: "color_kitchen_batch.read",
   },
   {
     label: "Stock Opname",
