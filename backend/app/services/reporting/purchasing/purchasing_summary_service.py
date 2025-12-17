@@ -32,7 +32,7 @@ class PurchasingSummaryService(BaseReportService):
 
         q = (
             db.query(
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn).label("total_value"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
                 func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Product, Product.id == PurchasingDetail.product_id)
@@ -60,7 +60,7 @@ class PurchasingSummaryService(BaseReportService):
         # Goods / Service split
         # --------------------------------------------------
         chemical_total = (
-            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn))
+            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)))
             .join(Product, Product.id == PurchasingDetail.product_id)
             .join(Account, Account.id == Product.account_id)
             .join(AccountParent, AccountParent.id == Account.parent_id)
@@ -68,7 +68,7 @@ class PurchasingSummaryService(BaseReportService):
             .filter(AccountParent.account_type == "chemical")
         )
         sparepart_total = (
-            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn))
+            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)))
             .join(Product, Product.id == PurchasingDetail.product_id)
             .join(Account, Account.id == Product.account_id)
             .join(AccountParent, AccountParent.id == Account.parent_id)
@@ -92,7 +92,7 @@ class PurchasingSummaryService(BaseReportService):
         # Highest Purchase (by invoice total)
         # --------------------------------------------------
         highest_purchase_value = (
-            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn))
+            db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)))
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             
         ) or 0
@@ -104,7 +104,7 @@ class PurchasingSummaryService(BaseReportService):
 
         highest_purchase_value = (
             highest_purchase_value.group_by(Purchasing.id)
-            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn).desc())
+            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
             .limit(1)
             .scalar()
         )

@@ -1,10 +1,8 @@
 import api from "./api";
 
 export const importApi = {
-  importLapPembelian: (file) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return api.post("/import/lap-pembelian", fd, {
+  importLapPembelian: (previewId) => {
+    return api.post(`/import/lap-pembelian?preview_id=${previewId}`, {
       timeout: 60000,
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -29,10 +27,8 @@ export const importApi = {
     });
   },
 
-  importLapCk: (file) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return api.post("/import/lap-ck", fd, {
+  importLapCk: (previewId) => {
+    return api.post(`/import/lap-ck?preview_id=${previewId}`, {
       timeout: 5000000,
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -47,13 +43,14 @@ export const importApi = {
     });
     return res.data;
   },
-  async importStockOpname(file) {
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await api.post("import/stock-opname-chemical", fd, {
-      timeout: 60000,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+  async importStockOpname(previewId) {
+    const res = await api.post(
+      `import/stock-opname-chemical?preview_id=${previewId}`,
+      {
+        timeout: 60000,
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
     return res.data;
   },
 
@@ -65,10 +62,8 @@ export const importApi = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  importLapChemical(file) {
-    const fd = new FormData();
-    fd.append("file", file);
-    return api.post("import/lap-chemical", fd, {
+  importLapChemical(previewId) {
+    return api.post(`import/lap-chemical?preview_id=${previewId}`, {
       timeout: 60000,
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -83,13 +78,14 @@ export const importApi = {
     });
     return res.data;
   },
-  async importOpeningBalance(file) {
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await api.post("import/opening-balance", fd, {
-      timeout: 60000,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+  async importOpeningBalance(previewId) {
+    const res = await api.post(
+      `import/opening-balance?preview_id=${previewId}`,
+      {
+        timeout: 60000,
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
     return res.data;
   },
 };

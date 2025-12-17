@@ -20,22 +20,9 @@ class MasterDataLapPembelianImportService(BaseImportService):
     def __init__(self, db: DB):
         super().__init__(db)
 
-    def _run(self, file: UploadFile):
-        contents: bytes = file.file.read()
-
-        EXCLUDE_SHEETS = {"JANUARI 2025", "FEB 2025"}
-        
-        xls = pd.ExcelFile(BytesIO(contents))
-        frames = []
-        for sheet in xls.sheet_names:
-            if sheet.upper().strip() in EXCLUDE_SHEETS:
-                continue
-            
-            df = pd.read_excel(BytesIO(contents), sheet_name=sheet, header=6)
-            df = df.iloc[:, :-2]  # drop trailing junk cols
-            frames.append(df)
-
-        all_data = pd.concat(frames, ignore_index=True)
+    def _run(self, preview_id: str):
+        payload = self.consume_preview(preview_id)
+        rows = payload["rows"]
 
         # Caches
         seen_account_parents = set()
@@ -50,14 +37,15 @@ class MasterDataLapPembelianImportService(BaseImportService):
             "suppliers": {"inserted": 0, "skipped": 0},
         }
 
-        for _, row in all_data.iterrows():
-            # --- Accounts ---
-            acc_no = row.get("NO.ACC")
-            acc_name = row.get("ACCOUNT")
-            if pd.notna(acc_no) and pd.notna(acc_name):
-                acc_no = int(acc_no)
-                parent = self.db.query(AccountParent).filter_by(account_no=acc_no).first()
+        for row in rows:
+            # ===== ACCOUNTS =====
+            acc_no = row["acc_no"]
+            acc_name = row["acc_name"]
 
+            if acc_no and acc_name:
+                acc_name_norm = normalise_account_name(acc_name)
+
+                parent = self.db.query(AccountParent).filter_by(account_no=acc_no).first()
                 if acc_no not in seen_account_parents:
                     seen_account_parents.add(acc_no)
                     if not parent:
@@ -68,96 +56,81 @@ class MasterDataLapPembelianImportService(BaseImportService):
                     else:
                         summary["acc_parents"]["skipped"] += 1
 
-                acc_name_norm = normalise_account_name(acc_name)
-
-                existing_acc = (
-                    self.db.query(Account)
-                    .filter_by(name=acc_name_norm, parent_id=parent.id)
-                    .first()
-                )
-                if existing_acc or (acc_name_norm, parent.id) in seen_accounts:
-                    summary["accounts"]["skipped"] += 1
-                else:
-                    account = Account(
-                        name=acc_name_norm,
-                        parent_id=parent.id,
+                if parent:
+                    existing_acc = (
+                        self.db.query(Account)
+                        .filter_by(name=acc_name_norm, parent_id=parent.id)
+                        .first()
                     )
-                    self.db.add(account)
-                    seen_accounts.add((acc_name_norm, parent.id))
-                    summary["accounts"]["inserted"] += 1
-
-            
-
-        self.db.flush()
+                    if existing_acc or (acc_name_norm, parent.id) in seen_accounts:
+                        summary["accounts"]["skipped"] += 1
+                    else:
+                        self.db.add(Account(name=acc_name_norm, parent_id=parent.id))
+                        seen_accounts.add((acc_name_norm, parent.id))
+                        summary["accounts"]["inserted"] += 1
 
         # --- Products ---
-        for _, row in all_data.iterrows():
-            raw_name = row.get("NAMA BARANG")
-            if pd.notna(raw_name):
-                name = normalise_product_name(raw_name)
-                if name and name not in seen_products:
-                    seen_products.add(name)
-                    unit = str(row.get("SATUAN") or "").strip().upper() or None
-                    acc_no = row.get("NO.ACC")
-                    acc_name = row.get("ACCOUNT")
-                    account_id = None
-                    
-                    if pd.notna(acc_name):
-                        acc_name_norm = normalise_account_name(acc_name)
-                        acc_no = int(acc_no)
-                        
-                        existing_acc = (
-                            self.db.query(Account)
-                                .join(Account.parent)
-                                .filter(
-                                    Account.name == acc_name_norm,
-                                    AccountParent.account_no == acc_no
-                                )
-                                .first()
-                            )
-                        if existing_acc:
-                            account_id = existing_acc.id
+        for row in rows:
+            raw_name = row["product_name"]
+            if not raw_name:
+                continue
 
-                    existing = self.db.query(Product).filter_by(name=name).first()
-                    if existing:
-                        summary["products"]["skipped"] += 1
-                    elif account_id == None:
-                        summary["products"]["skipped"] += 1
-                        summary["products"]["reason"].append(f"Account {acc_no} {acc_name_norm} Not Found: {name}")
-                    else:
-                        self.db.add(Product(
-                            code=None,
-                            name=name,
-                            unit=unit,
-                            account_id=account_id,
-                        ))
-                        summary["products"]["inserted"] += 1
+            name = normalise_product_name(raw_name)
+            if not name or name in seen_products:
+                continue
+            seen_products.add(name)
 
-            # --- Suppliers ---
-            code = str(row.get("KODE SUPPLIER") or "").strip().upper()
-            name = normalise_supplier_name(row.get("SUPPLIER") or "")
-            if code and name and code not in seen_suppliers:
-                seen_suppliers.add(code)
-                existing = self.db.query(Supplier).filter_by(code=code).first()
-                if existing:
-                    summary["suppliers"]["skipped"] += 1
-                else:
-                    self.db.add(Supplier(
-                        code=code,
-                        name=name,
-                        contact_info=None,
-                    ))
-                    summary["suppliers"]["inserted"] += 1
+            unit = str(row["unit"] or "").strip().upper() or None
+            acc_name = row["acc_name"]
+            acc_no = row["acc_no"]
 
-        self.db.flush()
+            account_id = None
+            if acc_name and acc_no:
+                acc_name_norm = normalise_account_name(acc_name)
+                acc = (
+                    self.db.query(Account)
+                    .join(Account.parent)
+                    .filter(
+                        Account.name == acc_name_norm,
+                        AccountParent.account_no == acc_no
+                    )
+                    .first()
+                )
+                if acc:
+                    account_id = acc.id
 
-        return summary
+            existing = self.db.query(Product).filter_by(name=name).first()
+            if existing or not account_id:
+                summary["products"]["skipped"] += 1
+                continue
+
+            self.db.add(Product(name=name, unit=unit, account_id=account_id))
+            summary["products"]["inserted"] += 1
+
+
+            code = str(row["supplier_code"] or "").strip().upper()
+            name = normalise_supplier_name(row["supplier_name"] or "")
+
+            if not code or not name or code in seen_suppliers:
+                continue
+            seen_suppliers.add(code)
+
+            if self.db.query(Supplier).filter_by(code=code).first():
+                summary["suppliers"]["skipped"] += 1
+            else:
+                self.db.add(Supplier(code=code, name=name))
+                summary["suppliers"]["inserted"] += 1
+
+        self.db.commit()
+        return APIResponse.created(data=summary)
     
     def preview(self, file: UploadFile):
         """
         Simulates the master-data import exactly like _run(),
         but never writes to DB. Returns counts + sample data.
         """
+
+        rows_flat = []
 
         EXCLUDE_SHEETS = {"JANUARI 2025", "FEB 2025"}
 
@@ -316,9 +289,23 @@ class MasterDataLapPembelianImportService(BaseImportService):
                 else:
                     to_insert["suppliers"].append({"code": code, "name": supp_name})
 
+            rows_flat.append({
+                "acc_no": safe_int(row.get("NO.ACC")),
+                "acc_name": row.get("ACCOUNT"),
+                "product_name": row.get("NAMA BARANG"),
+                "unit": row.get("SATUAN"),
+                "supplier_code": row.get("KODE SUPPLIER"),
+                "supplier_name": row.get("SUPPLIER"),
+            })
+
+        preview_id = self.create_preview({
+            "rows": rows_flat
+        })
+
         # --- build response -----------------------------------------------------
         return APIResponse.ok(
             data={
+                "preview_id": preview_id,
                 "summary": {
                     "acc_parents_to_insert": len(to_insert["acc_parents"]),
                     "accounts_to_insert": len(to_insert["accounts"]),

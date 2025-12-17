@@ -24,6 +24,7 @@ export default function ImportPurchasingTransactionModal({
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [previewId, setPreviewId] = useState(null);
 
   const steps = [
     { n: 1, l: "Upload" },
@@ -48,6 +49,8 @@ export default function ImportPurchasingTransactionModal({
       const data = res.data?.data;
       const sheetKey = Object.keys(data.sheets || {})[0];
       const sheet = data.sheets[sheetKey];
+
+      setPreviewId(data.preview_id);
 
       setPreview({
         valid_rows: sheet.valid_rows,
@@ -100,9 +103,8 @@ export default function ImportPurchasingTransactionModal({
     setError(null);
 
     try {
-      const res = await importApi.importLapPembelian(file);
+      const res = await importApi.importLapPembelian(previewId);
       const data = res.data;
-
       setResult(data);
       if (onImportSuccess) onImportSuccess(data);
     } catch (err) {

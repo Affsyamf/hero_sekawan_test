@@ -16,38 +16,19 @@ class MasterDataLapChemicalImportService(BaseImportService):
     def __init__(self, db: DB):
         super().__init__(db)
 
-    def _run(self, file: UploadFile):
-        contents: bytes = file.file.read()
-
-        xls = pd.ExcelFile(BytesIO(contents))
-        df = pd.read_excel(xls, sheet_name="CHEMICAL", header=4)
-
-        # Lookup target account
-        # account = self.db.query(Account).filter(Account.name == "PERSEDIAAN_OBAT").first()
-        # if not account:
-        #     raise ValueError("Account 'PERSEDIAAN_OBAT' not found in accounts table.")
+    def _run(self, preview_id: str):
+        payload = self.consume_preview(preview_id)
+        rows = payload["rows"]
 
         updated, inserted, skipped = 0, 0, []
         seen_codes = set()  # prevent duplicates within this run
 
-        for _, row in df.iterrows():
-            raw_name = row.get("NAMABRG")
-            code = row.get("KDBRG")
-            unit = row.get("SAT")
+        for row in rows:
+            code = row["code"]
+            name = row["name"]
+            unit = row["unit"]
 
-            if pd.isna(raw_name) or pd.isna(code):
-                continue
 
-            name = normalise_product_name(raw_name)
-            code = str(code).strip().upper()
-
-            # skip duplicate codes within Excel
-            if code in seen_codes:
-                skipped.append(code)
-                continue
-            seen_codes.add(code)
-
-            # Try to find existing product by code or name
             product = (
                 self.db.query(Product)
                 .filter((Product.code == code) | (Product.name == name))
@@ -55,21 +36,15 @@ class MasterDataLapChemicalImportService(BaseImportService):
             )
 
             if product:
-                # Update existing product’s code/name/account if needed
                 if not product.code:
                     product.code = code
-                # if not product.account_id:
-                #     product.account_id = account.id
                 updated += 1
             else:
-                # Create new product
-                new_product = Product(
+                self.db.add(Product(
                     code=code,
                     name=name,
                     unit=unit,
-                    # account_id=account.id,
-                )
-                self.db.add(new_product)
+                ))
                 inserted += 1
 
         self.db.commit()
@@ -86,6 +61,8 @@ class MasterDataLapChemicalImportService(BaseImportService):
         contents: bytes = file.file.read()
         xls = pd.ExcelFile(BytesIO(contents))
         df = pd.read_excel(xls, sheet_name="CHEMICAL", header=4)
+
+        rows_flat = []
 
         # account = self.db.query(Account).filter(Account.name == "PERSEDIAAN_OBAT").first()
         # if not account:
@@ -136,8 +113,19 @@ class MasterDataLapChemicalImportService(BaseImportService):
                     # "account_id": account.id,
                 })
 
+            rows_flat.append({
+                "code": code,
+                "name": name,
+                "unit": unit,
+            })
+
+        preview_id = self.create_preview({
+            "rows": rows_flat
+        })
+
         return APIResponse.ok(
             data={
+                "preview_id": preview_id,
                 "summary": {
                     "total_rows": len(df),
                     "to_insert": len(to_insert),
