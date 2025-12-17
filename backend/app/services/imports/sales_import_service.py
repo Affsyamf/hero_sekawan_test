@@ -7,7 +7,7 @@ from io import BytesIO
 from app.utils.safe_parse import safe_str, safe_date, safe_number
 from app.utils.response import APIResponse
 
-from app.models import Opj, OpjDetail, OpjProcessCondition, Delivery, Client, Sale, Design
+from app.models import Opj, OpjDetail, OpjProcessCondition, Delivery, Client, Sale, Design, DesignType
 from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
 
 DEFAULT_OPJ_PROCESSES = [
@@ -77,6 +77,18 @@ class SalesImportService(BaseImportService):
             self.db.add(client)
             self.db.flush()
 
+        design_type = self.db.query(DesignType).filter_by(name=row["design_type"]).first()
+        if not design_type:
+            design_type = DesignType(name=row["design_type"])
+            self.db.add(design_type)
+            self.db.flush()
+
+        design = self.db.query(Design).filter_by(code=row["design"]).first()
+        if not design:
+            design = Design(code=row["design"], type_id=design_type.id)
+            self.db.add(design)
+            self.db.flush()
+
         sale_date = row["date"]
 
         # 2️⃣ OPJ — ensure exists (auto-create)
@@ -89,6 +101,7 @@ class SalesImportService(BaseImportService):
                 process_type=OpjProcessEnum.DISPERSE,  # TODO map from row
                 printing_machine=PrintingMachineEnum.ROTARY,
                 client_id=client.id,
+                design_id=design.id
             )
             self.db.add(opj)
             self.db.flush()
@@ -155,6 +168,7 @@ class SalesImportService(BaseImportService):
             client_name = safe_str(row.get("CUSTOMER"))
             opj_code = safe_str(row.get("OPJ"))
             design_code = safe_str(row.get("DESIGN"))
+            design_type_name = safe_str(row.get("JENIS|KAIN"))
 
             if not sj or not invoice or not sale_date or not client_name:
                 summary["skipped"] += 1
@@ -193,6 +207,13 @@ class SalesImportService(BaseImportService):
                     "reason": f"Design will be auto-created: {design_code}"
                 })
 
+            design_type = self.db.query(DesignType).filter_by(name=design_type_name).first()
+            if not design:
+                summary["errors"].append({
+                    "row": excel_row,
+                    "reason": f"Design will be auto-created: {design_type_name}"
+                })
+
             key = (invoice, sale_date)
             if key not in sales_map:
                 sales_map[key] = {
@@ -205,6 +226,7 @@ class SalesImportService(BaseImportService):
                     "ppn": safe_number(row.get("PPN")) or 0,
                     "discount": safe_number(row.get("DISC")) or 0,
                     "design": design_code,
+                    "design_type": design_type_name,
                     "roll": safe_number(row.get("ROLL")) or 0,
                     "delivery": {
                         "sj": sj,
