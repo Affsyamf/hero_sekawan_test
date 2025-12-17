@@ -29,7 +29,7 @@ import {
   reportsColorKitchenChemicalUsageSummary,
   reportsColorKitchenChemicalUsage,
   reportsColorKitchenTrend,
-} from "../../services/report_color_kitchen_service";
+} from "../../services/reporting/report_color_kitchen_service";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { MetricGrid } from "../../components/ui/chart/MetricCard";
@@ -131,8 +131,6 @@ export default function DashboardColorKitchen() {
         end_date: dateRange.dateTo,
         ...generateFilters(),
       };
-
-      console.log(params);
 
       // Fetch all data in parallel
       const [summary, chemicalSummary, dyesData, auxData] = await Promise.all([

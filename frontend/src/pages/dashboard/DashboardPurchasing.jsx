@@ -22,7 +22,7 @@ import {
   reportsPurchasingSummary,
   reportsPurchasingSuppliers,
   reportsPurchasingTrend,
-} from "../../services/report_purchasing_service";
+} from "../../services/reporting/report_purchasing_service";
 import {
   formatCompactCurrency,
   formatDate,
