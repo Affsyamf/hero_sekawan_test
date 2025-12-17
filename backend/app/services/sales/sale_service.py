@@ -83,8 +83,8 @@ class SalesService:
         
         sale_query = sale_query.join(Opj, Sale.opj_id == Opj.id)\
                                .join(Client, Sale.client_id == Client.id)\
-                               .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
                                .join(Design, Opj.design_id == Design.id)
+                            #    .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
         
         sale_query = apply_common_report_filters(sale_query, filters)
         
