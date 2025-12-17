@@ -64,7 +64,7 @@ class SalesTrendService(BaseReportService):
         
         results_list = [
             SalesTrendData(
-                time_period=r.time_period,
+                time_period=r.time_period.isoformat(),
                 total_quantity=to_float(r.total_quantity or 0)
             )
             for r in results
@@ -77,7 +77,7 @@ class SalesTrendService(BaseReportService):
         
         serialized_data_json = SalesTrendResponse(
             results=results_list
-        ).model_dump_json()
+        ).model_dump()
         
         return APIResponse.ok(
             meta=meta_response,

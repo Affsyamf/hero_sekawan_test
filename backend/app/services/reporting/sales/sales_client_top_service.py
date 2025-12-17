@@ -35,8 +35,7 @@ class SalesClientTopService(BaseReportService):
             Client.id.label("client_id"),
             Client.name.label("client_name"),
             total_quantity_alias
-        ).select_from(Sale)\
-         .filter(Sale.deleted_at.is_(None))
+        ).select_from(Sale)
          
         
         top_query = top_query.filter(Sale.opj_id.isnot(None)) 
@@ -67,7 +66,7 @@ class SalesClientTopService(BaseReportService):
         
         serialized_data_json = SalesClientTopResponse(
             results=results_list
-        ).model_dump_json()
+        ).model_dump()
         
         return APIResponse.ok(
             meta=meta_response,

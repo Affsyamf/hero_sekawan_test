@@ -102,8 +102,8 @@ class SalesSummaryService(BaseReportService):
         serialized_data = SalesSummaryResponse(
             total_sales=int(total_sales_quantity),
             total_returns=int(total_returns_count),
-            total_payments=total_payments_value,
-            total_receivable=total_receivable_value
-        ).model_dump_json()
+            total_payments=float(total_payments_value),
+            total_receivable=float(total_receivable_value)
+        ).model_dump()
 
         return APIResponse.ok(meta=meta_response, data=serialized_data)

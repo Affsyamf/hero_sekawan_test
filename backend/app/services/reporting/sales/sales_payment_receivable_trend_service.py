@@ -78,7 +78,7 @@ class PaymentReceivableService(BaseReportService):
         payment_query = db.query(
             time_period_alias,
             total_payment_alias
-        ).filter(Payment.deleted_at.is_(None))
+        )
         
         payment_query = payment_query.join(Sale, Payment.sale_id == Sale.id)
         payment_query = sale_joins(payment_query)
@@ -96,7 +96,7 @@ class PaymentReceivableService(BaseReportService):
         for r in results:
             period_str = r.time_period.isoformat()
             merged_data[period_str] = {
-                "time_period": r.time_period,
+                "time_period": period_str,
                 "total_payment": to_float(r.total_payment or 0),
                 "total_sale_amount": 0.0
             }
@@ -106,12 +106,15 @@ class PaymentReceivableService(BaseReportService):
                 merged_data[period_str]["total_sale_amount"] = sale_amount_proxy
             else:
                 merged_data[period_str] = {
-                    "time_period": datetime.fromisoformat(period_str),
+                    "time_period": period_str,
                     "total_payment": 0.0,
                     "total_sale_amount": sale_amount_proxy
                 }
                 
-        sorted_results = sorted(merged_data.values(), key=lambda x: x['time_period'])
+        sorted_results = sorted(
+            merged_data.values(),
+            key=lambda x: datetime.fromisoformat(x["time_period"])
+        )
         
         results_list = [
             PaymentReceivableTrend(
@@ -142,7 +145,7 @@ class PaymentReceivableService(BaseReportService):
              
         searialized_data_json = PaymentReceivableResponse(
             results=results_list
-        ).model_dump_json()
+        ).model_dump()
         
         return APIResponse.ok(
             meta=meta_response,
