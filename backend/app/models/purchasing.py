@@ -2,9 +2,11 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, Date
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.models.enum.registry import enum_column
 
 from app.models import Base
 from app.models.mixin.AuditMixin import AuditMixin
+from app.models.enum.purchasing_enum import PurchasingStatusEnum
 
 class Purchasing(Base, AuditMixin):
     __tablename__ = 'purchasings'
@@ -33,6 +35,7 @@ class PurchasingDetail(Base, AuditMixin):
     dpp = Column(Numeric(18, 2), server_default=text("0.00"))
     tax_no = Column(String, nullable=True) # No Faktur Pajak
     exchange_rate = Column(Numeric(18, 2), server_default=text("0.00"))
+    status = Column(enum_column(PurchasingStatusEnum), nullable=True)
 
     product_id = Column(Integer, ForeignKey('products.id', ondelete="RESTRICT"), nullable=False)
     product = relationship("Product", back_populates="purchasing_details", lazy='selectin')
