@@ -91,7 +91,10 @@ class DeliveryService:
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
                 "sale_client_id": d.sale.client_id if d.sale else None,
-                "roll": float(d.roll)
+                "roll": float(d.roll),
+                "sale_code": d.sale.code if d.sale else None,
+                "client_name": d.sale.client.name if d.sale and d.sale.client else None,
+                
                 # "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )
