@@ -108,19 +108,14 @@ export default function DeliveryPage() {
       ),
     },
     {
-      key: "sale_id",
+      key: "sale_code",
       label: "Sale Reference",
       sortable: false,
-      render: (v, row) => (
+      render: (v) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-medium text-gray-700">
-            {row.sale?.code || "-"}
+            {v || "-"}
           </span>
-          {row.sale?.client && (
-            <span className="text-xs text-gray-500">
-              {row.sale.client.name}
-            </span>
-          )}
         </div>
       ),
     },
