@@ -88,4 +88,21 @@ export const importApi = {
     );
     return res.data;
   },
+
+  // import sale
+  importSales: (previewId) => {
+    return api.post(`/import/sales?preview_id=${previewId}`, {
+      timeout: 60000,
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  previewSales: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.post("/import/sales/preview", fd, {
+      timeout: 60000,
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
