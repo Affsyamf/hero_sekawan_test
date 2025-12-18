@@ -9,7 +9,7 @@ from app.services.reporting.sales.sales_payment_receivable_trend_service import 
 from app.utils.response import APIResponse
 from app.dependencies.rbac import require_user 
 
-router = APIRouter(prefix="/report/sales", tags=["Reports/Sales"], dependencies=[require_user()])
+router = APIRouter(prefix="/reports/sales", tags=["Reports/Sales"], dependencies=[require_user()])
 
 
 @router.post("/summary", response_model=SalesSummaryResponse)

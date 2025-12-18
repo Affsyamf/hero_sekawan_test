@@ -8,9 +8,9 @@ class SalesSummaryResponse(BaseModel):
     total_sales: int = Field(..., description="Total count of sales transactions.")
     total_returns: int = Field(..., description="Total count of return transactions.")
     
-    total_payments: Decimal = Field(..., description="Total value of all received payments.")
+    total_payments: float = Field(..., description="Total value of all received payments.")
     
-    total_receivable: Optional[float] = Field(None, description="Total outstanding receivables (Piutang).")
+    total_receivable: float = Field(None, description="Total outstanding receivables (Piutang).")
     # total_receivable: Decimal = Field(..., description="Total outstanding receivables (Piutang).")
 
     class Config:
@@ -21,23 +21,23 @@ class SalesSummaryResponse(BaseModel):
         
 
 class ClientSalesData(BaseModel):
-    client_id: int
-    client_name: str
-    total_quantity: float = Field(..., description="Total quantity (SUM of quantity_end) sold to this client.")
+    id: int
+    name: str
+    value: float = Field(..., description="Total quantity (SUM of quantity_end) sold to this client.")
     
 class SalesClientTopResponse(BaseModel):
     results: List[ClientSalesData] = Field(..., description="List of top clients by sales quantity.")
     
 
 class SalesTrendData(BaseModel):
-    time_period: datetime = Field(..., description="Start aggregation month/week")
+    time_period: str = Field(..., description="Start aggregation month/week")
     total_quantity: float = Field(..., description="Total Quantity sold during this period")
     
 class SalesTrendResponse(BaseModel):
     results: List[SalesTrendData] = Field(..., description="List of sales trend")
     
 class PaymentReceivableTrend(BaseModel):
-    time_period: datetime = Field(..., description="Start aggregation period")
+    time_period: str = Field(..., description="Start aggregation period")
     total_payment: float = Field(..., description="Total Value of payments")
     total_receivable: Optional[float] = Field(None, description="Total receivable during this period")
     

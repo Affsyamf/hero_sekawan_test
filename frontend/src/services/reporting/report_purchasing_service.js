@@ -1,5 +1,5 @@
 // src/services/report_purchasing_service.js
-import api from "./api";
+import api from "../api";
 
 /**
  * Utility: normalize filters to ensure correct defaults and structure

@@ -37,6 +37,11 @@ export const menuItems = [
         path: "/dashboard/color-kitchens",
         perm: "dashboard.read",
       },
+      {
+        label: "Sales",
+        path: "/dashboard/sales",
+        perm: "dashboard.read",
+      },
     ],
   },
 
@@ -108,7 +113,7 @@ export const menuItems = [
     path: "/return",
     perm: "return.read",
   },
-  
+
   {
     label: "Payment",
     icon: Wallet2,

@@ -27,11 +27,30 @@ class BaseReportService:
         end = parse_date(filters.get("end_date"))
         acc_type = filters.get("account_type")
 
+        granularity = (filters.get("granularity") or "monthly").lower()
+
+        if granularity == "yearly":
+            trunc_unit = "year"
+            fmt = "%Y"
+        elif granularity == "weekly":
+            trunc_unit = "week"
+            fmt = "%Y-W%W"
+        elif granularity == "daily":
+            trunc_unit = "day"
+            fmt = "%Y-%m-%d"
+        else:
+            granularity = "monthly"
+            trunc_unit = "month"
+            fmt = "%Y-%m"
+
         return {
             **filters,
-            "start_date": start.isoformat(),
-            "end_date": end.isoformat(),
+            "start_date": start.isoformat() if start else None,
+            "end_date": end.isoformat() if end else None,
             "account_type": acc_type,
+            "granularity": granularity,
+            "trunc_unit": trunc_unit,
+            "date_format": fmt,
         }
 
     def run(self, filters: Dict[str, Any]):
