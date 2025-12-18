@@ -32,4 +32,4 @@ class DeliveryFilter(ListRequest):
     # end_date: Optional[date] = None
     client_ids: Optional [List[int]] = None
     # ck_ids: Optional[List[int]] = None
-    product_ids: Optional[List[int]] = None
+    # product_ids: Optional[List[int]] = None
