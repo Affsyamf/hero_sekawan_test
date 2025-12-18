@@ -1,4 +1,4 @@
-import { Edit2, Eye } from "lucide-react";
+import { BookOpen, Edit2, Eye, Upload } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import SaleForm from "../../components/features/sale/SaleForm";
 import Table from "../../components/ui/table/Table";
@@ -14,6 +14,8 @@ import {
 import { formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
+import Button from "../../components/ui/button/Button";
+import ImportSaleModal from "../../components/features/sale/ImportSaleModal";
 
 export default function SalePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +24,8 @@ export default function SalePage() {
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
   const { filters, setFilter, registerFilters } = useFilterService();
+
+  const [isImportSalesOpen, setIsImportSalesOpen] = useState(false);
 
   // Register filters untuk Sale page
   useEffect(() => {
@@ -105,25 +109,19 @@ export default function SalePage() {
       key: "client_name",
       label: "Client",
       sortable: false,
-      render: (v) => (
-        <span className="text-secondary-text">{v || "-"}</span>
-      ),
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
       key: "opj_code",
       label: "OPJ",
       sortable: false,
-      render: (v) => (
-        <span className="text-secondary-text">{v || "-"}</span>
-      ),
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
       key: "design_code",
       label: "Design",
       sortable: false,
-      render: (v) => (
-        <span className="text-secondary-text">{v || "-"}</span>
-      ),
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
       key: "quantity_start",
@@ -320,13 +318,30 @@ export default function SalePage() {
                 </span>
               )}
               {filters.opj_ids?.length > 0 && (
-                <span className="mr-2">
-                  {filters.opj_ids.length} OPJ(s)
-                </span>
+                <span className="mr-2">{filters.opj_ids.length} OPJ(s)</span>
               )}
             </p>
           </div>
         )}
+
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={Upload}
+              label="Import from Excel"
+              onClick={() => setIsImportSalesOpen(true)}
+              className="bg-green-600 hover:bg-green-700"
+            />
+          </div>
+
+          {/* Import Guide Button */}
+          {/* <Button
+            icon={BookOpen}
+            label="Import Guide"
+            onClick={() => setIsGuideOpen(true)}
+            variant="neutral"
+          /> */}
+        </div>
 
         <Table
           key={`${refresh}-${JSON.stringify(filters)}`}
@@ -346,6 +361,12 @@ export default function SalePage() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSave}
+        />
+
+        <ImportSaleModal
+          isOpen={isImportSalesOpen}
+          onClose={() => setIsImportSalesOpen(false)}
+          onImportSuccess={() => setRefresh((p) => p + 1)}
         />
       </div>
     </div>
