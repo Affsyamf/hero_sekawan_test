@@ -52,9 +52,9 @@ class DeliveryService:
         delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
                                        .join(Client, Sale.client_id == Client.id)\
                                        .join(Opj, Sale.opj_id == Opj.id)\
-                                       .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
-                                       .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                                       .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                    #    .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                    #    .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
+                                    #    .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
                                        
         delivery_query = apply_common_report_filters(delivery_query, filters)
         
