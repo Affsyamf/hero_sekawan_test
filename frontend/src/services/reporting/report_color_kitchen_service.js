@@ -1,5 +1,5 @@
 // src/services/report_color_kitchen_service.js
-import api from "./api";
+import api from "../api";
 
 /**
  * ColorKitchen Summary — top-level KPIs

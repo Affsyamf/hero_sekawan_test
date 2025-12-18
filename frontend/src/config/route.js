@@ -25,6 +25,7 @@ import {
   SuppliersPage,
 } from "../pages";
 import AccountCategoryBoard from "../pages/account/AccountCategoryBoard";
+import DashboardSales from "../pages/dashboard/DashboardSales";
 
 // -----------------------------
 export const protectedRoutes = [
@@ -41,6 +42,11 @@ export const protectedRoutes = [
   {
     path: "dashboard/color-kitchens",
     element: DashboardColorKitchen,
+    permission: "dashboard.read",
+  },
+  {
+    path: "dashboard/sales",
+    element: DashboardSales,
     permission: "dashboard.read",
   },
 

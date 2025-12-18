@@ -1,8 +1,10 @@
 // pages/dashboard/DashboardPurchasing.jsx
 import {
   Building2,
+  DollarSign,
   Download,
   FlaskConical,
+  HandCoins,
   Package,
   ShoppingCart,
   TrendingUp,
@@ -39,10 +41,16 @@ import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 import CategoryFilter from "../../components/ui/filter/CategoryFilter";
 import Loading from "../../components/ui/loading/Loading";
 import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import {
+  reportsReceivableTrend,
+  reportsSalesClient,
+  reportsSalesSummary,
+  reportsSalesTrend,
+} from "../../services/reporting/report_sales_service";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
 
-export default function DashboardPurchasing() {
-  const [purchasingData, setPurchasingData] = useState(null);
+export default function DashboardSales() {
+  const [salesData, setSalesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -119,32 +127,28 @@ export default function DashboardPurchasing() {
       }
 
       // Fetch summary, breakdown, and suppliers (no granularity needed)
-      const [summary, breakdown, suppliers] = await Promise.all([
-        reportsPurchasingSummary(params),
-        reportsPurchasingBreakdownSummary(params),
-        reportsPurchasingSuppliers(params),
+      const [summary, clients] = await Promise.all([
+        reportsSalesSummary(params),
+        reportsSalesClient(params),
       ]);
 
       // Fetch trend and products with their specific granularity
-      const [trend, products] = await Promise.all([
-        reportsPurchasingTrend({ ...params, granularity: trendGranularity }),
-        reportsPurchasingProducts({
-          ...params,
-        }),
+      const [trend, paymentVsReceivableTrend] = await Promise.all([
+        reportsSalesTrend({ ...params, granularity: trendGranularity }),
+        reportsReceivableTrend({ ...params, granularity: trendGranularity }),
       ]);
 
       const transformedData = transformApiData(
         summary.data,
+        clients.data,
         trend.data,
-        breakdown.data,
-        suppliers.data,
-        products.data
+        paymentVsReceivableTrend.data
       );
 
-      setPurchasingData(transformedData);
+      setSalesData(transformedData);
     } catch (error) {
-      console.error("Error fetching purchasing data:", error);
-      setPurchasingData(null);
+      console.error("Error fetching sales data:", error);
+      //   setPurchasingData(null);
     } finally {
       setLoading(false);
     }
@@ -164,19 +168,19 @@ export default function DashboardPurchasing() {
 
       const trend = await reportsPurchasingTrend(params);
 
-      setPurchasingData((prev) => ({
-        ...prev,
-        trendData: transformTrendData(trend.data),
-      }));
+      //   setPurchasingData((prev) => ({
+      //     ...prev,
+      //     trendData: transformTrendData(trend.data),
+      //   }));
     } catch (error) {
       console.error("Error fetching trend data:", error);
     }
   };
 
   useEffect(() => {
-    if (purchasingData) {
-      fetchTrendData();
-    }
+    // if (purchasingData) {
+    //   fetchTrendData();
+    // }
   }, [trendGranularity]);
 
   const transformTrendData = (trend) => {
@@ -196,84 +200,71 @@ export default function DashboardPurchasing() {
     });
   };
 
-  const transformProductsData = (products) => {
-    const mostPurchased = (products?.most_purchased || []).slice(0, 5);
-    const maxValue = Math.max(...mostPurchased.map((p) => p.total_qty), 1);
-
-    return mostPurchased.map((item) => ({
-      label: item.product,
-      value: item.total_qty || 0,
-      unit: "unit",
-      maxValue: maxValue,
-      total_value: item.total_value || 0,
-      avg_cost: item.avg_cost || 0,
+  const transformToBarData = (data) => {
+    return data.map((d) => ({
+      key: d.key,
+      value: d.value,
     }));
   };
 
-  const transformSuppliersToBarData = (suppliers) => {
-    return suppliers.map((supplier) => ({
-      key: supplier.name,
-      value: supplier.total_purchases,
-      percentage: supplier.percentage,
-    }));
-  };
+  const pivotClientByPeriod = (data = []) =>
+    data.map((row) => {
+      const result = {
+        period: row.period,
+        week_start: row.week_start,
+        week_end: row.week_end,
+      };
 
-  const transformPurchasesToBarData = (purchases) => {
-    return purchases.map((purchase) => ({
-      key: purchase.supplier,
-      value: purchase.value,
-    }));
-  };
+      let computedTotal = 0;
 
-  const transformApiData = (summary, trend, breakdown, suppliers, products) => {
+      row.clients.forEach((client) => {
+        result[client.name] = client.total;
+        computedTotal += client.total;
+      });
+
+      result.total = computedTotal;
+
+      return result;
+    });
+
+  const transformApiData = (summary, clients, sales, paymentVsReceivable) => {
     const metrics = {
-      total_purchases: {
-        value: summary.total_purchases || 0,
+      total_sales: {
+        value: summary.total_sales || 0,
         trend: 0,
       },
-      total_chemical: {
-        value: summary.total_chemical || 0,
+      total_returns: {
+        value: summary.total_returns || 0,
         trend: 0,
       },
-      total_sparepart: {
-        value: summary.total_sparepart || 0,
+      total_receivables: {
+        value: summary.total_receivable || 0,
+        trend: 0,
+      },
+      total_payments: {
+        value: summary.total_payments || 0,
         trend: 0,
       },
     };
 
-    const trendData = transformTrendData(trend);
+    const trendData = transformTrendData(pivotClientByPeriod(sales));
+    const paymentVsReceivableTrend = transformTrendData(paymentVsReceivable);
 
-    const donutData = (breakdown || []).map((item) => ({
-      key: item.label.charAt(0).toUpperCase() + item.label.slice(1),
+    console.log(trendData);
+
+    const clientData = (clients || []).map((item) => ({
+      key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
       value: item.value || 0,
-      drilldown: true,
-      context: item.label,
+      drilldown: false,
     }));
 
-    const top_suppliers = (suppliers?.top_suppliers || [])
-      .slice(0, 5)
-      .map((item) => ({
-        name: item.supplier,
-        total_purchases: item.total_spent || 0,
-        percentage: item.percentage || 0,
-      }));
-
-    const top_purchases = (products?.most_purchased || [])
-      .slice(0, 5)
-      .map((item) => ({
-        supplier: item.product,
-        value: item.total_value || 0,
-      }));
-
-    const most_purchased = transformProductsData(products);
+    console;
 
     return {
       metrics,
       trendData,
-      donutData,
-      top_suppliers,
-      top_purchases,
-      most_purchased,
+      paymentVsReceivableTrend,
+      clientData,
     };
   };
 
@@ -309,7 +300,7 @@ export default function DashboardPurchasing() {
     }
   };
 
-  if (!purchasingData) {
+  if (!salesData) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -323,54 +314,8 @@ export default function DashboardPurchasing() {
     );
   }
 
-  const {
-    metrics,
-    trendData,
-    donutData,
-    top_suppliers,
-    top_purchases,
-    most_purchased,
-  } = purchasingData;
-
-  const onDrilldown = async (context, depth) => {
-    const params = {
-      start_date: dateRange?.dateFrom,
-      end_date: dateRange?.dateTo,
-      ...generateFilters(),
-    };
-
-    // level 1 → Goods vs Jasa
-    if (depth === 0) {
-      const res = await reportsPurchasingBreakdown(
-        "account_type",
-        context,
-        0,
-        params
-      );
-      return res.data.map((r) => ({
-        key: r.label,
-        value: r.value,
-        percentage: r.percentage,
-        context: r.account_id,
-        drilldown: true,
-      }));
-    }
-
-    // level 2 → Supplier → Product breakdown
-    if (depth === 1) {
-      const res = await reportsPurchasingBreakdown(
-        "account",
-        context,
-        context,
-        params
-      );
-
-      return res.data.map((p) => ({
-        key: p.label,
-        value: p.value,
-      }));
-    }
-  };
+  const { metrics, trendData, paymentVsReceivableTrend, clientData } =
+    salesData;
 
   return (
     <>
@@ -408,25 +353,32 @@ export default function DashboardPurchasing() {
         {/* KPI Cards */}
         <MetricGrid>
           <Chart.Metric
-            title="Total Purchases"
-            value={formatCompactCurrency(metrics.total_purchases.value)}
+            title="Total Sales"
+            value={formatCompactCurrency(metrics.total_sales.value)}
             // trend={metrics.total_purchases.trend}
             icon={ShoppingCart}
             color="primary"
           />
           <Chart.Metric
-            title="Total Chemical"
-            value={formatCompactCurrency(metrics.total_chemical.value)}
+            title="Total Perbaikan"
+            value={formatCompactCurrency(metrics.total_returns.value)}
             // trend={metrics.total_chemical.trend}
-            icon={FlaskConical}
+            icon={Wrench}
+            color="warning"
+          />
+          <Chart.Metric
+            title="Total Payment"
+            value={formatCompactCurrency(metrics.total_payments.value)}
+            // trend={metrics.total_sparepart.trend}
+            icon={DollarSign}
             color="success"
           />
           <Chart.Metric
-            title="Total Sparepart"
-            value={formatCompactCurrency(metrics.total_sparepart.value)}
+            title="Total Receivables"
+            value={formatCompactCurrency(metrics.total_receivables.value)}
             // trend={metrics.total_sparepart.trend}
-            icon={Wrench}
-            color="warning"
+            icon={HandCoins}
+            color="error"
           />
         </MetricGrid>
 
@@ -437,9 +389,9 @@ export default function DashboardPurchasing() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                    Trend Purchasing
+                    Sales Trend
                   </h3>
-                  <p className="text-xs text-gray-600">Trend pembelian</p>
+                  <p className="text-xs text-gray-600">Trend penjualan</p>
                 </div>
                 <select
                   value={trendGranularity}
@@ -474,13 +426,10 @@ export default function DashboardPurchasing() {
           <div className="lg:col-span-1">
             <Card className="h-full ">
               <Highchart.HighchartsDonut
-                data={donutData}
-                title="Breakdown Purchasing"
+                data={clientData}
+                title="Breakdown Client"
                 className="w-full h-full"
                 showSummary={false}
-                onDrilldownRequest={async ({ _, context, depth }) => {
-                  return onDrilldown(context, depth);
-                }}
                 valueFormatter={formatCompactCurrency}
               />
             </Card>
@@ -497,16 +446,16 @@ export default function DashboardPurchasing() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Top 5 Suppliers
+                  Top 5 Clients
                 </h3>
                 <p className="text-xs text-gray-600">
-                  Supplier dengan total pembelian tertinggi
+                  Client dengan total pembelian tertinggi
                 </p>
               </div>
             </div>
 
             <Highchart.HighchartsBar
-              initialData={transformSuppliersToBarData(top_suppliers)}
+              initialData={transformToBarData(clientData)}
               title=""
               subtitle=""
               datasets={[
@@ -515,31 +464,8 @@ export default function DashboardPurchasing() {
               periods={[]}
               showSummary={false}
             />
-
-            {/* {top_suppliers.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t border-gray-200">
-              <div className="p-2 rounded-lg bg-purple-50">
-                <p className="text-xs text-purple-600">Total dari Top 5</p>
-                <p className="text-sm font-bold text-purple-900">
-                  {formatCompactCurrency(
-                    top_suppliers.reduce((sum, s) => sum + s.total_purchases, 0)
-                  )}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-purple-50">
-                <p className="text-xs text-purple-600">Share dari Total</p>
-                <p className="text-sm font-bold text-purple-900">
-                  {top_suppliers
-                    .reduce((sum, s) => sum + s.percentage, 0)
-                    .toFixed(1)}
-                  %
-                </p>
-              </div>
-            </div>
-          )} */}
           </Card>
 
-          {/* Top 5 Product Values */}
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
@@ -547,16 +473,16 @@ export default function DashboardPurchasing() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Top 5 Product Values
+                  Payments Vs Receivables
                 </h3>
                 <p className="text-xs text-gray-600">
-                  Produk dengan nilai pembelian tertinggi
+                  Trend pembayaran vs piutang
                 </p>
               </div>
             </div>
 
-            <Highchart.HighchartsBar
-              initialData={transformPurchasesToBarData(top_purchases)}
+            {/* <Highchart.HighchartsLine
+              initialData={transformToBarData(paymentVsReceivableTrend)}
               title=""
               subtitle=""
               datasets={[
@@ -564,127 +490,9 @@ export default function DashboardPurchasing() {
               ]}
               periods={[]}
               showSummary={false}
-            />
-
-            {/* {top_purchases.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t border-gray-200">
-              <div className="p-2 rounded-lg bg-green-50">
-                <p className="text-xs text-green-600">Total dari Top 5</p>
-                <p className="text-sm font-bold text-green-900">
-                  {formatCompactCurrency(
-                    top_purchases.reduce((sum, p) => sum + p.value, 0)
-                  )}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-green-50">
-                <p className="text-xs text-green-600">Highest Value</p>
-                <p className="text-sm font-bold text-green-900">
-                  {formatCompactCurrency(
-                    Math.max(...top_purchases.map((p) => p.value))
-                  )}
-                </p>
-              </div>
-            </div>
-          )} */}
+            /> */}
           </Card>
         </div>
-
-        {/* Most Purchased Products */}
-        {/* <Card>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
-                <Package className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Most Purchased Products
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Top 5 produk dengan volume pembelian terbanyak
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={productsGranularity}
-                onChange={(e) => setProductsGranularity(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
-              >
-                <option value="daily">Perhari</option>
-                <option value="weekly">Perminggu</option>
-                <option value="monthly">Perbulan</option>
-                <option value="yearly">Pertahun</option>
-              </select>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Total Volume</p>
-                <p className="text-xs font-semibold text-gray-900">
-                  {formatNumber(
-                    most_purchased.reduce((sum, item) => sum + item.value, 0)
-                  )}{" "}
-                  unit
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-            {most_purchased.length > 0 ? (
-              most_purchased.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-3 transition-all border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 text-xs font-bold text-blue-600 bg-blue-100 rounded-lg">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 truncate">
-                        {item.label}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-gray-600">Volume</span>
-                      <span className="text-xs font-bold text-gray-900">
-                        {formatNumber(item.value)} {item.unit}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-gray-600">Total Value</span>
-                      <span className="text-xs font-semibold text-gray-900">
-                        {formatCompactCurrency(item.total_value)}
-                      </span>
-                    </div>
-                    <Highchart.HighchartsProgress
-                      label=""
-                      value={item.value}
-                      maxValue={item.maxValue}
-                      color={
-                        index === 0
-                          ? "error"
-                          : index === 1
-                          ? "primary"
-                          : index === 2
-                          ? "warning"
-                          : index === 3
-                          ? "success"
-                          : "info"
-                      }
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-5">
-                <p className="text-xs text-center text-gray-500">
-                  No product data available
-                </p>
-              </div>
-            )}
-          </div>
-        </Card> */}
       </div>
     </>
   );
