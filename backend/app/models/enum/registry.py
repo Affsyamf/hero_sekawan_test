@@ -11,6 +11,7 @@ ENUM_NAMES = {
     "foldingenum": "folding_enum",
     "facedirectionenum": "face_direction_enum",
     "printingmachineenum": "printing_machine_enum",
+    "purchasingstatusenum": "purchasing_status_enum"
     # add more here
 }
 
