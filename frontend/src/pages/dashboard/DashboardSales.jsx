@@ -193,9 +193,14 @@ export default function DashboardSales() {
         displayPeriod = formatPeriod(item.period);
       }
 
+      // return {
+      //   key: displayPeriod,
+      //   ...item,
+      // };
       return {
         key: displayPeriod,
-        ...item,
+        payments: item.total_payment ?? 0,
+        receivables: item.total_receivable ?? 0,
       };
     });
   };
@@ -466,6 +471,33 @@ export default function DashboardSales() {
             />
           </Card>
 
+          {/* <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                  Payments Vs Receivables
+                </h3>
+                <p className="text-xs text-gray-600">
+                  Trend pembayaran vs piutang
+                </p>
+              </div>
+            </div>
+
+            <Highchart.HighchartsLine
+              initialData={transformToBarData(paymentVsReceivableTrend)}
+              title=""
+              subtitle=""
+              datasets={[
+                { key: "value", label: "Total Purchases", color: "primary" },
+              ]}
+              periods={[]}
+              showSummary={false}
+            />
+          </Card> */}
+
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
@@ -481,16 +513,26 @@ export default function DashboardSales() {
               </div>
             </div>
 
-            {/* <Highchart.HighchartsLine
-              initialData={transformToBarData(paymentVsReceivableTrend)}
+            <Highchart.HighchartsLine
+              initialData={paymentVsReceivableTrend}
               title=""
               subtitle=""
               datasets={[
-                { key: "value", label: "Total Purchases", color: "primary" },
+                {
+                  key: "total_payment",
+                  label: "Total Payment",
+                  color: "success",
+                },
+                {
+                  key: "total_receivable",
+                  label: "Total Receivable",
+                  color: "error",
+                },
               ]}
               periods={[]}
-              showSummary={false}
-            /> */}
+              showSummary={true}
+              yAxisLabel="Nilai (Rp)"
+            />
           </Card>
         </div>
       </div>
