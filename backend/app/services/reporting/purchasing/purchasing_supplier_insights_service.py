@@ -41,6 +41,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
             db.query(
                 Supplier.name.label("supplier"),
                 func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_spent"),
+                func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Supplier, Supplier.id == Purchasing.supplier_id)
@@ -69,6 +70,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
             {
                 "supplier": r.supplier,
                 "total_spent": float(r.total_spent or 0),
+                "total_qty": float(r.total_qty or 0), 
                 "percentage": round((float(r.total_spent or 0) / total) * 100, 2) if total else 0,
             }
             for r in results
@@ -87,6 +89,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
                 Supplier.name.label("supplier"),
                 Product.name.label("product"),
                 func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Supplier, Supplier.id == Purchasing.supplier_id)
@@ -113,6 +116,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
                 "supplier": r.supplier,
                 "product": r.product,
                 "total_value": float(r.total_value or 0),
+                "total_qty": float(r.total_qty or 0),
             } for r in q
         ]
 
