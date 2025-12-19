@@ -6,6 +6,8 @@ class SalesSummaryResponse(BaseModel):
     """Schema for the Sales Reporting Summary Data (Output)."""
    
     total_sales: int = Field(..., description="Total count of sales transactions.")
+    total_returns_quantity: int = Field(..., description="Total quantity of returned items.")
+    total_cost_returns: float = Field(..., description="Total value of returned sales.")
     total_returns: int = Field(..., description="Total count of return transactions.")
     
     total_payments: float = Field(..., description="Total value of all received payments.")

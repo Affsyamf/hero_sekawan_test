@@ -43,6 +43,25 @@ class SalesSummaryService(BaseReportService):
 
         total_sales_quantity = sales_sum_query.scalar() or 0
         total_sales_quantity_float = to_float(total_sales_quantity)
+        
+        
+        # returns sum
+        returns_sum_query = db.query(func.sum(Return.quantity)).filter(Return.deleted_at.is_(None))
+        returns_sum_query = returns_sum_query.join(Sale, Return.sale_id == Sale.id)
+        returns_sum_query = sale_joins(returns_sum_query)
+        returns_sum_query = date_filter(returns_sum_query, start_date, end_date, Return)
+        returns_sum_query = apply_common_report_filters(returns_sum_query, filters)
+        
+        total_returns_quantity = returns_sum_query.scalar() or 0
+        
+        
+        # return cost 
+        returns_cost_returns_query = db.query(func.sum(Return.quantity * Opj.unit_price + Sale.ppn - Sale.discount)).filter(Return.deleted_at.is_(None))
+        returns_cost_returns_query = sale_joins(returns_cost_returns_query)
+        returns_cost_returns_query = date_filter(returns_cost_returns_query, start_date, end_date, Return)
+        returns_cost_returns_query = apply_common_report_filters(returns_cost_returns_query, filters)
+        
+        total_cost_returns = returns_cost_returns_query.scalar() or 0
 
         # return count
         returns_count_query = db.query(func.count(Return.id)).filter(Return.deleted_at.is_(None))
@@ -52,6 +71,7 @@ class SalesSummaryService(BaseReportService):
         returns_count_query = apply_common_report_filters(returns_count_query, filters)
 
         total_returns_count = returns_count_query.scalar() or 0
+
 
         # total payment value
         payments_query = db.query(func.sum(Payment.amount)).filter(Payment.deleted_at.is_(None))
@@ -102,6 +122,8 @@ class SalesSummaryService(BaseReportService):
 
         serialized_data = SalesSummaryResponse(
             total_sales=int(total_sales_quantity),
+            total_returns_quantity=int(total_returns_quantity),
+            total_cost_returns=float(total_cost_returns),
             total_returns=int(total_returns_count),
             total_payments=float(total_payments_value),
             total_receivable=float(total_receivable_value)
