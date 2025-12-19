@@ -34,7 +34,7 @@ class SalesTrendService(BaseReportService):
         fmt = filters["date_format"]
 
         period_expr = func.date_trunc(trunc_unit, Sale.date).label("period")
-        total_qty_expr = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_quantity")
+        total_qty_expr = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount).label("total_quantity")
 
         query = (
             db.query(period_expr, Client.name, total_qty_expr)
