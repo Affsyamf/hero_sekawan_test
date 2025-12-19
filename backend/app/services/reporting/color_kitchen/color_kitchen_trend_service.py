@@ -120,6 +120,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
             aux_qty = aux_rows.get(p, {}).get("qty", 0.0)
             
             total_val = dyes_val + aux_val
+            total_qty = dyes_qty + aux_qty
 
             week_start = week_end = None
             if granularity == "weekly":
@@ -135,7 +136,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
                 "total": round(total_val, 2),
                 "dyes_qty": round(dyes_qty, 2),
                 "aux_qty": round(aux_qty, 2),
-                "total_qty": round(dyes_qty + aux_qty, 2),
+                "total_qty": round(total_qty, 2),
             })
 
         return data
