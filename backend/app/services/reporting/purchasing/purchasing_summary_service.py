@@ -67,6 +67,7 @@ class PurchasingSummaryService(BaseReportService):
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .filter(AccountParent.account_type == "chemical")
         )
+        
         sparepart_total = (
             db.query(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)))
             .join(Product, Product.id == PurchasingDetail.product_id)
@@ -75,6 +76,25 @@ class PurchasingSummaryService(BaseReportService):
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .filter(AccountParent.account_type == "sparepart")
         )
+        
+        chemical_qty = (
+            db.query(func.sum(PurchasingDetail.quantity))
+            .join(Product, Product.id == PurchasingDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
+            .join(AccountParent, AccountParent.id == Account.parent_id)
+            .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
+            .filter(AccountParent.account_type == "chemical")
+        )
+        
+        sparepart_qty = (
+            db.query(func.sum(PurchasingDetail.quantity))
+            .join(Product, Product.id == PurchasingDetail.product_id)
+            .join(Account, Account.id == Product.account_id)
+            .join(AccountParent, AccountParent.id == Account.parent_id)
+            .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
+            .filter(AccountParent.account_type == "sparepart")
+        )
+        
         if start_date:
             chemical_total = chemical_total.filter(Purchasing.date >= start_date)
             sparepart_total = sparepart_total.filter(Purchasing.date >= start_date)
@@ -84,9 +104,13 @@ class PurchasingSummaryService(BaseReportService):
 
         chemical_total = apply_common_report_filters(chemical_total, filters)
         sparepart_total = apply_common_report_filters(sparepart_total, filters)
+        chemical_qty = apply_common_report_filters(chemical_qty, filters)
+        sparepart_qty = apply_common_report_filters(sparepart_qty, filters)
 
         total_chemical = float(chemical_total.scalar() or 0)
         total_sparepart = float(sparepart_total.scalar() or 0)
+        total_chemical_qty = float(chemical_qty.scalar() or 0)
+        total_sparepart_qty = float(sparepart_qty.scalar() or 0)
 
         # --------------------------------------------------
         # Highest Purchase (by invoice total)
@@ -127,8 +151,11 @@ class PurchasingSummaryService(BaseReportService):
             meta=filters,
             data={
                 "total_purchases": total_value,
+                "total_purchases_qty": total_qty,
                 "total_chemical": total_chemical,
+                "total_chemical_qty": total_chemical_qty,
                 "total_sparepart": total_sparepart,
+                "total_sparepart_qty": total_sparepart_qty,
                 "avg_unit_cost": avg_unit_cost,
                 "highest_purchase_value": float(highest_purchase_value or 0),
                 "highest_avg_cost": top_avg_cost_products,
