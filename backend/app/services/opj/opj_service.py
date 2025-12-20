@@ -52,7 +52,7 @@ class OpjService:
             
             client = (
                 self.db.query(Client)
-                .filter(Client.id == request.client_id, Client.deleted_at.is_(None))
+                .filter(Client.id == request.client_id)
                 .first()
             )
             if not client:
@@ -60,7 +60,7 @@ class OpjService:
             
             design = (
                 self.db.query(Design)
-                .filter(Design.id == request.design_id, Design.deleted_at.is_(None))
+                .filter(Design.id == request.design_id)
                 .first()
             )
             if not design:
