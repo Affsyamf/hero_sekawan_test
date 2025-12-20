@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 DEFAULT_ADMIN = {
-    "username": "superadmin",
+    "username": "a",
     "email": "superadmin@example.com",
-    "password": "admin123",
+    "password": "b",
     "full_name": "Super Admin",
     "phone_number": None,
 }

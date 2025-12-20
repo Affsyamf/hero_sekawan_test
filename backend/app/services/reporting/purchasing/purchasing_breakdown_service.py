@@ -36,7 +36,9 @@ class PurchasingBreakdownService(BaseReportService):
         q = (
             db.query(
                 AccountParent.account_type,
-                func.coalesce(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)), 0).label("total_value")
+                func.coalesce(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)), 0).label("total_value"),
+                func.sum(PurchasingDetail.quantity).label("total_qty"),
+                
             )
             .select_from(PurchasingDetail)
             .join(Product, Product.id == PurchasingDetail.product_id)
@@ -58,6 +60,7 @@ class PurchasingBreakdownService(BaseReportService):
         for r in rows:
             data.append({
                 "label": r.account_type,
+                "qty": float(r.total_qty or 0),
                 "value": float(r.total_value or 0),
             })
 
@@ -86,6 +89,7 @@ class PurchasingBreakdownService(BaseReportService):
                     Account.id.label("account_id"),
                     Account.name.label("account_name"),
                     func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                    func.sum(PurchasingDetail.quantity).label("total_qty"),
                 )
                 .join(Product, Product.id == PurchasingDetail.product_id)
                 .join(Account, Account.id == Product.account_id)
@@ -130,6 +134,7 @@ class PurchasingBreakdownService(BaseReportService):
                 {
                     "account_id": int(r.account_id),
                     "label": r.account_name,
+                    "qty": float(r.total_qty or 0),
                     "value": float(r.total_value or 0),
                 }
                 for r in rows

@@ -30,7 +30,7 @@ class SalesClientTopService(BaseReportService):
         start_date: Optional[date] = filters.get("start_date")
         end_date: Optional[date] = filters.get("end_date")
         
-        total_quantity_alias = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_quantity")
+        total_quantity_alias = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount).label("total_quantity")
         
         client = db.query(
             Client.id.label("client_id"),

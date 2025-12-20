@@ -39,17 +39,17 @@ export const deleteAccountParent = async (id) => {
 
 // ==================== Account ===================
 
-export const searchAccount = async (filter) => {
-  const response = await api.post("/account/search", {
-    params: filter,
-  });
-  return response;
-};
-
 // export const searchAccount = async (filter) => {
-//   const response = await api.post("/account/search", filter);
+//   const response = await api.post("/account/search", {
+//     params: filter,
+//   });
 //   return response;
 // };
+
+export const searchAccount = async (filter) => {
+  const response = await api.post("/account/search", filter);
+  return response;
+};
 
 export const getAccountById = async (id) => {
   const response = await api.get(`/account/${id}`);

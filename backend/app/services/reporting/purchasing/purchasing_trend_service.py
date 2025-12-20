@@ -45,6 +45,7 @@ class PurchasingTrendService(BaseReportService):
                 period_expr.label("period"),
                 AccountParent.account_type.label("account_type"),
                 func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Product, Product.id == PurchasingDetail.product_id)
@@ -81,14 +82,27 @@ class PurchasingTrendService(BaseReportService):
                     "period": period_label,
                     "week_start": week_start.isoformat() if week_start else None,
                     "week_end": week_end.isoformat() if week_end else None,
+                    "total_value": 0.0,
+                    "total_qty": 0.0,
                     # "accounts": {},
                     "total": 0.0,
                 }
 
             val = float(r.total_value or 0)
+            qty = float(r.total_qty or 0)
+            
+            key = r.account_type.capitalize()
+            grouped[period_label][key] = {
+                "value" : val,
+                "qty" : qty
+            }
+            
+            grouped[period_label]["total_value"] += val
+            grouped[period_label]["total_qty"] += qty
+            
             # grouped[period_label]["accounts"][r.account_name] = val
-            grouped[period_label][r.account_type.capitalize()] = val
-            grouped[period_label]["total"] += val
+            # grouped[period_label][r.account_type.capitalize()] = val
+            # grouped[period_label]["total"] += val
 
         # Convert to list
         data = list(grouped.values())

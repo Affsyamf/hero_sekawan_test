@@ -65,7 +65,7 @@ class SalesFilter(ListRequest):
     client_ids: Optional[List[int]] = None
     design_ids: Optional[List[int]] = None
     sale_ids: Optional[Union[int, List[int]]] = None
-    ck_ids: Optional[List[int]] = None
+    # ck_ids: Optional[List[int]] = None
     
 
 class ReturnCreate(BaseModel):

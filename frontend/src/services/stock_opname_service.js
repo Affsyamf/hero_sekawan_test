@@ -1,9 +1,14 @@
 import api from "./api";
 
+// export const searchStockOpname = async (filter) => {
+//   const response = await api.post("/stock-opname/search", {
+//     params: filter,
+//   });
+//   return response;
+// };
+
 export const searchStockOpname = async (filter) => {
-  const response = await api.post("/stock-opname/search", {
-    params: filter,
-  });
+  const response = await api.post("/stock-opname/search", filter);
   return response;
 };
 

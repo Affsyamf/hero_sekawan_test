@@ -1,9 +1,14 @@
 import api from "./api";
 
+// export const searchColorKitchen = async (filter) => {
+//   const response = await api.post("/color-kitchen-entry/search", {
+//     params: filter,
+//   });
+//   return response;
+// };
+
 export const searchColorKitchen = async (filter) => {
-  const response = await api.post("/color-kitchen-entry/search", {
-    params: filter,
-  });
+  const response = await api.post("/color-kitchen-entry/search", filter);
   return response;
 };
 

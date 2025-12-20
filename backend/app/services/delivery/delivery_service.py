@@ -52,9 +52,9 @@ class DeliveryService:
         delivery_query = delivery_query.join(Sale, Delivery.sale_id == Sale.id)\
                                        .join(Client, Sale.client_id == Client.id)\
                                        .join(Opj, Sale.opj_id == Opj.id)\
-                                       .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
-                                       .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                                       .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                    #    .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                                    #    .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
+                                    #    .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
                                        
         delivery_query = apply_common_report_filters(delivery_query, filters)
         
@@ -91,7 +91,10 @@ class DeliveryService:
                 "sale_id": d.sale_id,
                 "return_id": d.return_id,
                 "sale_client_id": d.sale.client_id if d.sale else None,
-                "roll": float(d.roll)
+                "roll": float(d.roll),
+                "sale_code": d.sale.code if d.sale else None,
+                "client_name": d.sale.client.name if d.sale and d.sale.client else None,
+                
                 # "sale_color_kitchen_id": d.sale.color_kitchen_id if d.sale else None
             }
         )

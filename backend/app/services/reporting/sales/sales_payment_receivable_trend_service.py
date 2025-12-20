@@ -35,7 +35,7 @@ class PaymentReceivableService(BaseReportService):
         fmt = filters["date_format"]
 
         sales_period = func.date_trunc(trunc_unit, Sale.date).label("period")
-        sales_sum = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn).label("total_sales")
+        sales_sum = func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount).label("total_sales")
 
         q_sales = (
             db.query(sales_period, sales_sum)

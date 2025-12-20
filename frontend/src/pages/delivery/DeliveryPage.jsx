@@ -30,16 +30,16 @@ export default function DeliveryPage() {
         value={filters.client_ids || []}
         onChange={(v) => setFilter("client_ids", v)}
       />,
-      <ColorKitchenFilter
-        key="ck-filter"
-        value={filters.ck_ids || []}
-        onChange={(v) => setFilter("ck_ids", v)}
-      />,
-      <ProductFilter
-        key="product-filter"
-        value={filters.product_ids || []}
-        onChange={(v) => setFilter("product_ids", v)}
-      />,
+      // <ColorKitchenFilter
+      //   key="ck-filter"
+      //   value={filters.ck_ids || []}
+      //   onChange={(v) => setFilter("ck_ids", v)}
+      // />,
+      // <ProductFilter
+      //   key="product-filter"
+      //   value={filters.product_ids || []}
+      //   onChange={(v) => setFilter("product_ids", v)}
+      // />,
     ]);
   }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
@@ -60,12 +60,12 @@ export default function DeliveryPage() {
         if (filters.client_ids?.length) {
           payload.client_ids = filters.client_ids;
         }
-        if (filters.ck_ids?.length) {
-          payload.ck_ids = filters.ck_ids;
-        }
-        if (filters.product_ids?.length) {
-          payload.product_ids = filters.product_ids;
-        }
+        // if (filters.ck_ids?.length) {
+        //   payload.ck_ids = filters.ck_ids;
+        // }
+        // if (filters.product_ids?.length) {
+        //   payload.product_ids = filters.product_ids;
+        // }
 
         const response = await searchDelivery(payload);
         return response;
@@ -108,32 +108,27 @@ export default function DeliveryPage() {
       ),
     },
     {
-      key: "sale",
+      key: "sale_code",
       label: "Sale Reference",
       sortable: false,
-      render: (v, row) => (
+      render: (v) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-medium text-gray-700">
-            {row.sale?.code || "-"}
+            {v || "-"}
           </span>
-          {row.sale?.client && (
-            <span className="text-xs text-gray-500">
-              {row.sale.client.name}
-            </span>
-          )}
         </div>
       ),
     },
-    {
-      key: "color_kitchen",
-      label: "Color Kitchen",
-      sortable: false,
-      render: (v, row) => (
-        <span className="text-secondary-text">
-          {row.sale?.color_kitchen?.name || "-"}
-        </span>
-      ),
-    },
+    // {
+    //   key: "color_kitchen",
+    //   label: "Color Kitchen",
+    //   sortable: false,
+    //   render: (v, row) => (
+    //     <span className="text-secondary-text">
+    //       {row.sale?.color_kitchen?.name || "-"}
+    //     </span>
+    //   ),
+    // },
     {
       key: "return_status",
       label: "Return Status",
