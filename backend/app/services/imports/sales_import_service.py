@@ -7,7 +7,7 @@ from io import BytesIO
 from app.utils.safe_parse import safe_str, safe_date, safe_number
 from app.utils.response import APIResponse
 
-from app.models import Opj, OpjDetail, OpjProcessCondition, Delivery, Client, Sale, Design, DesignType
+from app.models import Opj, OpjDetail, OpjProcessCondition, Delivery, Client, Sale, Design, DesignType, Return
 from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
 
 DEFAULT_OPJ_PROCESSES = [
@@ -15,6 +15,18 @@ DEFAULT_OPJ_PROCESSES = [
     ProcessConditionEnum.DYEING,
     ProcessConditionEnum.PRINTING,
 ]
+
+PROCESS_MAP = {
+    "DISPERSE": OpjProcessEnum.DISPERSE,
+    "REACTIVE": OpjProcessEnum.REACTIVE,
+    "PIGMENT": OpjProcessEnum.PIGMENT,
+    "CUCI+FINISH": OpjProcessEnum.CUCIFINISH,
+    "PROSES": OpjProcessEnum.PROSES,
+
+    "PBK": OpjProcessEnum.PERBAIKAN,
+    "PERBAIKAN": OpjProcessEnum.PERBAIKAN,
+}
+
 
 class SalesImportService(BaseImportService):
     def __init__(self, db: DB):
@@ -98,7 +110,7 @@ class SalesImportService(BaseImportService):
             opj = Opj(
                 code=opj_code,
                 date=sale_date,
-                process_type=OpjProcessEnum.DISPERSE,  # TODO map from row
+                process_type=row["process_type"],
                 printing_machine=PrintingMachineEnum.ROTARY,
                 client_id=client.id,
                 design_id=design.id,
@@ -112,7 +124,7 @@ class SalesImportService(BaseImportService):
                     opj_id=opj.id,
                     roll=row["roll"],
                     ground_color="UNKNOWN",
-                    quantity=None
+                    quantity=row["quantity_start"]
                 )
             )
 
@@ -144,6 +156,75 @@ class SalesImportService(BaseImportService):
         self.db.add(delivery)
 
         return sale.id
+    
+    def insert_pbk_row(self, row):
+        source_opj_code = row["source_opj"]
+        date = safe_date(row["date"])
+
+        # 1. Find OPJ being fixed
+        source_opj = self.db.query(Opj).filter_by(code=source_opj_code).first()
+        if not source_opj:
+            raise ValueError(f"PBK: OPJ not found: {source_opj_code}")
+
+        # 2. Resolve original Sale
+        sale = (
+            self.db.query(Sale)
+            .filter(Sale.opj_id == source_opj.id)
+            .order_by(Sale.date.asc())
+            .first()
+        )
+
+        if not sale:
+            raise ValueError(f"PBK: Sale not found for OPJ {source_opj_code}")
+        
+        # OPJ — ensure exists (auto-create)
+        opj_code = row["opj"]
+        opj = self.db.query(Opj).filter_by(code=opj_code).first()
+        if not opj:
+            opj = Opj(
+                code=opj_code,
+                date=date,
+                process_type=row["process_type"],
+                printing_machine=PrintingMachineEnum.ROTARY,
+                client_id=source_opj.client.id,
+                design_id=source_opj.design.id,
+                unit_price=row["unit_price"]
+            )
+            self.db.add(opj)
+            self.db.flush()
+
+            self.db.add(
+                OpjDetail(
+                    opj_id=opj.id,
+                    roll=row["roll"],
+                    ground_color="UNKNOWN",
+                    quantity=row["quantity_start"]
+                )
+            )
+            
+            self.db.add(OpjProcessCondition(opj_id=opj.id, process_type=ProcessConditionEnum.PERBAIKAN))
+
+        # 3. Create Return
+        ret = Return(
+            date=date,
+            code=row["invoice"],
+            sale_id=sale.id,
+            opj_id=opj.id,
+            quantity_start=row["quantity_start"],
+            quantity_end=row["quantity_end"],
+        )
+        self.db.add(ret)
+        self.db.flush()
+
+        # 4. Create Delivery (return delivery)
+        delivery = Delivery(
+            date=date,
+            code=row["delivery"]["sj"],
+            quantity=row["quantity_end"],
+            roll=row["roll"],
+            return_id=ret.id
+        )
+        self.db.add(delivery)
 
     def preview(self, file: UploadFile):
         contents: bytes = file.file.read()
@@ -159,6 +240,7 @@ class SalesImportService(BaseImportService):
         }
 
         sales_map = {}  # (invoice, date) → sale preview
+        return_map = {}
 
         for idx, row in df.iterrows():
             excel_row = idx + 6  # header=5
@@ -170,6 +252,9 @@ class SalesImportService(BaseImportService):
             opj_code = safe_str(row.get("OPJ"))
             design_code = safe_str(row.get("DESIGN"))
             design_type_name = safe_str(row.get("JENIS|KAIN"))
+            process_raw = safe_str(row.get("JENIS|PROSES")).upper()
+
+            is_sales = process_raw not in {"PBK", "PERBAIKAN"}
 
             if not sj or not invoice or not sale_date or not client_name:
                 summary["skipped"] += 1
@@ -181,6 +266,10 @@ class SalesImportService(BaseImportService):
                 continue
 
             if self.db.query(Sale).filter(Sale.code == invoice).first():
+                summary["skipped"] += 1
+                continue
+
+            if self.db.query(Return).filter(Return.code == invoice).first():
                 summary["skipped"] += 1
                 continue
 
@@ -202,47 +291,83 @@ class SalesImportService(BaseImportService):
 
             # Design check
             design = self.db.query(Design).filter_by(code=design_code).first()
-            if not design:
+            if not design and is_sales:
                 summary["errors"].append({
                     "row": excel_row,
                     "reason": f"Design will be auto-created: {design_code}"
                 })
 
             design_type = self.db.query(DesignType).filter_by(name=design_type_name).first()
-            if not design:
+            if not design_type:
                 summary["errors"].append({
                     "row": excel_row,
                     "reason": f"Design will be auto-created: {design_type_name}"
                 })
 
+            process_enum = None
+            if process_raw:
+                if process_raw not in PROCESS_MAP:
+                    summary["errors"].append({
+                        "row": excel_row,
+                        "reason": f"Invalid process type: {process_raw}"
+                    })
+                else:
+                    process_enum = PROCESS_MAP[process_raw]
+
             key = (invoice, sale_date)
-            if key not in sales_map:
-                sales_map[key] = {
-                    "invoice": invoice,
-                    "date": sale_date.isoformat(),
-                    "client": client_name,
-                    "opj": opj_code,
-                    "quantity_start": safe_number(row.get("QTY|ASAL")) or 0,
-                    "quantity_end": safe_number(row.get("QTY|JADI")) or 0,
-                    "ppn": safe_number(row.get("PPN")) or 0,
-                    "discount": safe_number(row.get("DISC")) or 0,
-                    "design": design_code,
-                    "design_type": design_type_name,
-                    "roll": safe_number(row.get("ROLL")) or 0,
-                    "unit_price": safe_number(row.get("HARGA")) or 0,
-                    "delivery": {
-                        "sj": sj,
-                        "quantity": safe_number(row.get("QTY|JADI")) or 0,
+            if is_sales:
+                if key not in sales_map:
+                    sales_map[key] = {
+                        "invoice": invoice,
+                        "date": sale_date.isoformat(),
+                        "client": client_name,
+                        "opj": opj_code,
+                        "process_type": process_enum.value if process_enum else None,
+                        "quantity_start": safe_number(row.get("QTY|ASAL")) or 0,
+                        "quantity_end": safe_number(row.get("QTY|JADI")) or 0,
+                        "ppn": safe_number(row.get("PPN")) or 0,
+                        "discount": safe_number(row.get("DISC")) or 0,
+                        "design": design_code,
+                        "design_type": design_type_name,
+                        "roll": safe_number(row.get("ROLL")) or 0,
+                        "unit_price": safe_number(row.get("HARGA")) or 0,
+                        "delivery": {
+                            "sj": sj,
+                            "quantity": safe_number(row.get("QTY|JADI")) or 0,
+                        }
                     }
-                }
+            else:
+                if key not in return_map:
+                    return_map[key] = {
+                        "invoice": invoice,
+                        "date": sale_date.isoformat(),
+                        "client": client_name,
+                        "opj": opj_code,
+                        "process_type": process_enum.value if process_enum else None,
+                        "quantity_start": safe_number(row.get("QTY|ASAL")) or 0,
+                        "quantity_end": safe_number(row.get("QTY|JADI")) or 0,
+                        "ppn": safe_number(row.get("PPN")) or 0,
+                        "discount": safe_number(row.get("DISC")) or 0,
+                        "source_opj": design_code,
+                        "roll": safe_number(row.get("ROLL")) or 0,
+                        "unit_price": safe_number(row.get("HARGA")) or 0,
+                        "delivery": {
+                            "sj": sj,
+                            "quantity": safe_number(row.get("QTY|JADI")) or 0,
+                        }
+                    }
 
             summary["valid_rows"] += 1
 
         summary["sales"] = list(sales_map.values())
         summary["total_sales"] = len(summary["sales"])
 
+        summary["pbk"] = list(return_map.values())
+        summary["total_pbk"] = len(summary["pbk"])
+
         preview_id = self.create_preview({
-            "rows": list(sales_map.values())
+            "sales": list(sales_map.values()),
+            "pbk": list(return_map.values())
         })
 
         summary["preview_id"] = preview_id
@@ -251,7 +376,8 @@ class SalesImportService(BaseImportService):
     
     def _run(self, preview_id: int):
         payload = self.consume_preview(preview_id)
-        rows = payload["rows"]
+        sales = payload["sales"]
+        pbk = payload["pbk"]
 
         inserted = {
             "sales": 0,
@@ -263,9 +389,7 @@ class SalesImportService(BaseImportService):
         sales_map = {}      # (invoice, date) → Sale
         delivery_map = set()  # SJ codes to prevent duplicates
 
-        for idx, row in enumerate(rows):
-            excel_row = idx + 6
-
+        for idx, row in enumerate(sales):
             try:
                 sj = row["delivery"]["sj"]
                 invoice = row["invoice"]
@@ -291,7 +415,39 @@ class SalesImportService(BaseImportService):
 
             except Exception as e:
                 inserted["errors"].append({
-                    "row": excel_row,
+                    "invoice": invoice,
+                    "reason": str(e)
+                })
+
+        self.db.flush()
+
+        for idx, row in enumerate(pbk):
+            try:
+                sj = row["delivery"]["sj"]
+                invoice = row["invoice"]
+                sale_date = row["date"]
+
+                if not sj or not invoice or not sale_date:
+                    inserted["skipped"] += 1
+                    continue
+
+                sale_key = (invoice, sale_date)
+
+                if sale_key not in sales_map:
+                    sale_id = self.insert_pbk_row(row)
+                    sales_map[sale_key] = sale_id
+                    inserted["sales"] += 1
+                else:
+                    sale_id = sales_map[sale_key]
+
+                # prevent duplicate SJ
+                if sj not in delivery_map:
+                    delivery_map.add(sj)
+                    inserted["deliveries"] += 1
+
+            except Exception as e:
+                inserted["errors"].append({
+                    "invoice": invoice,
                     "reason": str(e)
                 })
 
