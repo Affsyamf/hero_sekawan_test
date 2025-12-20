@@ -193,15 +193,16 @@ export default function DashboardSales() {
         displayPeriod = formatPeriod(item.period);
       }
 
-      // return {
-      //   key: displayPeriod,
-      //   ...item,
-      // };
       return {
         key: displayPeriod,
-        payments: item.total_payment ?? 0,
-        receivables: item.total_receivable ?? 0,
+        ...item,
       };
+      // console.log(item);
+      // return {
+      //   key: displayPeriod,
+      //   payments: item.total_payment ?? 0,
+      //   receivables: item.total_receivable ?? 0,
+      // };
     });
   };
 
@@ -255,15 +256,11 @@ export default function DashboardSales() {
     const trendData = transformTrendData(pivotClientByPeriod(sales));
     const paymentVsReceivableTrend = transformTrendData(paymentVsReceivable);
 
-    console.log(trendData);
-
     const clientData = (clients || []).map((item) => ({
       key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
       value: item.value || 0,
       drilldown: false,
     }));
-
-    console;
 
     return {
       metrics,
@@ -365,8 +362,8 @@ export default function DashboardSales() {
             color="primary"
           />
           <Chart.Metric
-            title="Total Perbaikan"
-            value={formatCompactCurrency(metrics.total_returns.value)}
+            title="Total Perbaikan (Roll)"
+            value={metrics.total_returns.value}
             // trend={metrics.total_chemical.trend}
             icon={Wrench}
             color="warning"
@@ -519,12 +516,12 @@ export default function DashboardSales() {
               subtitle=""
               datasets={[
                 {
-                  key: "total_payment",
+                  key: "payments",
                   label: "Total Payment",
                   color: "success",
                 },
                 {
-                  key: "total_receivable",
+                  key: "receivables",
                   label: "Total Receivable",
                   color: "error",
                 },
