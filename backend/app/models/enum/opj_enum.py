@@ -19,6 +19,7 @@ class OpjProcessEnum(str, Enum):
     PIGMENT = "PIGMENT"
     CUCIFINISH = "CUCI+FINISH"
     PROSES = "PROSES"
+    PERBAIKAN = "PERBAIKAN"
 
 class PeTypeEnum(str, Enum):
     PE_I_KRG_PE = "PE-I (Krg) PE"
