@@ -527,7 +527,7 @@ export default function DashboardSales() {
                 },
               ]}
               periods={[]}
-              showSummary={true}
+              showSummary={false}
               yAxisLabel="Nilai (Rp)"
             />
           </Card>
