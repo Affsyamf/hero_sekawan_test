@@ -212,6 +212,7 @@ class SalesImportService(BaseImportService):
             opj_id=opj.id,
             quantity_start=row["quantity_start"],
             quantity_end=row["quantity_end"],
+            roll=row["roll"]
         )
         self.db.add(ret)
         self.db.flush()

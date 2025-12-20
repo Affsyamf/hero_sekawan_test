@@ -29,7 +29,6 @@ class ReturnService:
             # validasi opj
             active_opj = self.db.query(Opj).filter(
                 Opj.id == request.opj_id,
-                Opj.deleted_at.is_(None)
             ).first()
             
             if not active_opj:
@@ -67,7 +66,6 @@ class ReturnService:
             # validasi opj dari sale
             sale_opj_active = self.db.query(Opj).filter(
                 Opj.id == request.opj_id,
-                Opj.deleted_at.is_(None)
             ).first()
             
             if not sale_opj_active:
@@ -101,10 +99,7 @@ class ReturnService:
         
         return_query = return_query.join(Sale, Return.sale_id == Sale.id)\
                                .join(Client, Sale.client_id == Client.id)\
-                               .join(Opj, Sale.opj_id == Opj.id)\
-                               .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
-                               .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                               .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                               .join(Opj, Sale.opj_id == Opj.id)
         
         return_query = apply_common_report_filters(return_query, filters)
         
@@ -139,7 +134,7 @@ class ReturnService:
                 "code": r.code,
                 "date": r.date.isoformat() if r.date else None,
                 "opj_id": r.opj_id,
-                "quantity": float(r.quantity) if r.quantity else None,
+                "quantity": float(r.quantity_start) if r.quantity_start else None,
                 "sale_id": r.sale_id,
             }
         )
@@ -185,7 +180,6 @@ class ReturnService:
             if "opj_id" in update_data:
                 active_opj = self.db.query(Opj).filter(
                     Opj.id == new_opj_id,
-                    Opj.deleted_at.is_(None)
                 ).first()
                 
                 if not active_opj:
@@ -240,7 +234,6 @@ class ReturnService:
             if sale:
                 sale_opj_active = self.db.query(Opj).filter(
                     Opj.id == sale.opj_id,
-                    Opj.deleted_at.is_(None)
                 ).first()
 
                 if not sale_opj_active:
