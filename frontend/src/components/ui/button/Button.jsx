@@ -34,16 +34,23 @@ export default function Button({
     },
   };
 
+  const isDisabled = props.disabled;
+
+  const disabledStyles = {
+    background: colors.neutral.disabled || "#e5e7eb",
+    color: colors.text?.muted || "#9ca3af",
+    cursor: "not-allowed",
+    opacity: 0.7,
+  };
+
   const { background, hover, color } = variants[variant] || variants.primary;
 
   return (
     <button
-      onClick={onClick}
+      onClick={isDisabled ? undefined : onClick}
+      disabled={isDisabled}
       className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium transition-colors hover:cursor-pointer ${className}`}
-      style={{
-        background,
-        color,
-      }}
+      style={isDisabled ? disabledStyles : { background, color }}
       onMouseEnter={(e) => (e.currentTarget.style.background = hover)}
       onMouseLeave={(e) => (e.currentTarget.style.background = background)}
       {...props}

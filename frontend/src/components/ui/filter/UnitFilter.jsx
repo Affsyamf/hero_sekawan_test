@@ -1,6 +1,6 @@
 import Button from "../button/Button";
 
-export default function UnitFilter({ value = null, onChange }) {
+export default function UnitFilter({ value = null, onChange, disabled }) {
   const options = [
     { key: null, label: "Rupiah" },
     { key: "unit", label: "Unit" },
@@ -15,9 +15,11 @@ export default function UnitFilter({ value = null, onChange }) {
           const isActive = value === opt.key;
           return (
             <Button
+              key={opt.label}
               label={opt.label}
               onClick={() => onChange(opt.key)}
-              variant={isActive ? "primary" : "neutral"}
+              variant={disabled ? "neutral" : isActive ? "primary" : "neutral"}
+              disabled={disabled}
             />
           );
         })}

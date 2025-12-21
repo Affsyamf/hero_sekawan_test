@@ -298,8 +298,22 @@ export const groupBy = (array, key) => {
 export const formatCompactCurrency = (value) => {
   if (value === null || value === undefined) return "Rp 0";
 
-  if (value >= 1000000000) return `Rp ${(value / 1000000000).toFixed(2)}Md`; // Miliar
+  if (value >= 1000000000) return `Rp ${(value / 1000000000).toFixed(2)}M`; // Miliar
   if (value >= 1000000) return `Rp ${(value / 1000000).toFixed(2)}Jt`; // Juta
   if (value >= 1000) return `Rp ${(value / 1000).toFixed(0)}Rb`; // Ribu
   return `Rp ${value.toFixed(0)}`;
+};
+
+/**
+ * Format angka menjadi format singkat dengan suffix (K, M)
+ * @param {number} value - Angka yang akan diformat
+ * @returns {string} Format: 1,23M, 5k, 100
+ */
+export const formatCompactNumber = (value) => {
+  if (value === null || value === undefined) return "0";
+
+  if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}M`; // Miliar
+  if (value >= 1000000) return `${(value / 1000000).toFixed(2)}Jt`; // Juta
+  if (value >= 1000) return `${(value / 1000).toFixed(0)}Rb`; // Ribu
+  return `${value.toFixed(0)}`;
 };

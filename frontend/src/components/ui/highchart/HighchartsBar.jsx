@@ -16,6 +16,7 @@ const HighchartsBar = ({
   periods,
   onFetchData,
   showSummary = true,
+  valueFormatter,
 }) => {
   const [period, setPeriod] = useState(periods?.[0] || "6 Bulan");
   const [data, setData] = useState(initialData);
@@ -38,6 +39,15 @@ const HighchartsBar = ({
       registerCategories(datasets.map((ds) => ds.label));
     }
   }, [datasets]);
+
+  const formatValue =
+    valueFormatter ||
+    ((val) => {
+      if (val == null) return "-";
+      if (typeof val === "number")
+        return val.toLocaleString("en-US", { maximumFractionDigits: 2 });
+      return String(val);
+    });
 
   const categories = data?.map((item) => item.key) || [];
 
@@ -95,7 +105,7 @@ const HighchartsBar = ({
       },
       labels: {
         formatter: function () {
-          return formatCompactCurrency(this.value);
+          return formatValue(this.value);
         },
         style: {
           fontSize: "11px", // 12px → 11px
@@ -145,7 +155,7 @@ const HighchartsBar = ({
           <span style="color:#6b7280;font-size:12px;">${
             point.series.name
           }:</span>
-          <span style="font-weight:600;font-size:12px;">${formatCompactCurrency(
+          <span style="font-weight:600;font-size:12px;">${formatValue(
             point.y
           )}</span>
         </div>`;
