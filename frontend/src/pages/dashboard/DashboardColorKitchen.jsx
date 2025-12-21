@@ -23,6 +23,7 @@ import {
   formatNumber,
   formatCompactCurrency,
   formatDate,
+  formatCompactNumber,
 } from "../../utils/helpers";
 import {
   reportsColorKitchenSummary,
@@ -441,6 +442,9 @@ export default function DashboardColorKitchen() {
                 ]}
                 onFetchData={() => trendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -459,7 +463,9 @@ export default function DashboardColorKitchen() {
                   console.log("bb");
                   return onDrilldown(context, depth);
                 }}
-                valueFormatter={formatCompactCurrency}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -492,6 +498,9 @@ export default function DashboardColorKitchen() {
               ]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
           </Card>
 
@@ -520,6 +529,9 @@ export default function DashboardColorKitchen() {
               ]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
           </Card>
         </div>

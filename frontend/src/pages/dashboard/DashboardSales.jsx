@@ -27,6 +27,7 @@ import {
 } from "../../services/reporting/report_purchasing_service";
 import {
   formatCompactCurrency,
+  formatCompactNumber,
   formatDate,
   formatNumber,
 } from "../../utils/helpers";
@@ -421,6 +422,9 @@ export default function DashboardSales() {
                 ])}
                 onFetchData={() => trendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -463,6 +467,9 @@ export default function DashboardSales() {
               datasets={[{ key: "value", label: "Total Purchases" }]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
           </Card>
 
