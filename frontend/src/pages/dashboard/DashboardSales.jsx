@@ -259,7 +259,7 @@ export default function DashboardSales() {
     const clientData = (clients || []).map((item) => ({
       key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
       value: item.value || 0,
-      drilldown: false,
+      drilldown: true,
     }));
 
     return {
@@ -440,7 +440,7 @@ export default function DashboardSales() {
 
         {/* Top Suppliers & Top Purchases */}
         <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
-          {/* Top 5 Suppliers */}
+          {/* Top 5 Client */}
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
@@ -457,43 +457,14 @@ export default function DashboardSales() {
             </div>
 
             <Highchart.HighchartsBar
-              initialData={transformToBarData(clientData)}
+              initialData={transformToBarData(clientData.slice(0, 5))}
               title=""
               subtitle=""
-              datasets={[
-                { key: "value", label: "Total Purchases", color: "primary" },
-              ]}
+              datasets={[{ key: "value", label: "Total Purchases" }]}
               periods={[]}
               showSummary={false}
             />
           </Card>
-
-          {/* <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Payments Vs Receivables
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Trend pembayaran vs piutang
-                </p>
-              </div>
-            </div>
-
-            <Highchart.HighchartsLine
-              initialData={transformToBarData(paymentVsReceivableTrend)}
-              title=""
-              subtitle=""
-              datasets={[
-                { key: "value", label: "Total Purchases", color: "primary" },
-              ]}
-              periods={[]}
-              showSummary={false}
-            />
-          </Card> */}
 
           <Card>
             <div className="flex items-center gap-2 mb-3">
@@ -516,12 +487,12 @@ export default function DashboardSales() {
               subtitle=""
               datasets={[
                 {
-                  key: "payments",
+                  key: "total_payment",
                   label: "Total Payment",
                   color: "success",
                 },
                 {
-                  key: "receivables",
+                  key: "total_receivable",
                   label: "Total Receivable",
                   color: "error",
                 },

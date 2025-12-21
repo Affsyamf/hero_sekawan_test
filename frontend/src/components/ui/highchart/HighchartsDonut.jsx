@@ -187,7 +187,6 @@ const HighchartsDonut = ({
             insertDrillData(["__root__"], data);
           },
           async drilldown(e) {
-            if (!onDrilldownRequest) return;
             e.preventDefault(); // prevent default drilldown
             const chart = this;
             chart.showLoading("Loading...");
@@ -242,6 +241,8 @@ const HighchartsDonut = ({
                 }
                 return;
               }
+
+              if (!onDrilldownRequest) return;
 
               // ✅ CASE 3: Fetch from backend and cache
               const res = await onDrilldownRequest({
