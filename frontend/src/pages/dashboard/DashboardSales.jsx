@@ -1,53 +1,44 @@
-// pages/dashboard/DashboardPurchasing.jsx
 import {
   Building2,
   DollarSign,
   Download,
-  FlaskConical,
   HandCoins,
-  Package,
   ShoppingCart,
   TrendingUp,
-  Wrench,
+  Wrench
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "../../components/ui/button/Button";
 import Card from "../../components/ui/card/Card";
 import Chart from "../../components/ui/chart/Chart";
 import { MetricGrid } from "../../components/ui/chart/MetricCard";
-import { Highchart } from "../../components/ui/highchart";
-import { useTheme } from "../../contexts/ThemeContext";
-import {
-  reportsPurchasingBreakdown,
-  reportsPurchasingBreakdownSummary,
-  reportsPurchasingProducts,
-  reportsPurchasingSummary,
-  reportsPurchasingSuppliers,
-  reportsPurchasingTrend,
-} from "../../services/reporting/report_purchasing_service";
-import {
-  formatCompactCurrency,
-  formatDate,
-  formatNumber,
-} from "../../utils/helpers";
-import useDateFilterStore from "../../stores/useDateFilterStore";
-import {
-  buildDatasetsFromData,
-  hydrateDataForChart,
-} from "../../utils/chartHelper";
-import { useFilterService } from "../../contexts/FilterServiceContext";
+import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import CategoryFilter from "../../components/ui/filter/CategoryFilter";
 import ProductFilter from "../../components/ui/filter/ProductFilter";
 import SupplierFilter from "../../components/ui/filter/SupplierFilter";
-import CategoryFilter from "../../components/ui/filter/CategoryFilter";
+import { Highchart } from "../../components/ui/highchart";
 import Loading from "../../components/ui/loading/Loading";
-import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import { useFilterService } from "../../contexts/FilterServiceContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import {
+  reportsPurchasingBreakdown
+} from "../../services/reporting/report_purchasing_service";
 import {
   reportsReceivableTrend,
   reportsSalesClient,
   reportsSalesSummary,
   reportsSalesTrend,
 } from "../../services/reporting/report_sales_service";
+import useDateFilterStore from "../../stores/useDateFilterStore";
+import {
+  buildDatasetsFromData,
+  hydrateDataForChart,
+} from "../../utils/chartHelper";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
+import {
+  formatCompactCurrency,
+  formatDate
+} from "../../utils/helpers";
 
 export default function DashboardSales() {
   const [salesData, setSalesData] = useState(null);
@@ -104,38 +95,35 @@ export default function DashboardSales() {
 
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
-      fetchPurchasingData();
+      fetchSalesData();
     }
-  }, [dateRange, JSON.stringify(filters)]);
+  }, [dateRange, JSON.stringify(filters), trendGranularity]); 
 
-  const fetchPurchasingData = async () => {
+  const fetchSalesData = async () => {
     try {
       setLoading(true);
 
-      // Use dateRange from useDateFilterStore with fallback
       const params = {
         start_date: dateRange?.dateFrom,
         end_date: dateRange?.dateTo,
-        granularity: trendGranularity,
         ...generateFilters(),
       };
 
-      // Skip fetch if no date range yet
       if (!params.start_date || !params.end_date) {
         setLoading(false);
         return;
       }
 
-      // Fetch summary, breakdown, and suppliers (no granularity needed)
+      // Fetch summary and clients (no granularity needed)
       const [summary, clients] = await Promise.all([
         reportsSalesSummary(params),
         reportsSalesClient(params),
       ]);
 
-      // Fetch trend and products with their specific granularity
+      // FIXED: Fetch trend data with current granularity
       const [trend, paymentVsReceivableTrend] = await Promise.all([
         reportsSalesTrend({ ...params, granularity: trendGranularity }),
-        reportsReceivableTrend({ ...params, granularity: trendGranularity }),
+        reportsReceivableTrend({ ...params, granularity: "monthly" }), // Keep monthly for payment/receivable
       ]);
 
       const transformedData = transformApiData(
@@ -148,40 +136,10 @@ export default function DashboardSales() {
       setSalesData(transformedData);
     } catch (error) {
       console.error("Error fetching sales data:", error);
-      //   setPurchasingData(null);
     } finally {
       setLoading(false);
     }
   };
-
-  // Fetch trend data when granularity changes
-  const fetchTrendData = async () => {
-    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
-
-    try {
-      const params = {
-        start_date: dateRange.dateFrom,
-        end_date: dateRange.dateTo,
-        granularity: trendGranularity,
-        ...generateFilters(),
-      };
-
-      const trend = await reportsPurchasingTrend(params);
-
-      //   setPurchasingData((prev) => ({
-      //     ...prev,
-      //     trendData: transformTrendData(trend.data),
-      //   }));
-    } catch (error) {
-      console.error("Error fetching trend data:", error);
-    }
-  };
-
-  useEffect(() => {
-    // if (purchasingData) {
-    //   fetchTrendData();
-    // }
-  }, [trendGranularity]);
 
   const transformTrendData = (trend) => {
     return (trend || []).map((item) => {
@@ -193,14 +151,28 @@ export default function DashboardSales() {
         displayPeriod = formatPeriod(item.period);
       }
 
-      // return {
-      //   key: displayPeriod,
-      //   ...item,
-      // };
       return {
         key: displayPeriod,
-        payments: item.total_payment ?? 0,
-        receivables: item.total_receivable ?? 0,
+        ...item, 
+      };
+    });
+  };
+
+  // Transform specifically for line chart (Payment vs Receivable)
+  const transformPaymentReceivableData = (trend) => {
+    return (trend || []).map((item) => {
+      let displayPeriod = item.period;
+
+      if (item.week_start && item.week_end) {
+        displayPeriod = formatWeeklyPeriod(item.week_start, item.week_end);
+      } else {
+        displayPeriod = formatPeriod(item.period);
+      }
+
+      return {
+        key: displayPeriod,
+        total_payment: item.total_payment ?? 0,
+        total_receivable: item.total_receivable ?? 0,
       };
     });
   };
@@ -253,17 +225,16 @@ export default function DashboardSales() {
     };
 
     const trendData = transformTrendData(pivotClientByPeriod(sales));
-    const paymentVsReceivableTrend = transformTrendData(paymentVsReceivable);
+    const paymentVsReceivableTrend = transformPaymentReceivableData(paymentVsReceivable);
 
-    console.log(trendData);
+    console.log("Sales Trend Data:", trendData);
+    console.log("Payment vs Receivable Trend:", paymentVsReceivableTrend);
 
     const clientData = (clients || []).map((item) => ({
       key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
       value: item.value || 0,
       drilldown: false,
     }));
-
-    console;
 
     return {
       metrics,
@@ -331,16 +302,15 @@ export default function DashboardSales() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
-              Purchasing Overview
+              Sales Overview
             </h1>
             <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
-              Monitor pembelian, supplier, dan trend purchasing
+              Monitor penjualan, client, dan trend sales
             </p>
-            {/* Show active filter info */}
-            {dateRange.startDate && dateRange.endDate && (
+            {dateRange.dateFrom && dateRange.dateTo && (
               <p className="mt-1 text-xs text-blue-600">
-                📅 Filtered: {formatDate(dateRange.startDate)} to{" "}
-                {formatDate(dateRange.endDate)}
+                📅 Filtered: {formatDate(dateRange.dateFrom)} to{" "}
+                {formatDate(dateRange.dateTo)}
               </p>
             )}
           </div>
@@ -360,28 +330,24 @@ export default function DashboardSales() {
           <Chart.Metric
             title="Total Sales"
             value={formatCompactCurrency(metrics.total_sales.value)}
-            // trend={metrics.total_purchases.trend}
             icon={ShoppingCart}
             color="primary"
           />
           <Chart.Metric
             title="Total Perbaikan"
             value={formatCompactCurrency(metrics.total_returns.value)}
-            // trend={metrics.total_chemical.trend}
             icon={Wrench}
             color="warning"
           />
           <Chart.Metric
             title="Total Payment"
             value={formatCompactCurrency(metrics.total_payments.value)}
-            // trend={metrics.total_sparepart.trend}
             icon={DollarSign}
             color="success"
           />
           <Chart.Metric
             title="Total Receivables"
             value={formatCompactCurrency(metrics.total_receivables.value)}
-            // trend={metrics.total_sparepart.trend}
             icon={HandCoins}
             color="error"
           />
@@ -414,6 +380,7 @@ export default function DashboardSales() {
                   "period",
                   "week_start",
                   "week_end",
+                  "key",
                 ])}
                 title=""
                 subtitle=""
@@ -421,6 +388,7 @@ export default function DashboardSales() {
                   "period",
                   "week_start",
                   "week_end",
+                  "key",
                 ])}
                 onFetchData={() => trendData}
                 showSummary={false}
@@ -441,9 +409,9 @@ export default function DashboardSales() {
           </div>
         </div>
 
-        {/* Top Suppliers & Top Purchases */}
+        {/* Top Clients & Payment vs Receivables */}
         <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
-          {/* Top 5 Suppliers */}
+          {/* Top 5 Clients */}
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
@@ -454,7 +422,7 @@ export default function DashboardSales() {
                   Top 5 Clients
                 </h3>
                 <p className="text-xs text-gray-600">
-                  Client dengan total pembelian tertinggi
+                  Client dengan total penjualan tertinggi
                 </p>
               </div>
             </div>
@@ -464,40 +432,14 @@ export default function DashboardSales() {
               title=""
               subtitle=""
               datasets={[
-                { key: "value", label: "Total Purchases", color: "primary" },
+                { key: "value", label: "Total Sales", color: "primary" },
               ]}
               periods={[]}
               showSummary={false}
             />
           </Card>
 
-          {/* <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Payments Vs Receivables
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Trend pembayaran vs piutang
-                </p>
-              </div>
-            </div>
-
-            <Highchart.HighchartsLine
-              initialData={transformToBarData(paymentVsReceivableTrend)}
-              title=""
-              subtitle=""
-              datasets={[
-                { key: "value", label: "Total Purchases", color: "primary" },
-              ]}
-              periods={[]}
-              showSummary={false}
-            />
-          </Card> */}
-
+          {/* FIXED: Payment vs Receivables */}
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
