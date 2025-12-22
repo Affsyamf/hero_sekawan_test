@@ -106,13 +106,13 @@ export default function ColorKitchensPage() {
       key: "rolls",
       label: "Roll",
       sortable: true,
-      render: (v) => <span className="text-secondary-text">{v}</span>,
+      render: (v) => <span className="text-secondary-text">{parseFloat(v).toFixed(2) || 0}</span>,
     },
     {
       key: "paste_quantity",
       label: "Paste Qty",
       sortable: true,
-      render: (v) => <span className="text-secondary-text">{v}</span>,
+      render: (v) => <span className="text-secondary-text">{parseFloat(v).toFixed(2) || 0}</span>,
     },
     {
       key: "details",

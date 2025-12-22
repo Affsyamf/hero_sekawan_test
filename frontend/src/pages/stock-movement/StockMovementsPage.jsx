@@ -11,7 +11,7 @@ import {
   searchStockMovement,
   updateStockMovement,
 } from "../../services/stock_movement_service";
-import { formatDate } from "../../utils/helpers";
+import { formatCurrency, formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
 
@@ -168,7 +168,7 @@ export default function StockMovementPage() {
                 : "text-secondary-text"
             }`}
           >
-            {balance.toFixed(2)}
+            {formatCurrency(balance) || 0}
           </span>
         );
       },
