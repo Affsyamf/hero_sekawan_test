@@ -85,7 +85,7 @@ class PurchasingTrendService(BaseReportService):
                     "total_value": 0.0,
                     "total_qty": 0.0,
                     # "accounts": {},
-                    "total": 0.0,
+                    # "total": 0.0,
                 }
 
             val = float(r.total_value or 0)
