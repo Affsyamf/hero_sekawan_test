@@ -34,7 +34,8 @@ class Return(Base, AuditMixin):
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, default=datetime.utcnow)
     code = Column(String, nullable=False) # No Faktur Penjualan
-    quantity = Column(Numeric(18, 2), nullable=False)
+    quantity_start = Column(Numeric(18, 2), nullable=False) # Quantity asal
+    quantity_end = Column(Numeric(18, 2), nullable=False) # Quantity jadi
 
     # If new OPJ is assigned to perbaikan
     opj_id = Column(Integer, ForeignKey("opjs.id", ondelete="RESTRICT"), nullable=True) # TODO: maybe? make non-nullable later
