@@ -101,8 +101,6 @@ class ColorKitchenImportService(BaseImportService):
         missing_products = set()
         missing_designs = set()
 
-        print(parsed)
-
         # ----------- validation pass -----------
         for b in parsed["batches"]:
             # batch-level products
@@ -184,8 +182,6 @@ class ColorKitchenImportService(BaseImportService):
                     )
                     self.db.add(design)
                     self.db.flush()
-
-                print(design)
 
                 entry = ColorKitchenEntry(
                     code=e["code"],
