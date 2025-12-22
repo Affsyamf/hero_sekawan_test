@@ -60,7 +60,7 @@ export default function PaymentPage() {
       ),
     },
     {
-      key: "sale",
+      key: "sale_code",
       label: "Sale Reference",
       sortable: false,
       render: (v, row) => (
