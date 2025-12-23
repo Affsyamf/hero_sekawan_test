@@ -1,190 +1,112 @@
-// pages/dashboard/DashboardPurchasing.jsx
 import {
   Building2,
   DollarSign,
   Download,
-  FlaskConical,
   HandCoins,
-  Package,
   ShoppingCart,
   TrendingUp,
   Wrench,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "../../components/ui/button/Button";
 import Card from "../../components/ui/card/Card";
 import Chart from "../../components/ui/chart/Chart";
 import { MetricGrid } from "../../components/ui/chart/MetricCard";
+import ClientFilter from "../../components/ui/filter/ClientFilter";
+import ColorKitchenFilter from "../../components/ui/filter/ColorKitchenFilter";
+import DesignFilter from "../../components/ui/filter/DesignFilter";
+import SaleFilter from "../../components/ui/filter/SaleFilter";
 import { Highchart } from "../../components/ui/highchart";
-import { useTheme } from "../../contexts/ThemeContext";
-import {
-  reportsPurchasingBreakdown,
-  reportsPurchasingBreakdownSummary,
-  reportsPurchasingProducts,
-  reportsPurchasingSummary,
-  reportsPurchasingSuppliers,
-  reportsPurchasingTrend,
-} from "../../services/reporting/report_purchasing_service";
-import {
-  formatCompactCurrency,
-  formatCompactNumber,
-  formatDate,
-  formatNumber,
-} from "../../utils/helpers";
-import useDateFilterStore from "../../stores/useDateFilterStore";
-import {
-  buildDatasetsFromData,
-  hydrateDataForChart,
-} from "../../utils/chartHelper";
 import { useFilterService } from "../../contexts/FilterServiceContext";
-import ProductFilter from "../../components/ui/filter/ProductFilter";
-import SupplierFilter from "../../components/ui/filter/SupplierFilter";
-import CategoryFilter from "../../components/ui/filter/CategoryFilter";
-import Loading from "../../components/ui/loading/Loading";
-import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
+import { useTheme } from "../../contexts/ThemeContext";
+import { reportsPurchasingBreakdown } from "../../services/reporting/report_purchasing_service";
 import {
   reportsReceivableTrend,
   reportsSalesClient,
   reportsSalesSummary,
   reportsSalesTrend,
 } from "../../services/reporting/report_sales_service";
+import useDateFilterStore from "../../stores/useDateFilterStore";
+import {
+  buildDatasetsFromData,
+  hydrateDataForChart,
+} from "../../utils/chartHelper";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
+import { formatCompactCurrency, formatDate } from "../../utils/helpers";
 
 export default function DashboardSales() {
   const [salesData, setSalesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const { colors } = useTheme();
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
 
   // Granularity per chart
   const [trendGranularity, setTrendGranularity] = useState("monthly");
+  const [paymentGranularity, setPaymentGranularity] = useState("monthly");
+
   const { filters, setFilter, registerFilters } = useFilterService();
+
+  // Trend Data states
+  const [trendData, setTrendData] = useState([]);
+  const [paymentVsReceivableTrend, setPaymentVsReceivableTrend] = useState([]);
 
   useEffect(() => {
     registerFilters([
-      <CategoryFilter
-        key="category-filter"
-        value={filters.category ?? null}
-        onChange={(val) => setFilter("category", val)}
+      <ClientFilter
+        key="client-filter"
+        value={filters.client_ids || []}
+        onChange={(v) => setFilter("client_ids", v)}
       />,
-      <AccountParentFilter
-        key="account-parent-filter"
-        value={filters.account_parent_ids || []}
-        onChange={(v) => setFilter("account_parent_ids", v)}
+      <DesignFilter
+        key="design-filter"
+        value={filters.design_ids || []}
+        onChange={(v) => setFilter("design_ids", v)}
       />,
-      <ProductFilter
-        key="product-filter"
-        value={filters.product_ids || []}
-        onChange={(v) => setFilter("product_ids", v)}
+      <ColorKitchenFilter
+        key="ck-filter"
+        value={filters.ck_ids || []}
+        onChange={(v) => setFilter("ck_ids", v)}
       />,
-      <SupplierFilter
-        key="supplier-filter"
-        value={filters.supplier_ids || []}
-        onChange={(v) => setFilter("supplier_ids", v)}
+      <SaleFilter
+        key="sale-filter"
+        value={filters.sale_ids || []}
+        onChange={(v) => setFilter("sale_ids", v)}
       />,
     ]);
-  }, [registerFilters, setFilter, JSON.stringify(filters)]);
+  }, [registerFilters, setFilter]);
 
-  const generateFilters = () => {
-    return {
-      product_ids: filters.product_ids?.length
-        ? filters.product_ids
-        : undefined,
-      supplier_ids: filters.supplier_ids?.length
-        ? filters.supplier_ids
-        : undefined,
-      category: filters.category,
-      account_parent_ids: filters.account_parent_ids?.length
-        ? filters.account_parent_ids
-        : undefined,
-    };
-  };
+  // Memoize filters to prevent unnecessary re-renders
+  const memoizedFilters = useMemo(() => {
+    const params = {};
 
-  useEffect(() => {
-    if (dateRange?.dateFrom && dateRange?.dateTo) {
-      fetchPurchasingData();
+    if (filters.client_ids?.length) {
+      params.client_ids = filters.client_ids;
     }
-  }, [dateRange, JSON.stringify(filters)]);
 
-  const fetchPurchasingData = async () => {
-    try {
-      setLoading(true);
-
-      // Use dateRange from useDateFilterStore with fallback
-      const params = {
-        start_date: dateRange?.dateFrom,
-        end_date: dateRange?.dateTo,
-        granularity: trendGranularity,
-        ...generateFilters(),
-      };
-
-      // Skip fetch if no date range yet
-      if (!params.start_date || !params.end_date) {
-        setLoading(false);
-        return;
-      }
-
-      // Fetch summary, breakdown, and suppliers (no granularity needed)
-      const [summary, clients] = await Promise.all([
-        reportsSalesSummary(params),
-        reportsSalesClient(params),
-      ]);
-
-      // Fetch trend and products with their specific granularity
-      const [trend, paymentVsReceivableTrend] = await Promise.all([
-        reportsSalesTrend({ ...params, granularity: trendGranularity }),
-        reportsReceivableTrend({ ...params, granularity: trendGranularity }),
-      ]);
-
-      const transformedData = transformApiData(
-        summary.data,
-        clients.data,
-        trend.data,
-        paymentVsReceivableTrend.data
-      );
-
-      setSalesData(transformedData);
-    } catch (error) {
-      console.error("Error fetching sales data:", error);
-      //   setPurchasingData(null);
-    } finally {
-      setLoading(false);
+    if (filters.design_ids?.length) {
+      params.design_ids = filters.design_ids;
     }
-  };
 
-  // Fetch trend data when granularity changes
-  const fetchTrendData = async () => {
-    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
-
-    try {
-      const params = {
-        start_date: dateRange.dateFrom,
-        end_date: dateRange.dateTo,
-        granularity: trendGranularity,
-        ...generateFilters(),
-      };
-
-      const trend = await reportsPurchasingTrend(params);
-
-      //   setPurchasingData((prev) => ({
-      //     ...prev,
-      //     trendData: transformTrendData(trend.data),
-      //   }));
-    } catch (error) {
-      console.error("Error fetching trend data:", error);
+    if (filters.ck_ids?.length) {
+      params.ck_ids = filters.ck_ids;
     }
-  };
 
-  useEffect(() => {
-    // if (purchasingData) {
-    //   fetchTrendData();
-    // }
-  }, [trendGranularity]);
+    if (filters.sale_ids?.length) {
+      params.sale_ids = filters.sale_ids;
+    }
 
-  const transformTrendData = (trend) => {
+    return params;
+  }, [
+    filters.client_ids,
+    filters.design_ids,
+    filters.ck_ids,
+    filters.sale_ids,
+  ]);
+
+  // Helper function
+  const transformTrendData = useCallback((trend) => {
     return (trend || []).map((item) => {
       let displayPeriod = item.period;
 
@@ -198,24 +120,29 @@ export default function DashboardSales() {
         key: displayPeriod,
         ...item,
       };
-      // console.log(item);
-      // return {
-      //   key: displayPeriod,
-      //   payments: item.total_payment ?? 0,
-      //   receivables: item.total_receivable ?? 0,
-      // };
     });
-  };
+  }, []);
 
-  const transformToBarData = (data) => {
-    return data.map((d) => ({
-      key: d.key,
-      value: d.value,
-    }));
-  };
+  const transformPaymentReceivableData = useCallback((trend) => {
+    return (trend || []).map((item) => {
+      let displayPeriod = item.period;
 
-  const pivotClientByPeriod = (data = []) =>
-    data.map((row) => {
+      if (item.week_start && item.week_end) {
+        displayPeriod = formatWeeklyPeriod(item.week_start, item.week_end);
+      } else {
+        displayPeriod = formatPeriod(item.period);
+      }
+
+      return {
+        key: displayPeriod,
+        total_payment: item.total_payment ?? 0,
+        total_receivable: item.total_receivable ?? 0,
+      };
+    });
+  }, []);
+
+  const pivotClientByPeriod = useCallback((data = []) => {
+    return data.map((row) => {
       const result = {
         period: row.period,
         week_start: row.week_start,
@@ -224,7 +151,7 @@ export default function DashboardSales() {
 
       let computedTotal = 0;
 
-      row.clients.forEach((client) => {
+      row.clients?.forEach((client) => {
         result[client.name] = client.total;
         computedTotal += client.total;
       });
@@ -233,42 +160,134 @@ export default function DashboardSales() {
 
       return result;
     });
+  }, []);
 
-  const transformApiData = (summary, clients, sales, paymentVsReceivable) => {
-    const metrics = {
-      total_sales: {
-        value: summary.total_sales || 0,
-        trend: 0,
-      },
-      total_returns: {
-        value: summary.total_returns || 0,
-        trend: 0,
-      },
-      total_receivables: {
-        value: summary.total_receivable || 0,
-        trend: 0,
-      },
-      total_payments: {
-        value: summary.total_payments || 0,
-        trend: 0,
-      },
-    };
+  // 1. Fetch Summary and Client Data
+  const fetchSalesData = useCallback(async () => {
+    if (!dateRange?.dateFrom || !dateRange?.dateTo) {
+      setSalesData(null);
+      return;
+    }
 
-    const trendData = transformTrendData(pivotClientByPeriod(sales));
-    const paymentVsReceivableTrend = transformTrendData(paymentVsReceivable);
+    try {
+      const params = {
+        start_date: dateRange.dateFrom,
+        end_date: dateRange.dateTo,
+        ...memoizedFilters,
+      };
 
-    const clientData = (clients || []).map((item) => ({
-      key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
-      value: item.value || 0,
-      drilldown: true,
+      const [summary, clients] = await Promise.all([
+        reportsSalesSummary(params),
+        reportsSalesClient(params),
+      ]);
+
+      const metrics = {
+        total_sales: {
+          value: summary.data.total_sales || 0,
+          trend: 0,
+        },
+        total_returns: {
+          value: summary.data.total_returns || 0,
+          trend: 0,
+        },
+        total_receivables: {
+          value: summary.data.total_receivable || 0,
+          trend: 0,
+        },
+        total_payments: {
+          value: summary.data.total_payments || 0,
+          trend: 0,
+        },
+      };
+
+      const clientData = (clients.data || []).map((item) => ({
+        key: item.name.charAt(0).toUpperCase() + item.name.slice(1),
+        value: item.value || 0,
+        drilldown: false,
+      }));
+
+      setSalesData({ metrics, clientData });
+    } catch (error) {
+      console.error("Error fetching sales data:", error);
+      setSalesData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange, memoizedFilters]);
+
+  // 2. Fetch Sales Trend Data
+  const fetchSalesTrend = useCallback(async () => {
+    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
+
+    try {
+      const params = {
+        start_date: dateRange.dateFrom,
+        end_date: dateRange.dateTo,
+        ...memoizedFilters,
+        granularity: trendGranularity,
+      };
+
+      const trend = await reportsSalesTrend(params);
+      setTrendData(transformTrendData(pivotClientByPeriod(trend.data)));
+    } catch (error) {
+      console.error("Error fetching sales trend data:", error);
+    }
+  }, [
+    dateRange,
+    trendGranularity,
+    memoizedFilters,
+    transformTrendData,
+    pivotClientByPeriod,
+  ]);
+
+  // 3. Fetch Payment vs Receivable Trend
+  const fetchPaymentReceivableTrend = useCallback(async () => {
+    if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
+
+    try {
+      const params = {
+        start_date: dateRange.dateFrom,
+        end_date: dateRange.dateTo,
+        ...memoizedFilters,
+        granularity: paymentGranularity,
+      };
+
+      const trend = await reportsReceivableTrend(params);
+      setPaymentVsReceivableTrend(transformPaymentReceivableData(trend.data));
+    } catch (error) {
+      console.error("Error fetching payment receivable trend:", error);
+    }
+  }, [
+    dateRange,
+    paymentGranularity,
+    memoizedFilters,
+    transformPaymentReceivableData,
+  ]);
+
+  // --- EFFECT HOOKS FOR ISOLATED FETCHING ---
+
+  // 1. Sales data fetcher (summary + clients)
+  useEffect(() => {
+    fetchSalesData();
+  }, [fetchSalesData]);
+
+  // 2. Sales trend data fetcher
+  useEffect(() => {
+    fetchSalesTrend();
+  }, [fetchSalesTrend]);
+
+  // 3. Payment vs Receivable trend fetcher
+  useEffect(() => {
+    fetchPaymentReceivableTrend();
+  }, [fetchPaymentReceivableTrend]);
+
+  // --- End of Effect Hooks ---
+
+  const transformToBarData = (data) => {
+    return data.map((d) => ({
+      key: d.key,
+      value: d.value,
     }));
-
-    return {
-      metrics,
-      trendData,
-      paymentVsReceivableTrend,
-      clientData,
-    };
   };
 
   const handleExport = async () => {
@@ -282,6 +301,7 @@ export default function DashboardSales() {
       const response = await reportsPurchasingBreakdown({
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
+        ...memoizedFilters,
       });
 
       const blob = new Blob([response.data], {
@@ -290,7 +310,7 @@ export default function DashboardSales() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `purchasing_breakdown_${dateRange.dateFrom}_${dateRange.dateTo}.xlsx`;
+      a.download = `sales_report_${dateRange.dateFrom}_${dateRange.dateTo}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -303,7 +323,15 @@ export default function DashboardSales() {
     }
   };
 
-  if (!salesData) {
+  if (loading || !salesData) {
+    if (!loading && !salesData) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <p className="mt-4 text-gray-600">Failed to load sales data.</p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -317,28 +345,24 @@ export default function DashboardSales() {
     );
   }
 
-  const { metrics, trendData, paymentVsReceivableTrend, clientData } =
-    salesData;
+  const { metrics, clientData } = salesData;
 
   return (
     <>
-      {loading && <Loading fullscreen={true} />}
-
       <div className="max-w-full space-y-4 p-0.5 md:p-1">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl">
-              Purchasing Overview
+              Sales Overview
             </h1>
             <p className="mt-0.5 text-xs text-gray-600 md:text-sm">
-              Monitor pembelian, supplier, dan trend purchasing
+              Monitor penjualan, client, dan trend sales
             </p>
-            {/* Show active filter info */}
-            {dateRange.startDate && dateRange.endDate && (
+            {dateRange.dateFrom && dateRange.dateTo && (
               <p className="mt-1 text-xs text-blue-600">
-                📅 Filtered: {formatDate(dateRange.startDate)} to{" "}
-                {formatDate(dateRange.endDate)}
+                📅 Filtered: {formatDate(dateRange.dateFrom)} to{" "}
+                {formatDate(dateRange.dateTo)}
               </p>
             )}
           </div>
@@ -358,28 +382,24 @@ export default function DashboardSales() {
           <Chart.Metric
             title="Total Sales"
             value={formatCompactCurrency(metrics.total_sales.value)}
-            // trend={metrics.total_purchases.trend}
             icon={ShoppingCart}
             color="primary"
           />
           <Chart.Metric
-            title="Total Perbaikan (Roll)"
-            value={metrics.total_returns.value}
-            // trend={metrics.total_chemical.trend}
+            title="Total Return"
+            value={formatCompactCurrency(metrics.total_returns.value)}
             icon={Wrench}
             color="warning"
           />
           <Chart.Metric
             title="Total Payment"
             value={formatCompactCurrency(metrics.total_payments.value)}
-            // trend={metrics.total_sparepart.trend}
             icon={DollarSign}
             color="success"
           />
           <Chart.Metric
             title="Total Receivables"
             value={formatCompactCurrency(metrics.total_receivables.value)}
-            // trend={metrics.total_sparepart.trend}
             icon={HandCoins}
             color="error"
           />
@@ -412,6 +432,7 @@ export default function DashboardSales() {
                   "period",
                   "week_start",
                   "week_end",
+                  "key",
                 ])}
                 title=""
                 subtitle=""
@@ -419,18 +440,16 @@ export default function DashboardSales() {
                   "period",
                   "week_start",
                   "week_end",
+                  "key",
                 ])}
                 onFetchData={() => trendData}
                 showSummary={false}
-                valueFormatter={
-                  !filters.unit ? formatCompactCurrency : formatCompactNumber
-                }
               />
             </Card>
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="h-full ">
+            <Card className="h-full">
               <Highchart.HighchartsDonut
                 data={clientData}
                 title="Breakdown Client"
@@ -442,9 +461,9 @@ export default function DashboardSales() {
           </div>
         </div>
 
-        {/* Top Suppliers & Top Purchases */}
+        {/* Top Clients & Payment vs Receivables */}
         <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
-          {/* Top 5 Client */}
+          {/* Top 5 Clients */}
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
@@ -455,37 +474,49 @@ export default function DashboardSales() {
                   Top 5 Clients
                 </h3>
                 <p className="text-xs text-gray-600">
-                  Client dengan total pembelian tertinggi
+                  Client dengan total penjualan tertinggi
                 </p>
               </div>
             </div>
 
             <Highchart.HighchartsBar
-              initialData={transformToBarData(clientData.slice(0, 5))}
+              initialData={transformToBarData(clientData)}
               title=""
               subtitle=""
-              datasets={[{ key: "value", label: "Total Purchases" }]}
+              datasets={[
+                { key: "value", label: "Total Sales", color: "primary" },
+              ]}
               periods={[]}
               showSummary={false}
-              valueFormatter={
-                !filters.unit ? formatCompactCurrency : formatCompactNumber
-              }
             />
           </Card>
 
+          {/* Payment vs Receivables */}
           <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-green-600" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 md:text-base">
+                    Payments Vs Receivables
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    Trend pembayaran vs piutang
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Payments Vs Receivables
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Trend pembayaran vs piutang
-                </p>
-              </div>
+              <select
+                value={paymentGranularity}
+                onChange={(e) => setPaymentGranularity(e.target.value)}
+                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
+              >
+                <option value="daily">Perhari</option>
+                <option value="weekly">Perminggu</option>
+                <option value="monthly">Perbulan</option>
+                <option value="yearly">Pertahun</option>
+              </select>
             </div>
 
             <Highchart.HighchartsLine
@@ -505,7 +536,7 @@ export default function DashboardSales() {
                 },
               ]}
               periods={[]}
-              showSummary={false}
+              showSummary={true}
               yAxisLabel="Nilai (Rp)"
             />
           </Card>
