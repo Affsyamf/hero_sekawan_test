@@ -12,13 +12,13 @@ export default function ClientFilter({ value = [], onChange }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
+    const timeout = setTimeout(async () => {
       setLoading(true);
       try {
         const res = await searchClient({
           q: search,
           page: 1,
-          page_size: 100,
+          page_size: 1000,
         });
         setClients(res.data.data || []);
       } catch (err) {
@@ -26,8 +26,10 @@ export default function ClientFilter({ value = [], onChange }) {
       } finally {
         setLoading(false);
       }
-    };
-    load();
+    }, 600);
+
+    // cleanup: cancel previous timeout when user types again
+    return () => clearTimeout(timeout);
   }, [search]);
 
   const toggle = (id) => {
@@ -39,7 +41,7 @@ export default function ClientFilter({ value = [], onChange }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-sm font-semibold text-gray-800">Clients</h3>
+      <h3 className="mb-3 font-semibold text-gray-800">Clients</h3>
 
       {/* Search bar */}
       <div className="relative mb-3">
@@ -64,14 +66,14 @@ export default function ClientFilter({ value = [], onChange }) {
         }}
       >
         {clients.length === 0 && !loading ? (
-          <div className="p-2 text-xs italic text-gray-500">
+          <div className="p-3 text-xs italic text-gray-500">
             No clients found
           </div>
         ) : (
           clients.map((c) => (
             <label
               key={c.id}
-              className="flex items-center gap-2 p-2 text-xs cursor-pointer hover:bg-gray-100"
+              className="flex items-center gap-2 p-2.5 text-xs cursor-pointer hover:bg-gray-100"
               title={c.name}
             >
               <input
@@ -88,7 +90,7 @@ export default function ClientFilter({ value = [], onChange }) {
 
       {/* Selected count */}
       {value.length > 0 && (
-        <p className="text-[11px] text-gray-500 mt-1.5">
+        <p className="mt-2 text-xs text-gray-500">
           {value.length} client{value.length > 1 ? "s" : ""} selected
         </p>
       )}
