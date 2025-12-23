@@ -89,7 +89,7 @@ export default function OpjPage() {
       ),
     },
     {
-      key: "client",
+      key: "client_name",
       label: "Client",
       sortable: false,
       render: (v) => (
@@ -97,7 +97,7 @@ export default function OpjPage() {
       ),
     },
     {
-      key: "design",
+      key: "design_name",
       label: "Design",
       sortable: false,
       render: (v) => (
@@ -121,8 +121,20 @@ export default function OpjPage() {
       render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
-      key: "jenis_kain",
-      label: "Jenis Kain",
+      key: "pe_type",
+      label: "PE Type",
+      sortable: false,
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
+    },
+    {
+      key: "folding",
+      label: "Folding",
+      sortable: false,
+      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
+    },
+    {
+      key: "face_direction",
+      label: "Face Direction",
       sortable: false,
       render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },

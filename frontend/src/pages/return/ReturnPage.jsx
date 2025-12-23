@@ -129,7 +129,7 @@ export default function ReturnPage() {
       ),
     },
     {
-      key: "sale",
+      key: "sale_code",
       label: "Sale Reference",
       sortable: false,
       render: (v, row) => (
@@ -153,7 +153,7 @@ export default function ReturnPage() {
       render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
-      key: "color_kitchen",
+      key: "no_opj_ck",
       label: "Color Kitchen",
       sortable: false,
       render: (v, row) => (
