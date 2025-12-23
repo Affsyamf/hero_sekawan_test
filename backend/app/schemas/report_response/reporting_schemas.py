@@ -28,6 +28,16 @@ class ClientSalesData(BaseModel):
 class SalesClientTopResponse(BaseModel):
     results: List[ClientSalesData] = Field(..., description="List of top clients by sales quantity.")
     
+class SalesDropClientData(BaseModel):
+    client_id: int = Field(..., description="ID of the client")
+    client_name: str = Field(..., description="Name of the client")
+    time_period: str = Field(..., description="Time period of the sales drop")
+    total_sales: float = Field(..., description="Total sales during this period")
+    prev_sales: Optional[float] = Field(None, description="Total sales in the previous period")
+    sales_growth: Optional[float] = Field(None, description="Growth percentage compared to previous period")
+    
+class SalesDropClientResponse(BaseModel):
+    results: List[SalesDropClientData] = Field(..., description="List of clients with sales drop data")
 
 class SalesTrendData(BaseModel):
     time_period: str = Field(..., description="Start aggregation month/week")
@@ -36,6 +46,14 @@ class SalesTrendData(BaseModel):
 class SalesTrendResponse(BaseModel):
     results: List[SalesTrendData] = Field(..., description="List of sales trend")
     
+class PurchasingSalesTrendData(BaseModel):
+    time_period: str = Field(..., description="Start aggregation month/week")
+    total_purchasing: float = Field(..., description="Total Purchasing Value during this period")
+    total_sales: float = Field(..., description="Total Sales Value during this period")
+
+class PurchasingSalesTrendResponse(BaseModel):
+    results: List[PurchasingSalesTrendData] = Field(..., description="List of purchasing and sales trend")
+
 class PaymentReceivableTrend(BaseModel):
     time_period: str = Field(..., description="Start aggregation period")
     total_payment: float = Field(..., description="Total Value of payments")

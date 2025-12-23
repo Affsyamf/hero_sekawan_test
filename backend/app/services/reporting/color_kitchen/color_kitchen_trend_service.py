@@ -48,6 +48,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
                 func.coalesce(
                     func.sum(CKBatchDetail.quantity * func.coalesce(CKBatchDetail.unit_cost_used, 0.0)), 0.0
                 ).label("dyes_value"),
+                func.sum(CKBatchDetail.quantity).label("total_qty"),
             )
             .join(CKBatch, CKBatch.id == CKBatchDetail.batch_id)
             .join(Product, Product.id == CKBatchDetail.product_id)
@@ -68,7 +69,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
 
         dyes_rows = {}
         if chem_type in ("DYE", "BOTH"):
-            dyes_rows = {r.period: float(r.dyes_value or 0) for r in q_dyes.all()}
+            dyes_rows = {r.period: {"value": float(r.dyes_value or 0), "qty": float(r.total_qty or 0)} for r in q_dyes.all()}
         
         # -----------------------------
         # AUXILIARIES — from EntryDetail
@@ -79,6 +80,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
                 func.coalesce(
                     func.sum(CKEntryDetail.quantity * func.coalesce(CKEntryDetail.unit_cost_used, 0.0)), 0.0
                 ).label("aux_value"),
+                func.sum(CKEntryDetail.quantity).label("total_qty"),
             )
             .select_from(CKEntryDetail)
             .join(CKEntry, CKEntry.id == CKEntryDetail.color_kitchen_entry_id)
@@ -102,7 +104,7 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
         
         aux_rows = {}
         if chem_type in ("AUX", "BOTH"):
-            aux_rows = {r.period: float(r.aux_value or 0) for r in q_aux.all()}
+            aux_rows = {r.period: {"value": float(r.aux_value or 0), "qty": float(r.total_qty)}for r in q_aux.all()}
 
         # -----------------------------
         # Merge results by period
@@ -111,9 +113,14 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
         data = []
 
         for p in all_periods:
-            dyes_val = dyes_rows.get(p, 0.0)
-            aux_val = aux_rows.get(p, 0.0)
+            dyes_val = dyes_rows.get(p, {}).get("value", 0.0)
+            aux_val = aux_rows.get(p, {}).get("value", 0.0)
+            
+            dyes_qty = dyes_rows.get(p, {}).get("qty", 0.0)
+            aux_qty = aux_rows.get(p, {}).get("qty", 0.0)
+            
             total_val = dyes_val + aux_val
+            total_qty = dyes_qty + aux_qty
 
             week_start = week_end = None
             if granularity == "weekly":
@@ -127,6 +134,9 @@ class ColorKitchenTrendService(BaseReportService, ColorKitchenReportBase):
                 "dyes": round(dyes_val, 2),
                 "auxiliaries": round(aux_val, 2),
                 "total": round(total_val, 2),
+                "dyes_qty": round(dyes_qty, 2),
+                "aux_qty": round(aux_qty, 2),
+                "total_qty": round(total_qty, 2),
             })
 
         return data

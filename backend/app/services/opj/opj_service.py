@@ -8,7 +8,7 @@ from app.utils.response import APIResponse
 from app.utils.datatable.request import ListRequest
 from app.utils.filters import apply_common_report_filters
 
-from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design, ColorKitchenEntry
+from app.models import Opj, OpjDetail, OpjProcessCondition, Client, Design, ColorKitchenEntry, DesignType
 from app.models.enum.opj_enum import OpjProcessEnum, PrintingMachineEnum, ProcessConditionEnum
 from app.schemas.input_models.opj_input_models import OpjCreate, OpjUpdate, OpjResponse, OpjFilter
 
@@ -90,7 +90,9 @@ class OpjService:
     def list_opj(self, filters: OpjFilter):
         query = self.db.query(Opj)
 
-        query = query.join(Design, Opj.design_id == Design.id) 
+        query = query.join(Design, Opj.design_id == Design.id)\
+                     .join(Client, Opj.client_id == Client.id)\
+                     .join(DesignType, Design.type_id == DesignType.id)
         query = apply_common_report_filters(query, filters)
         
         filter_conditions = []
@@ -187,7 +189,10 @@ class OpjService:
                 "code": opj.code,
                 "date": opj.date.isoformat(),
                 "client_id": opj.client_id,
+                "client_name": opj.client.name if opj.client else None,
                 "design_id": opj.design_id,
+                "design_code": opj.design.code if opj.design else None,
+                # "design_name": opj.design.type.name if opj.design and opj.design.type else None,
                 "printing_machine": opj.printing_machine,
                 "process_type": opj.process_type,
                 "folding": opj.folding,
