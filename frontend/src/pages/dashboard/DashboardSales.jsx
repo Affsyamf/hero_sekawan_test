@@ -330,8 +330,8 @@ export default function DashboardSales() {
             color="primary"
           />
           <Chart.Metric
-            title="Total Perbaikan"
-            value={formatCompactCurrency(metrics.total_returns.value)}
+            title="Total Return"
+            value={(metrics.total_returns.value)}
             icon={Wrench}
             color="warning"
           />
