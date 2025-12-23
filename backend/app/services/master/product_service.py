@@ -50,9 +50,7 @@ class ProductService:
                 or_(
                     Product.code.ilike(like),
                     Product.name.ilike(like),
-                    Product.unit.ilike(like),
                     Account.name.ilike(like),
-                    Purchasing.supplier.name.ilike(like),
                 )
             )
 
