@@ -32,7 +32,11 @@ import {
   hydrateDataForChart,
 } from "../../utils/chartHelper";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
-import { formatCompactCurrency, formatDate } from "../../utils/helpers";
+import {
+  formatCompactCurrency,
+  formatCompactNumber,
+  formatDate,
+} from "../../utils/helpers";
 
 export default function DashboardSales() {
   const [salesData, setSalesData] = useState(null);
@@ -418,6 +422,9 @@ export default function DashboardSales() {
                 ])}
                 onFetchData={() => trendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -462,6 +469,9 @@ export default function DashboardSales() {
               ]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
           </Card>
 
@@ -510,8 +520,11 @@ export default function DashboardSales() {
                 },
               ]}
               periods={[]}
-              showSummary={true}
+              showSummary={false}
               yAxisLabel="Nilai (Rp)"
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
           </Card>
         </div>

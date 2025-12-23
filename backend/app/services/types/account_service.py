@@ -21,12 +21,13 @@ class AccountService:
         self.db = db
 
     def list_account(self, filters: AccountFilter):
-        account_query = self.db.query(Account).join(Account.parent)
+        account_query = self.db.query(Account)
         
         account_query = account_query.join(Product, Product.account_id == Account.id)\
                                      .join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
                                      .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)\
                                      .join(Supplier, PurchasingDetail.purchasing_id == Purchasing.id)\
+                                     .outerjoin(AccountParent, Account.parent_id == AccountParent.id)
                     
         account_query = apply_common_report_filters(account_query, filters)
         
@@ -45,14 +46,14 @@ class AccountService:
         if filter_conditions:   
             account_query = account_query.filter(and_(*filter_conditions))
             
-        account_query = account_query.group_by(Account.id, AccountParent.id, Supplier.id)
+        account_query = account_query.group_by(Account.id)
         
         account_query = account_query.order_by(Account.id)
 
         return APIResponse.paginated(account_query, filters, lambda account: {
                 "id": account.id,
                 "name": account.name,
-                "account_no": str(account.parent.account_no) if account.parent.account_no else None,
+                "account_no": str(account.parent.account_no) if account.parent else None,
                 # "products": [{
                 #     "id": product.id,
                 #     "code": product.code,
@@ -63,7 +64,7 @@ class AccountService:
         )
 
     def get_account(self, account_id: int):
-        account = self.db.query(Account).join(Account.parent).filter(Account.id == account_id).first()
+        account = self.db.query(Account).outerjoin(Account.parent).filter(Account.id == account_id).first()
 
         if not account:
             return APIResponse.not_found(message=f"Account ID '{account_id}' not found.")
@@ -71,7 +72,7 @@ class AccountService:
         response = {
             "id": account.id,
             "name": account.name,
-            "account_no": str(account.parent.account_no) if account.parent.account_no else None,
+            "account_no": str(account.parent.account_no) if account.parent else None,
             "account_type": account.parent.account_type if account.parent else None,
             # "alias": account.alias,
             "products": [{

@@ -16,12 +16,14 @@ from app.models import (
     PurchasingDetail,
     StockMovement,
     StockMovementDetail,
+    Account
 )
 
 from app.utils.normalise import normalise_product_name
 from app.utils.safe_parse import safe_str, safe_date, safe_number
 from app.utils.cost_helper import update_avg_cost_for_products, refresh_product_avg_cost
 from app.utils.response import APIResponse
+from app.utils.event_flags import skip_cost_cache_updates
 
 class OpeningBalanceImportService(BaseImportService):
     def __init__(self, db: DB):
@@ -38,72 +40,98 @@ class OpeningBalanceImportService(BaseImportService):
     def _run(self, preview_id: str):
         payload = self.consume_preview(preview_id)
         rows = payload["rows"]
+        add_products = payload["add_products"]
+        prod_added = 0
 
-        system_supplier = self.get_or_create_system_supplier()
+        with skip_cost_cache_updates():
+            for prod in add_products:
+                account_id = None
 
-        start_date = datetime(2025, 7, 31)
+                if prod.get("account"):
+                    account = (
+                        self.db.query(Account)
+                        .filter_by(name=prod["account"])
+                        .first()
+                    )
+                    if account:
+                        account_id = account.id
 
-        purchasing = Purchasing(
-            date=start_date,
-            code="OPENBAL-" + start_date.strftime("%Y%m%d"),
-            purchase_order="OPENBAL",
-            supplier=system_supplier
-        )
-        self.db.add(purchasing)
-        self.db.flush()
+                product_found = self.db.query(Product).filter_by(name=prod["name"].upper()).first()
+                if not product_found:
+                    product = Product(
+                        name=prod["name"].upper(),
+                        unit=prod["unit"],
+                        account_id=account_id
+                    )
+                    self.db.add(product)
+                    prod_added += 1
+                    self.db.flush()
 
-        skipped = 0
-        skipped_products = []
-        added = 0
-        affected_products = set()
+            system_supplier = self.get_or_create_system_supplier()
 
-        for row in rows:
-            prod_name = row["product"]
+            start_date = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            product = self.db.query(Product).filter_by(name=prod_name).first()
-            if not product:
-                skipped += 1
-                skipped_products.append({
-                    "name": prod_name,
-                    "reason": "Product not found"
-                })
-                continue
-
-            init_qty = row["quantity"]
-            unit_price = row["unit_price"]
-
-            if not init_qty or init_qty == 0:
-                skipped += 1
-                skipped_products.append({
-                    "name": prod_name,
-                    "reason": "Saldo awal kosong"
-                })
-                continue
-
-            dpp = unit_price * init_qty
-            ppn = unit_price * 0.11
-
-            detail = PurchasingDetail(
-                product=product,
-                purchasing=purchasing,
-                quantity=init_qty,
-                price=unit_price,
-                discount=0.0,
-                ppn=ppn,
-                pph=0.0,
-                dpp=dpp,
-                tax_no=None,
-                exchange_rate=0.0,
+            purchasing = Purchasing(
+                date=start_date,
+                code="OPENBAL-" + start_date.strftime("%Y%m%d"),
+                purchase_order="OPENBAL",
+                supplier=system_supplier
             )
-            self.db.add(detail)
+            self.db.add(purchasing)
+            self.db.flush()
 
-            affected_products.add(product.id)
-            added += 1
+            skipped = 0
+            skipped_products = []
+            added = 0
+            affected_products = set()
 
-        self.db.commit()
+            for row in rows:
+                prod_name = row["product"]
 
-        if affected_products:
-            update_avg_cost_for_products(self.db.connection(), list(affected_products))
+                product = self.db.query(Product).filter_by(name=prod_name).first()
+                if not product:
+                    skipped += 1
+                    skipped_products.append({
+                        "name": prod_name,
+                        "reason": "Product not found"
+                    })
+                    continue
+
+                init_qty = row["quantity"]
+                unit_price = row["unit_price"]
+
+                if not init_qty or init_qty == 0:
+                    skipped += 1
+                    skipped_products.append({
+                        "name": prod_name,
+                        "reason": "Saldo awal kosong"
+                    })
+                    continue
+
+                dpp = unit_price * init_qty
+                ppn = unit_price * 0.11
+
+                detail = PurchasingDetail(
+                    product=product,
+                    purchasing=purchasing,
+                    quantity=init_qty,
+                    price=unit_price,
+                    discount=0.0,
+                    ppn=ppn,
+                    pph=0.0,
+                    dpp=dpp,
+                    tax_no=None,
+                    exchange_rate=0.0,
+                )
+                self.db.add(detail)
+
+                affected_products.add(product.id)
+                added += 1
+
+            self.db.commit()
+
+            if affected_products:
+                update_avg_cost_for_products(self.db.connection(), list(affected_products))
 
         return APIResponse.created(
             data={
@@ -123,21 +151,21 @@ class OpeningBalanceImportService(BaseImportService):
 
         preview_rows = []
         skipped_products = []
+        add_products = []
         added = 0
 
         preview_rows_flat = []
 
         for _, row in df.iterrows():
             prod_name = safe_str(normalise_product_name(row.get("NAMA BARANG")))
+            acc_name = safe_str(row.get("KETERANGAN"))
             if not prod_name:
                 continue
 
             
             product = self.db.query(Product).filter_by(name=prod_name).first()
             if not product:
-                print(f"⚠️ Product not found: {prod_name}, skipping")
-                skipped_products.append({"name": prod_name, "reason": "Product not found"})
-                continue
+                add_products.append({ "name": prod_name, "account": acc_name, "unit": safe_str(row.get("SATUAN")) })
 
             init_qty = safe_number(row.get("SALDO AWAL"))
 
@@ -174,7 +202,8 @@ class OpeningBalanceImportService(BaseImportService):
             })
             
         preview_id = self.create_preview({
-            "rows": preview_rows_flat
+            "rows": preview_rows_flat,
+            "add_products": add_products
         })
 
         return APIResponse.ok(

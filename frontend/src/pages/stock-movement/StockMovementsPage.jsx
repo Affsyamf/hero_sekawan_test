@@ -1,4 +1,4 @@
-import { Edit2, Eye, TrendingUp } from "lucide-react";
+import { Edit2, Eye, TrendingUp, Upload } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import StockMovementForm from "../../components/features/stock-movement/StockMovementForm";
 import Table from "../../components/ui/table/Table";
@@ -14,6 +14,8 @@ import {
 import { formatCurrency, formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
+import ImportStockMovementModal from "../../components/features/stock-movement/ImportStockMovementModal";
+import Button from "../../components/ui/button/Button";
 
 export default function StockMovementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +24,9 @@ export default function StockMovementPage() {
 
   const dateRange = useDateFilterStore((state) => state.dateRange);
   const { filters, setFilter, registerFilters } = useFilterService();
+
+  const [isImportStockMovementOpen, setIsImportStockMovementOpen] =
+    useState(false);
 
   // Register filters untuk Stock Movement page
   useEffect(() => {
@@ -316,6 +321,25 @@ export default function StockMovementPage() {
           </div>
         )}
 
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              icon={Upload}
+              label="Import from Excel"
+              onClick={() => setIsImportStockMovementOpen(true)}
+              className="bg-green-600 hover:bg-green-700"
+            />
+          </div>
+
+          {/* Import Guide Button */}
+          {/* <Button
+            icon={BookOpen}
+            label="Import Guide"
+            onClick={() => setIsGuideOpen(true)}
+            variant="neutral"
+          /> */}
+        </div>
+
         <Table
           key={`${refresh}-${JSON.stringify(filters)}`}
           columns={columns}
@@ -334,6 +358,12 @@ export default function StockMovementPage() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSave}
+        />
+
+        <ImportStockMovementModal
+          isOpen={isImportStockMovementOpen}
+          onClose={() => setIsImportStockMovementOpen(false)}
+          onImportSuccess={() => setRefresh((p) => p + 1)}
         />
       </div>
     </div>

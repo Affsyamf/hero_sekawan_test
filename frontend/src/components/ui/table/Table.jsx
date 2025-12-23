@@ -34,6 +34,7 @@ export default function Table({
   const [error, setError] = useState(null);
 
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
@@ -78,7 +79,7 @@ export default function Table({
     try {
       // Build filters object with date range and other filters
       const filtersPayload = { ...filters };
-      
+
       // Add date range to filters if showDateRangeFilter is enabled
       if (showDateRangeFilter) {
         if (dateRange.start) {
@@ -149,6 +150,17 @@ export default function Table({
     showDateRangeFilter,
   ]);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchInput]);
+
   // Fetch mode (fetchRef.current exists)
   useEffect(() => {
     loadData();
@@ -203,10 +215,9 @@ export default function Table({
             <input
               type="text"
               placeholder="Search..."
-              value={search}
+              value={searchInput}
               onChange={(e) => {
-                setPage(1);
-                setSearch(e.target.value);
+                setSearchInput(e.target.value);
               }}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               style={{

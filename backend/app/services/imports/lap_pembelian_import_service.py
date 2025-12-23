@@ -44,25 +44,25 @@ class LapPembelianImportService(BaseImportService):
 
         with skip_cost_cache_updates():
             for account in accounts:
-                account = self.db.query(Account).filter_by(name=account["name"]).first()
-                if not account:
+                account_found = self.db.query(Account).filter_by(name=account["name"]).first()
+                if not account_found:
                     account = Account(
                         name=account["name"]
                     )
                     self.db.add(account)
                     account_added += 1
+                    self.db.flush()
 
             for supplier in suppliers:
-                supplier = self.db.query(Supplier).filter_by(code=supplier["code"]).first()
-                if not supplier:
+                supplier_found = self.db.query(Supplier).filter_by(code=supplier["code"]).first()
+                if not supplier_found:
                     supplier = Supplier(
                         code=supplier["code"],
                         name=supplier["name"],
                     )
                     self.db.add(supplier)
                     supplier_added += 1
-
-            self.db.flush()
+                    self.db.flush()
 
             for prod in add_products:
                 account_id = None
@@ -76,15 +76,16 @@ class LapPembelianImportService(BaseImportService):
                     if account:
                         account_id = account.id
 
-                product = Product(
-                    name=prod["name"].upper(),
-                    unit=prod["unit"],
-                    account_id=account_id
-                )
-                self.db.add(product)
-                prod_added += 1
-
-            self.db.flush()
+                product_found = self.db.query(Product).filter_by(name=prod["name"].upper()).first()
+                if not product_found:
+                    product = Product(
+                        name=prod["name"].upper(),
+                        unit=prod["unit"],
+                        account_id=account_id
+                    )
+                    self.db.add(product)
+                    prod_added += 1
+                    self.db.flush()
 
             for prod in update_products:
                 if not prod.get("account"):
@@ -156,7 +157,7 @@ class LapPembelianImportService(BaseImportService):
                 affected_product_ids.add(product.id)
                 purchasing_added += 1
 
-            self.db.commit()
+            # self.db.commit()
 
         # Bulk update the cost cache for all affected products
         if affected_product_ids:
@@ -190,6 +191,10 @@ class LapPembelianImportService(BaseImportService):
         ROW_OFFSET = HEADER_ROW + 1
 
         valid_rows_data = []
+        add_products = []
+        update_products = []
+        accounts = []
+        suppliers = []
 
         summary = {"sheets": {}, "skipped": []}
         EXCLUDE_SHEETS = ["JANUARI 2025", "FEB 2025", "MARET", "APRIL", "MEI", "JUNI", "JULI"] # TODO: 2026 Change this shit
@@ -201,10 +206,6 @@ class LapPembelianImportService(BaseImportService):
             df = df.iloc[:, :-2]
 
             rows_preview = []
-            add_products = []
-            update_products = []
-            accounts = []
-            suppliers = []
             valid_rows = 0
 
             for idx, row in df.iterrows():
@@ -234,6 +235,19 @@ class LapPembelianImportService(BaseImportService):
                         "sheet": sheet,
                         "row": excel_row_num,
                         "reason": f"missing column(s): {', '.join(missing_cols)}",
+                        "product": product_name,
+                    })
+                    continue
+
+                purchasing_found = self.db.query(Purchasing).filter_by(
+                    code=no_bukti,
+                    date=tanggal,
+                ).first()
+                if purchasing_found:
+                    summary["skipped"].append({
+                        "sheet": sheet,
+                        "row": excel_row_num,
+                        "reason": "duplicate NO.BUKTI",
                         "product": product_name,
                     })
                     continue

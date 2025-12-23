@@ -26,6 +26,7 @@ export default function ImportOpeningBalance({
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("valid"); // 'valid' or 'skipped' for preview tab
+  const [previewId, setPreviewId] = useState(null);
 
   const steps = [
     { n: 1, l: "Upload" },
@@ -48,6 +49,8 @@ export default function ImportOpeningBalance({
     try {
       const res = await importApi.previewOpeningBalance(f);
       const data = res.data;
+
+      setPreviewId(data.preview_id);
 
       setPreview({
         rows: data.preview_rows || [],
@@ -97,12 +100,11 @@ export default function ImportOpeningBalance({
 
   // --- Perform actual import ---
   const doImport = async () => {
-    if (!file) return;
     setProcessing(true);
     setError(null);
 
     try {
-      const res = await importApi.importOpeningBalance(file);
+      const res = await importApi.importOpeningBalance(previewId);
       const data = res.data;
 
       setResult(data);
