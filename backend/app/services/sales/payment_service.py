@@ -47,7 +47,8 @@ class PaymentService:
                 "id": p.id,
                 "date": p.date.isoformat() if p.date else None,
                 "amount": float(p.amount) if p.amount is not None else None,
-                "sale_id": p.sale_id
+                "sale_id": p.sale_id,
+                "sale_code": p.sale.code if p.sale else None,
             }
         )
         
@@ -62,6 +63,7 @@ class PaymentService:
             "date": payment.date.isoformat() if payment.date else None,
             "amount": float(payment.amount) if payment.amount is not None else None,
             "sale_id": payment.sale_id,
+            "sale_code": payment.sale.code if payment.sale else None,
         })
         
         
