@@ -52,6 +52,7 @@ export default function DashboardSales() {
   const [trendData, setTrendData] = useState([]);
   const [paymentVsReceivableTrend, setPaymentVsReceivableTrend] = useState([]);
 
+  // ✅ Register filters with proper dependencies
   useEffect(() => {
     registerFilters([
       <ClientFilter
@@ -75,35 +76,17 @@ export default function DashboardSales() {
         onChange={(v) => setFilter("sale_ids", v)}
       />,
     ]);
-  }, [registerFilters, setFilter]);
+  }, [registerFilters, setFilter, JSON.stringify(filters)]);
 
-  // Memoize filters to prevent unnecessary re-renders
-  const memoizedFilters = useMemo(() => {
-    const params = {};
-
-    if (filters.client_ids?.length) {
-      params.client_ids = filters.client_ids;
-    }
-
-    if (filters.design_ids?.length) {
-      params.design_ids = filters.design_ids;
-    }
-
-    if (filters.ck_ids?.length) {
-      params.ck_ids = filters.ck_ids;
-    }
-
-    if (filters.sale_ids?.length) {
-      params.sale_ids = filters.sale_ids;
-    }
-
-    return params;
-  }, [
-    filters.client_ids,
-    filters.design_ids,
-    filters.ck_ids,
-    filters.sale_ids,
-  ]);
+  // ✅ Helper function to generate filters (sama seperti di ColorKitchen)
+  const generateFilters = () => {
+    return {
+      client_ids: filters.client_ids?.length ? filters.client_ids : undefined,
+      design_ids: filters.design_ids?.length ? filters.design_ids : undefined,
+      ck_ids: filters.ck_ids?.length ? filters.ck_ids : undefined,
+      sale_ids: filters.sale_ids?.length ? filters.sale_ids : undefined,
+    };
+  };
 
   // Helper function
   const transformTrendData = useCallback((trend) => {
@@ -162,18 +145,20 @@ export default function DashboardSales() {
     });
   }, []);
 
-  // 1. Fetch Summary and Client Data
-  const fetchSalesData = useCallback(async () => {
+  // ✅ 1. Fetch Summary and Client Data - dengan dependency yang benar
+  const fetchSalesData = async () => {
     if (!dateRange?.dateFrom || !dateRange?.dateTo) {
-      setSalesData(null);
+      setLoading(false);
       return;
     }
 
     try {
+      setLoading(true);
+
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        ...memoizedFilters,
+        ...generateFilters(),
       };
 
       const [summary, clients] = await Promise.all([
@@ -213,17 +198,17 @@ export default function DashboardSales() {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, memoizedFilters]);
+  };
 
-  // 2. Fetch Sales Trend Data
-  const fetchSalesTrend = useCallback(async () => {
+  // ✅ 2. Fetch Sales Trend Data
+  const fetchSalesTrend = async () => {
     if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
 
     try {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        ...memoizedFilters,
+        ...generateFilters(),
         granularity: trendGranularity,
       };
 
@@ -232,23 +217,17 @@ export default function DashboardSales() {
     } catch (error) {
       console.error("Error fetching sales trend data:", error);
     }
-  }, [
-    dateRange,
-    trendGranularity,
-    memoizedFilters,
-    transformTrendData,
-    pivotClientByPeriod,
-  ]);
+  };
 
-  // 3. Fetch Payment vs Receivable Trend
-  const fetchPaymentReceivableTrend = useCallback(async () => {
+  // ✅ 3. Fetch Payment vs Receivable Trend
+  const fetchPaymentReceivableTrend = async () => {
     if (!dateRange?.dateFrom || !dateRange?.dateTo) return;
 
     try {
       const params = {
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        ...memoizedFilters,
+        ...generateFilters(),
         granularity: paymentGranularity,
       };
 
@@ -257,31 +236,26 @@ export default function DashboardSales() {
     } catch (error) {
       console.error("Error fetching payment receivable trend:", error);
     }
-  }, [
-    dateRange,
-    paymentGranularity,
-    memoizedFilters,
-    transformPaymentReceivableData,
-  ]);
+  };
 
-  // --- EFFECT HOOKS FOR ISOLATED FETCHING ---
-
-  // 1. Sales data fetcher (summary + clients)
+  // ✅ Effect hooks dengan dependency yang benar (sama seperti ColorKitchen)
   useEffect(() => {
-    fetchSalesData();
-  }, [fetchSalesData]);
+    if (dateRange?.dateFrom && dateRange?.dateTo) {
+      fetchSalesData();
+    }
+  }, [dateRange, JSON.stringify(filters)]);
 
-  // 2. Sales trend data fetcher
   useEffect(() => {
-    fetchSalesTrend();
-  }, [fetchSalesTrend]);
+    if (dateRange?.dateFrom && dateRange?.dateTo) {
+      fetchSalesTrend();
+    }
+  }, [dateRange, trendGranularity, JSON.stringify(filters)]);
 
-  // 3. Payment vs Receivable trend fetcher
   useEffect(() => {
-    fetchPaymentReceivableTrend();
-  }, [fetchPaymentReceivableTrend]);
-
-  // --- End of Effect Hooks ---
+    if (dateRange?.dateFrom && dateRange?.dateTo) {
+      fetchPaymentReceivableTrend();
+    }
+  }, [dateRange, paymentGranularity, JSON.stringify(filters)]);
 
   const transformToBarData = (data) => {
     return data.map((d) => ({
@@ -301,7 +275,7 @@ export default function DashboardSales() {
       const response = await reportsPurchasingBreakdown({
         start_date: dateRange.dateFrom,
         end_date: dateRange.dateTo,
-        ...memoizedFilters,
+        ...generateFilters(),
       });
 
       const blob = new Blob([response.data], {
