@@ -36,7 +36,7 @@ class SalesSummaryService(BaseReportService):
         end_date: Optional[date] = filters.get("end_date")
 
         # sales SUM
-        sales_sum_query = db.query(func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount)).filter(Sale.deleted_at.is_(None))
+        sales_sum_query = db.query(func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount))
         sales_sum_query = sale_joins(sales_sum_query)
         sales_sum_query = date_filter(sales_sum_query, start_date, end_date, Sale)
         sales_sum_query = apply_common_report_filters(sales_sum_query, filters)
@@ -44,17 +44,17 @@ class SalesSummaryService(BaseReportService):
         total_sales_quantity = sales_sum_query.scalar() or 0
         total_sales_quantity_float = to_float(total_sales_quantity)
 
-        # return count
-        returns_count_query = db.query(func.count(Return.id)).filter(Return.deleted_at.is_(None))
-        returns_count_query = returns_count_query.join(Sale, Return.sale_id == Sale.id)
-        returns_count_query = sale_joins(returns_count_query)
-        returns_count_query = date_filter(returns_count_query, start_date, end_date, Return)
-        returns_count_query = apply_common_report_filters(returns_count_query, filters)
+        # return roll
+        returns_roll_query = db.query(func.sum(Return.roll))
+        returns_roll_query = returns_roll_query.join(Sale, Return.sale_id == Sale.id)
+        returns_roll_query = sale_joins(returns_roll_query)
+        returns_roll_query = date_filter(returns_roll_query, start_date, end_date, Return)
+        returns_roll_query = apply_common_report_filters(returns_roll_query, filters)
 
-        total_returns_count = returns_count_query.scalar() or 0
+        total_returns_count = returns_roll_query.scalar() or 0
 
         # total payment value
-        payments_query = db.query(func.sum(Payment.amount)).filter(Payment.deleted_at.is_(None))
+        payments_query = db.query(func.sum(Payment.amount))
         payments_query = payments_query.join(Sale, Payment.sale_id == Sale.id)
         payments_query = sale_joins(payments_query)
         payments_query = date_filter(payments_query, start_date, end_date, Payment)
@@ -64,7 +64,7 @@ class SalesSummaryService(BaseReportService):
 
         
         # piutang
-        receivable_sum_query = db.query(func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount)).filter(Sale.deleted_at.is_(None))
+        receivable_sum_query = db.query(func.sum(Sale.quantity_start * Opj.unit_price + Sale.ppn - Sale.discount))
         receivable_sum_query = sale_joins(receivable_sum_query)
         receivable_sum_query = date_filter(receivable_sum_query, start_date, end_date, Sale)
         receivable_sum_query = apply_common_report_filters(receivable_sum_query, filters)

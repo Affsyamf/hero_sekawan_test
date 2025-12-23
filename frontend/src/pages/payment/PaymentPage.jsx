@@ -7,7 +7,7 @@ import {
   searchPayment,
   updatePayment,
 } from "../../services/payment_service";
-import { formatDate } from "../../utils/helpers";
+import { formatCurrency, formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 
 export default function PaymentPage() {
@@ -55,12 +55,12 @@ export default function PaymentPage() {
       sortable: true,
       render: (v) => (
         <span className="font-medium text-secondary-text">
-          {v !== null && v !== undefined ? parseFloat(v).toFixed(2) : "-"}
+          {v !== null && v !== undefined ? formatCurrency(v) : "-"}
         </span>
       ),
     },
     {
-      key: "sale",
+      key: "sale_code",
       label: "Sale Reference",
       sortable: false,
       render: (v, row) => (

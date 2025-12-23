@@ -25,6 +25,7 @@ import {
 } from "../../services/reporting/report_purchasing_service";
 import {
   formatCompactCurrency,
+  formatCompactNumber,
   formatDate,
   formatNumber,
 } from "../../utils/helpers";
@@ -40,6 +41,7 @@ import CategoryFilter from "../../components/ui/filter/CategoryFilter";
 import Loading from "../../components/ui/loading/Loading";
 import AccountParentFilter from "../../components/ui/filter/AccountParentFilter";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
+import UnitFilter from "../../components/ui/filter/UnitFilter";
 
 export default function DashboardPurchasing() {
   const [purchasingData, setPurchasingData] = useState(null);
@@ -60,6 +62,12 @@ export default function DashboardPurchasing() {
         key="category-filter"
         value={filters.category ?? null}
         onChange={(val) => setFilter("category", val)}
+      />,
+      <UnitFilter
+        key="unit-filter"
+        value={filters.unit ?? null}
+        onChange={(val) => setFilter("unit", val)}
+        disabled={!filters.category || filters?.category === "both"}
       />,
       <AccountParentFilter
         key="account-parent-filter"
@@ -93,6 +101,16 @@ export default function DashboardPurchasing() {
         : undefined,
     };
   };
+
+  useEffect(() => {
+    // if category is null, reset unit
+    if (
+      (!filters.category || filters?.category === "both") &&
+      filters.unit !== null
+    ) {
+      setFilter("unit", null);
+    }
+  }, [filters.category]);
 
   useEffect(() => {
     if (dateRange?.dateFrom && dateRange?.dateTo) {
@@ -180,7 +198,43 @@ export default function DashboardPurchasing() {
   }, [trendGranularity]);
 
   const transformTrendData = (trend) => {
-    return (trend || []).map((item) => {
+    let trendData = null;
+
+    if (!filters.unit) {
+      trendData = trend.map((x) => {
+        const ret = {
+          period: x.period,
+          week_start: x.week_start,
+          week_end: x.week_end,
+          total: x.total_value,
+        };
+
+        if ("Batubara" in x) ret["Batubara"] = x?.Batubara?.value ?? 0;
+        if ("Chemical" in x) ret["Chemical"] = x?.Chemical?.value ?? 0;
+        if ("Other" in x) ret["Other"] = x?.Other?.value ?? 0;
+        if ("Sparepart" in x) ret["Sparepart"] = x?.Sparepart?.value ?? 0;
+
+        return ret;
+      });
+    } else {
+      trendData = trend.map((x) => {
+        const ret = {
+          period: x.period,
+          week_start: x.week_start,
+          week_end: x.week_end,
+          total: x.total_qty,
+        };
+
+        if ("Batubara" in x) ret["Batubara"] = x?.Batubara?.qty ?? 0;
+        if ("Chemical" in x) ret["Chemical"] = x?.Chemical?.qty ?? 0;
+        if ("Other" in x) ret["Other"] = x?.Other?.qty ?? 0;
+        if ("Sparepart" in x) ret["Sparepart"] = x?.Sparepart?.qty ?? 0;
+
+        return ret;
+      });
+    }
+
+    return (trendData || []).map((item) => {
       let displayPeriod = item.period;
 
       if (item.week_start && item.week_end) {
@@ -241,11 +295,49 @@ export default function DashboardPurchasing() {
       },
     };
 
+    // let trendData = null;
+
+    // if (!filters.unit) {
+    //   const tmp = trend.map((x) => {
+    //     const ret = {
+    //       period: x.period,
+    //       week_start: x.week_start,
+    //       week_end: x.week_end,
+    //       total: x.total_value,
+    //     };
+
+    //     if ("Batubara" in x) ret["Batubara"] = x?.Batubara?.value ?? 0;
+    //     if ("Chemical" in x) ret["Chemical"] = x?.Chemical?.value ?? 0;
+    //     if ("Other" in x) ret["Other"] = x?.Other?.value ?? 0;
+    //     if ("Sparepart" in x) ret["Sparepart"] = x?.Sparepart?.value ?? 0;
+
+    //     return ret;
+    //   });
+    //   trendData = transformTrendData(tmp);
+    // } else {
+    //   const tmp = trend.map((x) => {
+    //     const ret = {
+    //       period: x.period,
+    //       week_start: x.week_start,
+    //       week_end: x.week_end,
+    //       total: x.total_qty,
+    //     };
+
+    //     if ("Batubara" in x) ret["Batubara"] = x?.Batubara?.qty ?? 0;
+    //     if ("Chemical" in x) ret["Chemical"] = x?.Chemical?.qty ?? 0;
+    //     if ("Other" in x) ret["Other"] = x?.Other?.qty ?? 0;
+    //     if ("Sparepart" in x) ret["Sparepart"] = x?.Sparepart?.qty ?? 0;
+
+    //     return ret;
+    //   });
+    //   trendData = transformTrendData(tmp);
+    // }
+
     const trendData = transformTrendData(trend);
 
     const donutData = (breakdown || []).map((item) => ({
       key: item.label.charAt(0).toUpperCase() + item.label.slice(1),
-      value: item.value || 0,
+      value: (!filters.unit ? item.value : item.qty) || 0,
       drilldown: true,
       context: item.label,
     }));
@@ -262,7 +354,7 @@ export default function DashboardPurchasing() {
       .slice(0, 5)
       .map((item) => ({
         supplier: item.product,
-        value: item.total_value || 0,
+        value: (!filters.unit ? item.total_value : item.total_qty) || 0,
       }));
 
     const most_purchased = transformProductsData(products);
@@ -349,7 +441,7 @@ export default function DashboardPurchasing() {
       );
       return res.data.map((r) => ({
         key: r.label,
-        value: r.value,
+        value: !filters.unit ? r.value : r.qty,
         percentage: r.percentage,
         context: r.account_id,
         drilldown: true,
@@ -367,7 +459,7 @@ export default function DashboardPurchasing() {
 
       return res.data.map((p) => ({
         key: p.label,
-        value: p.value,
+        value: !filters.unit ? p.value : p.qty,
       }));
     }
   };
@@ -467,6 +559,9 @@ export default function DashboardPurchasing() {
                 ])}
                 onFetchData={() => trendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -481,7 +576,9 @@ export default function DashboardPurchasing() {
                 onDrilldownRequest={async ({ _, context, depth }) => {
                   return onDrilldown(context, depth);
                 }}
-                valueFormatter={formatCompactCurrency}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -514,6 +611,9 @@ export default function DashboardPurchasing() {
               ]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
 
             {/* {top_suppliers.length > 0 && (
@@ -564,127 +664,12 @@ export default function DashboardPurchasing() {
               ]}
               periods={[]}
               showSummary={false}
+              valueFormatter={
+                !filters.unit ? formatCompactCurrency : formatCompactNumber
+              }
             />
-
-            {/* {top_purchases.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t border-gray-200">
-              <div className="p-2 rounded-lg bg-green-50">
-                <p className="text-xs text-green-600">Total dari Top 5</p>
-                <p className="text-sm font-bold text-green-900">
-                  {formatCompactCurrency(
-                    top_purchases.reduce((sum, p) => sum + p.value, 0)
-                  )}
-                </p>
-              </div>
-              <div className="p-2 rounded-lg bg-green-50">
-                <p className="text-xs text-green-600">Highest Value</p>
-                <p className="text-sm font-bold text-green-900">
-                  {formatCompactCurrency(
-                    Math.max(...top_purchases.map((p) => p.value))
-                  )}
-                </p>
-              </div>
-            </div>
-          )} */}
           </Card>
         </div>
-
-        {/* Most Purchased Products */}
-        {/* <Card>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
-                <Package className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 md:text-base">
-                  Most Purchased Products
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Top 5 produk dengan volume pembelian terbanyak
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={productsGranularity}
-                onChange={(e) => setProductsGranularity(e.target.value)}
-                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg"
-              >
-                <option value="daily">Perhari</option>
-                <option value="weekly">Perminggu</option>
-                <option value="monthly">Perbulan</option>
-                <option value="yearly">Pertahun</option>
-              </select>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Total Volume</p>
-                <p className="text-xs font-semibold text-gray-900">
-                  {formatNumber(
-                    most_purchased.reduce((sum, item) => sum + item.value, 0)
-                  )}{" "}
-                  unit
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-            {most_purchased.length > 0 ? (
-              most_purchased.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-3 transition-all border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 text-xs font-bold text-blue-600 bg-blue-100 rounded-lg">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 truncate">
-                        {item.label}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-gray-600">Volume</span>
-                      <span className="text-xs font-bold text-gray-900">
-                        {formatNumber(item.value)} {item.unit}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-gray-600">Total Value</span>
-                      <span className="text-xs font-semibold text-gray-900">
-                        {formatCompactCurrency(item.total_value)}
-                      </span>
-                    </div>
-                    <Highchart.HighchartsProgress
-                      label=""
-                      value={item.value}
-                      maxValue={item.maxValue}
-                      color={
-                        index === 0
-                          ? "error"
-                          : index === 1
-                          ? "primary"
-                          : index === 2
-                          ? "warning"
-                          : index === 3
-                          ? "success"
-                          : "info"
-                      }
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-5">
-                <p className="text-xs text-center text-gray-500">
-                  No product data available
-                </p>
-              </div>
-            )}
-          </div>
-        </Card> */}
       </div>
     </>
   );

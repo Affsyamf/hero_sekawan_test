@@ -18,7 +18,6 @@ class SalesService:
         try:
             active_client = self.db.query(Client).filter(
                 Client.id == request.client_id,
-                Client.deleted_at.is_(None)
             ).first()
             
             if not active_client:
@@ -34,7 +33,6 @@ class SalesService:
             
             active_opj_entry = self.db.query(Opj).filter(
                 Opj.id == request.opj_id,
-                Opj.deleted_at.is_(None)
             ).first()
             
             if not active_opj_entry:
@@ -162,7 +160,6 @@ class SalesService:
             client_id_to_check = update_data["client_id"]
             active_client = self.db.query(Client).filter(
                 Client.id == client_id_to_check,
-                Client.deleted_at.is_(None)
             ).first()
             
             if not active_client:
@@ -180,7 +177,6 @@ class SalesService:
             opj_id_to_check = update_data["opj_id"]
             active_opj_entry = self.db.query(Opj).filter(
                 Opj.id == opj_id_to_check,
-                Opj.deleted_at.is_(None)
             ).first()
             
             if not active_opj_entry:

@@ -11,7 +11,7 @@ import {
   searchSales,
   updateSales,
 } from "../../services/sale_service";
-import { formatDate } from "../../utils/helpers";
+import { formatCurrency, formatDate } from "../../utils/helpers";
 import useDateFilterStore from "../../stores/useDateFilterStore";
 import { useFilterService } from "../../contexts/FilterServiceContext";
 import Button from "../../components/ui/button/Button";
@@ -172,7 +172,7 @@ export default function SalePage() {
       sortable: false,
       render: (v) => (
         <span className="text-secondary-text">
-          {parseFloat(v || 0).toFixed(2)}
+          {formatCurrency(v || 0)}
         </span>
       ),
     },
@@ -182,7 +182,7 @@ export default function SalePage() {
       sortable: false,
       render: (v) => (
         <span className="text-secondary-text">
-          {parseFloat(v || 0).toFixed(2)}
+          {formatCurrency(v || 0)}
         </span>
       ),
     },

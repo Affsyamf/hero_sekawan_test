@@ -39,7 +39,6 @@ class PaymentReceivableService(BaseReportService):
 
         q_sales = (
             db.query(sales_period, sales_sum)
-            .filter(Sale.deleted_at.is_(None))
         )
 
         q_sales = sale_joins(q_sales)

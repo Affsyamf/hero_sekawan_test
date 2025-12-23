@@ -19,7 +19,10 @@ import CategoryFilter from "../../components/ui/filter/CategoryFilter";
 import ProductFilter from "../../components/ui/filter/ProductFilter";
 import SupplierFilter from "../../components/ui/filter/SupplierFilter";
 import { formatPeriod, formatWeeklyPeriod } from "../../utils/dateHelper";
-import { formatCompactCurrency } from "../../utils/helpers";
+import {
+  formatCompactCurrency,
+  formatCompactNumber,
+} from "../../utils/helpers";
 
 export default function OverviewNew() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -306,6 +309,9 @@ export default function OverviewNew() {
                 ])}
                 onFetchData={() => purchasingTrendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
@@ -363,6 +369,9 @@ export default function OverviewNew() {
                 ]}
                 onFetchData={() => ckTrendData}
                 showSummary={false}
+                valueFormatter={
+                  !filters.unit ? formatCompactCurrency : formatCompactNumber
+                }
               />
             </Card>
           </div>
