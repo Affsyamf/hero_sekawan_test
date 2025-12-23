@@ -147,12 +147,6 @@ export default function ReturnPage() {
       render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
     },
     {
-      key: "product_name",
-      label: "Product",
-      sortable: false,
-      render: (v) => <span className="text-secondary-text">{v || "-"}</span>,
-    },
-    {
       key: "no_opj_ck",
       label: "Color Kitchen",
       sortable: false,

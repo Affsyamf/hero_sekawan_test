@@ -97,7 +97,7 @@ export default function OpjPage() {
       ),
     },
     {
-      key: "design_name",
+      key: "design_code",
       label: "Design",
       sortable: false,
       render: (v) => (
