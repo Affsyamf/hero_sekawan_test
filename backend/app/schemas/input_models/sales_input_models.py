@@ -70,14 +70,18 @@ class SalesFilter(ListRequest):
 
 class ReturnCreate(BaseModel):
     date: date
-    quantity: int = Field(ge=1)
+    # quantity: int = Field(ge=1)
+    quantity_start: int = Field(..., ge=0)
+    quantity_end: int = Field(..., ge=0)
     sale_id: int 
     opj_id: Optional[int]
     code: Optional[str] = None
     
 class ReturnUpdate(BaseModel):
     date: Optional[date] 
-    quantity: Optional[int] = Field(None, ge=1)
+    # quantity: Optional[int] = Field(None, ge=1)
+    quantity_start: Optional[int] = Field(None, ge=0)
+    quantity_end: Optional[int] = Field(None, ge=0)
     sale_id: Optional[int] 
     opj_id: Optional[int]
     code: Optional[str] = None
@@ -85,7 +89,9 @@ class ReturnUpdate(BaseModel):
 class ReturnResponse(BaseModel):
     id: int
     date: datetime
-    quantity: Decimal
+    quantity_start: int
+    quantity_end: int
+    # quantity: Decimal
     sale_id: int
     code: str 
     opj_id: Optional[int] = None

@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends
 from app.schemas.input_models.sales_input_models import SalesFilter 
 from app.schemas.filter_models.report_filters import SalesReportFilter
-from app.schemas.report_response.reporting_schemas import SalesSummaryResponse, SalesClientTopResponse, SalesTrendResponse, PaymentReceivableResponse
+from app.schemas.report_response.reporting_schemas import SalesSummaryResponse, SalesClientTopResponse, SalesTrendResponse, PaymentReceivableResponse, PurchasingSalesTrendResponse, SalesDropClientResponse
 from app.services.reporting.sales.sales_summary_service import SalesSummaryService
 from app.services.reporting.sales.sales_trend_service import SalesTrendService
 from app.services.reporting.sales.sales_client_top_service import SalesClientTopService
 from app.services.reporting.sales.sales_payment_receivable_trend_service import PaymentReceivableService
+from app.services.reporting.sales.purchasing_sales_trend_service import PurchasingSalesTrendService
+from app.services.reporting.sales.sales_drop_client_service import SalesDropClientService
 from app.utils.response import APIResponse
 from app.dependencies.rbac import require_user 
 
@@ -27,4 +29,12 @@ def get_sales_trend(filters: SalesReportFilter, service: SalesTrendService = Dep
 
 @router.post("/payment-receivable-trend", response_model=PaymentReceivableResponse)
 def get_payment_receivable_trend(filters: SalesReportFilter, service: PaymentReceivableService = Depends()):
+    return service.run(filters)
+
+@router.post("/purchasing-sales-trend", response_model=PurchasingSalesTrendResponse)
+def get_purchasing_sales_trend(filters: SalesReportFilter, service: PurchasingSalesTrendService = Depends()):
+    return service.run(filters)
+
+@router.post("/sales-drop-client", response_model=SalesDropClientResponse)
+def get_sales_drop_client(filters: SalesReportFilter, service: SalesDropClientService = Depends()):
     return service.run(filters)
