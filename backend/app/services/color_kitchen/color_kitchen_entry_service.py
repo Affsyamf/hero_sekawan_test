@@ -42,9 +42,9 @@ class ColorKitchenEntryService:
         # .group_by(ColorKitchenEntry.id)
         
         
-        entry_query = entry_query.join(ColorKitchenEntry.details)\
-                                 .join(ColorKitchenEntry.design)\
-                                 .join(ColorKitchenEntry.batch)\
+        entry_query = entry_query.outerjoin(ColorKitchenEntry.details)\
+                                 .outerjoin(ColorKitchenEntry.design)\
+                                 .outerjoin(ColorKitchenEntry.batch)\
                                  .join(Product, ColorKitchenEntryDetail.product_id == Product.id)\
                                  .join(Account, Product.account_id == Account.id)\
                                  .join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\

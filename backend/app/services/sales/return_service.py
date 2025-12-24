@@ -104,9 +104,9 @@ class ReturnService:
         return_query = return_query.join(Sale, Return.sale_id == Sale.id)\
                                .join(Client, Sale.client_id == Client.id)\
                                .join(Opj, Sale.opj_id == Opj.id)\
-                               .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
-                               .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                               .join(Product, ColorKitchenEntryDetail.product_id == Product.id)\
+                               .outerjoin(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
+                               .outerjoin(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
+                               .outerjoin(Product, ColorKitchenEntryDetail.product_id == Product.id)\
         
         return_query = apply_common_report_filters(return_query, filters)
         

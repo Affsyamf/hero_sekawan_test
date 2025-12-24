@@ -90,9 +90,9 @@ class OpjService:
     def list_opj(self, filters: OpjFilter):
         query = self.db.query(Opj)
 
-        query = query.join(Design, Opj.design_id == Design.id)\
-                     .join(Client, Opj.client_id == Client.id)\
-                     .join(DesignType, Design.type_id == DesignType.id)
+        query = query.outerjoin(Design, Opj.design_id == Design.id)\
+                     .outerjoin(Client, Opj.client_id == Client.id)\
+                    #  .join(DesignType, Design.type_id == DesignType.id)
         query = apply_common_report_filters(query, filters)
         
         filter_conditions = []
