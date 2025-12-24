@@ -25,7 +25,7 @@ class PurchasingService:
                 cast(
                     (func.coalesce(PurchasingDetail.quantity, 0) * func.coalesce(PurchasingDetail.price, 0))
                     + func.coalesce(PurchasingDetail.ppn * PurchasingDetail.quantity, 0)
-                    - func.coalesce(PurchasingDetail.pph, 0),
+                    - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity),
                     Numeric(18, 2)
                 )
             ).label("total_amount")
@@ -107,7 +107,7 @@ class PurchasingService:
                 "price": float(detail.price) if detail.price else 0,
                 "discount": float(detail.discount) if detail.discount else 0,
                 "ppn": float(detail.ppn) if detail.ppn else 0,
-                "pph": float(detail.pph) if detail.pph else 0,
+                "pph": float(detail.pph * detail.quantity) if detail.pph else 0,
                 "dpp": float(detail.dpp) if detail.dpp else 0,
                 "tax_no": detail.tax_no,
                 "exchange_rate": float(detail.exchange_rate) if detail.exchange_rate else 0,
