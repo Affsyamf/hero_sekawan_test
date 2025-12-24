@@ -106,7 +106,7 @@ class ReturnService:
                                .join(Opj, Sale.opj_id == Opj.id)\
                                .join(ColorKitchenEntry, ColorKitchenEntry.opj_id == Opj.id)\
                                .join(ColorKitchenEntryDetail, ColorKitchenEntry.id == ColorKitchenEntryDetail.color_kitchen_entry_id)\
-                               .join(Product, ColorKitchenEntryDetail.product_id == Product.id)
+                               .join(Product, ColorKitchenEntryDetail.product_id == Product.id)\
         
         return_query = apply_common_report_filters(return_query, filters)
         
