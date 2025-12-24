@@ -286,21 +286,28 @@ class LapPembelianImportService(BaseImportService):
                     })
 
                 valid_rows += 1
+                
+                qty = safe_number(row.get("QTY")) or 0
+                price = safe_number(row.get("HARGA SAT")) or 0
+                ppn = safe_number(row.get("PPN")) or 0
+                pph = safe_number(row.get("PPH")) or 0
+                dpp = safe_number(row.get("DPP")) or 0
+                
                 res = {
                     "sheet": sheet,
                     "row": excel_row_num,
                     "supplier": kode_supplier,
                     "product": product_name,
-                    "qty": safe_number(row.get("QTY")),
-                    "price": safe_number(row.get("HARGA SAT")),
-                    "total": round((row.get("QTY") or 0) * (row.get("HARGA SAT") or 0), 2),
+                    "qty": qty,
+                    "price": price,
+                    "total": round(qty * price, 2),
                     "tanggal": tanggal.isoformat() if tanggal else None,
                     "no_bukti": no_bukti,
                     "purchase_order": safe_str(row.get("NO.PO")),
                     "discount": safe_number(row.get("POT.")) or 0.0,
-                    "ppn": safe_number((row.get("PPN") or 0) / (row.get("QTY") or 1)) or 0.0,
-                    "dpp": safe_number(row.get("DPP")) or 0.0,
-                    "pph": safe_number((row.get("PPH")) or 0 / (row.get("QTY") or 1)) or 0.0,
+                    "ppn": ppn / (qty or 1),
+                    "dpp": dpp,
+                    "pph": pph / (qty or 1),
                     "tax_no": safe_str(row.get("FAKTUR PAJAK")),
                     "exchange_rate": safe_number(row.get("KURS")) or 1,
                 }
