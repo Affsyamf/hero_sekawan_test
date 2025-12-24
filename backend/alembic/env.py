@@ -52,6 +52,7 @@ def run_migrations_online() -> None:
             include_object=include_object,
             compare_type=True,
             compare_server_default=True,
+            version_table_schema="public"
         )
 
         with context.begin_transaction():
