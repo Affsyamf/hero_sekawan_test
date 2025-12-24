@@ -11,7 +11,8 @@ from app.models import (
     Supplier, 
     Purchasing, 
     PurchasingDetail,
-    Account
+    Account,
+    AccountParent
 )
 
 from app.utils.normalise import normalise_product_name, normalise_supplier_name, normalise_account_name
@@ -44,10 +45,19 @@ class LapPembelianImportService(BaseImportService):
 
         with skip_cost_cache_updates():
             for account in accounts:
+                account_parent = self.db.query(AccountParent).filter_by(account_no=account["acc_no"]).first()
+                if not account_parent:
+                    account_parent = AccountParent(
+                        account_no=account["acc_no"]
+                    )
+                    self.db.add(account_parent)
+                    self.db.flush()
+
                 account_found = self.db.query(Account).filter_by(name=account["name"]).first()
                 if not account_found:
                     account = Account(
-                        name=account["name"]
+                        name=account["name"],
+                        parent_id=account_parent.id
                     )
                     self.db.add(account)
                     account_added += 1
@@ -258,6 +268,7 @@ class LapPembelianImportService(BaseImportService):
 
                 acc_name_raw = row.get("ACCOUNT")
                 acc_name_norm = normalise_account_name(acc_name_raw) if pd.notna(acc_name_raw) else None
+                acc_no = safe_number(row.get("NO.ACC"))
 
                 account_exists = None
                 if acc_name_norm:
@@ -270,7 +281,7 @@ class LapPembelianImportService(BaseImportService):
                 if acc_name_norm:
                     already_in_preview = any(a["name"] == acc_name_norm for a in accounts)
                     if not account_exists and not already_in_preview:
-                        accounts.append({"name": acc_name_norm})
+                        accounts.append({"name": acc_name_norm, "acc_no": acc_no})
 
                 product = self.db.query(Product).filter_by(name=product_name.upper()).first()
                 if not product:

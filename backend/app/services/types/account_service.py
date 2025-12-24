@@ -27,7 +27,7 @@ class AccountService:
                                      .join(PurchasingDetail, Product.id == PurchasingDetail.product_id)\
                                      .join(Purchasing, PurchasingDetail.purchasing_id == Purchasing.id)\
                                      .join(Supplier, PurchasingDetail.purchasing_id == Purchasing.id)\
-                                     .outerjoin(AccountParent, Account.parent_id == AccountParent.id)
+                                     .join(AccountParent, Account.parent_id == AccountParent.id)
                     
         account_query = apply_common_report_filters(account_query, filters)
         
