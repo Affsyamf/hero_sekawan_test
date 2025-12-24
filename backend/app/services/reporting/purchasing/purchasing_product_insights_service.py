@@ -55,7 +55,7 @@ class PurchasingProductInsightsService(BaseReportService):
             db.query(
                 Product.name.label("product"),
                 func.sum(PurchasingDetail.quantity).label("total_qty"),
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_value"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Product, Product.id == PurchasingDetail.product_id)
@@ -73,7 +73,7 @@ class PurchasingProductInsightsService(BaseReportService):
 
         q = (
             q.group_by(Product.name)
-            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             .limit(5)
         )
 
@@ -166,17 +166,17 @@ class PurchasingProductInsightsService(BaseReportService):
     #     start_date = filters.get("start_date")
     #     end_date = filters.get("end_date")
 
-    #     total_value = func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0))
+    #     total_value = func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity))
     #     total_qty = func.sum(PurchasingDetail.quantity)
 
     #     q = (
     #         db.query(
     #             Product.name.label("product"),
-    #             func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0) / PurchasingDetail.quantity).label("avg_unit_cost"),
+    #             func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity) / PurchasingDetail.quantity).label("avg_unit_cost"),
     #         )
     #         .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
     #         .group_by(Product.name)
-    #         .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0) / PurchasingDetail.quantity).desc())
+    #         .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity) / PurchasingDetail.quantity).desc())
     #         .filter(PurchasingDetail.quantity > 0)
     #     )
     #     if start_date:

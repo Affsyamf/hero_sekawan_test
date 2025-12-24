@@ -36,7 +36,7 @@ class PurchasingBreakdownService(BaseReportService):
         q = (
             db.query(
                 AccountParent.account_type,
-                func.coalesce(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)), 0).label("total_value"),
+                func.coalesce(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)), 0).label("total_value"),
                 func.sum(PurchasingDetail.quantity).label("total_qty"),
                 
             )
@@ -88,7 +88,7 @@ class PurchasingBreakdownService(BaseReportService):
                     AccountParent.account_no.label("account_no"),
                     Account.id.label("account_id"),
                     Account.name.label("account_name"),
-                    func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                    func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_value"),
                     func.sum(PurchasingDetail.quantity).label("total_qty"),
                 )
                 .join(Product, Product.id == PurchasingDetail.product_id)
@@ -97,7 +97,7 @@ class PurchasingBreakdownService(BaseReportService):
                 .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
                 .filter(AccountParent.account_type == parent_type)
                 .group_by(AccountParent.account_no, Account.id, Account.name)
-                .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+                .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             )
 
         elif level == "account":
@@ -106,14 +106,14 @@ class PurchasingBreakdownService(BaseReportService):
                 db.query(
                     Product.name.label("product"),
                     func.sum(PurchasingDetail.quantity).label("total_qty"),
-                    func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                    func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_value"),
                 )
                 .join(Product, Product.id == PurchasingDetail.product_id)
                 .join(Account, Account.id == Product.account_id)
                 .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
                 .filter(Account.id == parent_account_id)
                 .group_by(Product.name)
-                .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+                .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             )
         else:
             raise ValueError("Invalid level. Must be 'account_type' or 'account'.")

@@ -40,7 +40,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
         q = (
             db.query(
                 Supplier.name.label("supplier"),
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_spent"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_spent"),
                 func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
@@ -59,7 +59,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
 
         q = (
             q.group_by(Supplier.id, Supplier.name)
-            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             .limit(5)
         )
 
@@ -88,7 +88,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
             db.query(
                 Supplier.name.label("supplier"),
                 Product.name.label("product"),
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_value"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_value"),
                 func.sum(PurchasingDetail.quantity).label("total_qty"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
@@ -105,7 +105,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
 
         q = (
             q.group_by(Supplier.name, Product.name)
-            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             .limit(5)
             .all()
         
@@ -149,7 +149,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
         base_q = (
             db.query(
                 Supplier.name.label("supplier"),
-                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).label("total_spent"),
+                func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).label("total_spent"),
             )
             .join(Purchasing, Purchasing.id == PurchasingDetail.purchasing_id)
             .join(Supplier, Supplier.id == Purchasing.supplier_id)
@@ -157,7 +157,7 @@ class PurchasingSupplierInsightsService(BaseReportService):
             .join(Account, Account.id == Product.account_id)
             .join(AccountParent, AccountParent.id == Account.parent_id)
             .group_by(Supplier.id, Supplier.name)
-            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - func.coalesce(PurchasingDetail.pph, 0)).desc())
+            .order_by(func.sum(PurchasingDetail.quantity * PurchasingDetail.price + PurchasingDetail.quantity * PurchasingDetail.ppn - (func.coalesce(PurchasingDetail.pph, 0) * PurchasingDetail.quantity)).desc())
             .filter(Supplier.name != "System Opening Balance")
         )
 
