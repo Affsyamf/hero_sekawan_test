@@ -53,7 +53,11 @@ class LapPembelianImportService(BaseImportService):
                     self.db.add(account_parent)
                     self.db.flush()
 
-                account_found = self.db.query(Account).filter_by(name=account["name"]).first()
+                account_found = (self.db.query(Account)
+                                 .join(AccountParent, AccountParent.id == Account.parent_id)
+                                 .filter(Account.name == account["name"], AccountParent.account_no == account["acc_no"])
+                                 .first()
+                                )
                 if not account_found:
                     account = Account(
                         name=account["name"],
@@ -80,7 +84,8 @@ class LapPembelianImportService(BaseImportService):
                 if prod.get("account"):
                     account = (
                         self.db.query(Account)
-                        .filter_by(name=prod["account"])
+                        .join(AccountParent, AccountParent.id == Account.parent_id)
+                        .filter(Account.name==prod["account"], AccountParent.account_no==prod["acc_no"])
                         .first()
                     )
                     if account:
@@ -103,7 +108,8 @@ class LapPembelianImportService(BaseImportService):
 
                 account = (
                     self.db.query(Account)
-                    .filter_by(name=prod["account"])
+                    .join(AccountParent, AccountParent.id == Account.parent_id)
+                    .filter(Account.name==prod["account"], AccountParent.account_no==prod["acc_no"])
                     .first()
                 )
                 if not account:
@@ -279,7 +285,7 @@ class LapPembelianImportService(BaseImportService):
                     )
 
                 if acc_name_norm:
-                    already_in_preview = any(a["name"] == acc_name_norm for a in accounts)
+                    already_in_preview = any(a["name"] == acc_name_norm and a["acc_no"] == acc_no for a in accounts)
                     if not account_exists and not already_in_preview:
                         accounts.append({"name": acc_name_norm, "acc_no": acc_no})
 
@@ -288,12 +294,14 @@ class LapPembelianImportService(BaseImportService):
                     add_products.append({
                         "name": product_name,
                         "unit": safe_str(row.get("SATUAN")),
-                        "account": acc_name_norm
+                        "account": acc_name_norm,
+                        "acc_no": acc_no
                     })
                 elif not product.account_id:
                     update_products.append({
                         "id": product.id,
-                        "account": acc_name_norm
+                        "account": acc_name_norm,
+                        "acc_no": acc_no
                     })
 
                 valid_rows += 1
